@@ -1,43 +1,44 @@
-/*TODO Переписать пакет на поддержку web-hooks*/
 package bot
 
 import (
+	"air-quality-notifyer/config"
+	"fmt"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"log"
-	"os"
+	"net/http"
 )
 
+var cfg = config.InitConfig()
+
 func NewTelegramBot() {
-	bot, err := tgbotapi.NewBotAPI(os.Getenv("TELEGRAM_SECRET"))
+	bot, err := tgbotapi.NewBotAPI(cfg.TelegramToken)
 	if err != nil {
-		log.Fatal(err)
+		log.Panic(err)
 	}
-	bot.Debug = true
 
-	cert, err := os.ReadFile("cert.pem")
+	// Set the webhook for the bot
+	wh, err := tgbotapi.NewWebhook(fmt.Sprintf("https://%s/webhook", cfg.WebhookHost))
 	if err != nil {
-		log.Fatal("Provide cert to establish correct WebSocket connection")
+		log.Panic(err)
 	}
-	certFileData := tgbotapi.FileBytes{Name: "cert.pem", Bytes: cert}
-
-	wh, _ := tgbotapi.NewWebhookWithCert("https://t0ffee-dev.ru/"+bot.Token, certFileData)
 	_, err = bot.Request(wh)
 	if err != nil {
-		log.Fatal(&err)
+		log.Panic(err)
 	}
+
 	info, err := bot.GetWebhookInfo()
 	if err != nil {
 		log.Fatal(err)
 	}
+
 	if info.LastErrorDate != 0 {
 		log.Printf("Telegram callback failed: %s", info.LastErrorMessage)
 	}
 
-	//updates := bot.ListenForWebhook("/" + bot.Token)
-	//go http.ListenAndServeTLS("0.0.0.0:8443", "cert.pem", "key.pem", nil)
-
-}
-
-func getTelegramUpdates() {
-
+	updates := bot.ListenForWebhook("/" + bot.Token)
+	go http.ListenAndServe(fmt.Sprintf(":%s", cfg.WebhookPort), nil)
+	fmt.Println("HUH", updates)
+	for update := range updates {
+		log.Printf("%+v\n", update)
+	}
 }
