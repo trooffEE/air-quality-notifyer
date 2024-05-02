@@ -16,8 +16,7 @@ func NewTelegramBot() {
 		log.Panic(err)
 	}
 
-	// Set the webhook for the bot
-	wh, err := tgbotapi.NewWebhook(fmt.Sprintf("https://%s/webhook", cfg.WebhookHost))
+	wh, err := tgbotapi.NewWebhook(fmt.Sprintf("https://%s/webhook%s", cfg.WebhookHost, bot.Token))
 	if err != nil {
 		log.Panic(err)
 	}
@@ -35,9 +34,8 @@ func NewTelegramBot() {
 		log.Printf("Telegram callback failed: %s", info.LastErrorMessage)
 	}
 
-	updates := bot.ListenForWebhook("/" + bot.Token)
+	updates := bot.ListenForWebhook("/webhook" + bot.Token)
 	go http.ListenAndServe(fmt.Sprintf(":%s", cfg.WebhookPort), nil)
-	fmt.Println("HUH", updates)
 	for update := range updates {
 		log.Printf("%+v\n", update)
 	}
