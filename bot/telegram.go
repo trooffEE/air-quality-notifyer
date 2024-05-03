@@ -44,26 +44,34 @@ func NewTelegramBot() *TelegramBot {
 
 	go http.ListenAndServe(fmt.Sprintf(":%s", cfg.WebhookPort), nil)
 
+	var tgBot *TelegramBot = &TelegramBot{API: bot}
+
 	for update := range updates {
 		if update.Message == nil {
 			continue
 		}
 
 		if !(update.Message.IsCommand() || IsPublicCommandProvided(update.Message.Text)) {
-			msg := tgbotapi.NewMessage(update.Message.Chat.ID, GetMessageByMention(NotCommandMessage))
-			fmt.Println("test", update.Message.Chat.ID)
-			bot.Send(msg)
+			tgBot.MessageSend(update.Message.Chat.ID, GetMessageByMention(NotCommandMessage))
 			continue
 		}
 
 		if isShowAQIForChosenDistrictCommandProvided(update.Message.Text) {
-			msg := tgbotapi.NewMessage(update.Message.Chat.ID, GetMessageWithAQIStatsForChosenDistrict())
-			bot.Send(msg)
+			tgBot.MessageSend(update.Message.Chat.ID, GetMessageWithAQIStatsForChosenDistrict())
 			continue
 		}
 	}
 
-	return &TelegramBot{API: bot}
+	return tgBot
+}
+
+// MessageSend is basically shortcut to cover potential errors upon sending message + for DRY principle
+func (t *TelegramBot) MessageSend(chatID int64, messagePayload string) {
+	msg := tgbotapi.NewMessage(chatID, messagePayload)
+	_, err := t.API.Send(msg)
+	if err != nil {
+		log.Print(fmt.Sprintf("Error appeared upon sending message to user %d with message %s", chatID, messagePayload))
+	}
 }
 
 func (t *TelegramBot) ConsumeSensorsData(data [][]sensor.SensorData) {
@@ -72,7 +80,7 @@ func (t *TelegramBot) ConsumeSensorsData(data [][]sensor.SensorData) {
 }
 
 func (t *TelegramBot) notifyUsersAboutSensorConsume() {
-	//msg := tgbotapi.NewMessage()
-	// TODO In future make all users get notification about districts AQI they subscribed to
-	//t.API.Send()
+	//// TODO In future make all users get notification about districts AQI they subscribed to
+	//msg := tgbotapi.NewMessage(cfg.GetTestTelegramChatID(), "Placeholder")
+	//t.API.Send(msg)
 }

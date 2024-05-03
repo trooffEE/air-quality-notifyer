@@ -65,38 +65,8 @@ var SensorIdsMapForDistricts map[int]DistrictsWithFallback = map[int]DistrictsWi
 	},
 }
 
-func fetchSensorById(wg *sync.WaitGroup, resChan chan []SensorData, id int, fallback DistrictsWithFallback) {
-	defer wg.Done()
-	var fetchedSensorData []SensorData
-
-	res, err := http.Post(
-		fmt.Sprintf("https://airkemerovo.ru/api/sensor/archive/%d/1", id),
-		"application/json",
-		nil,
-	)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	json.NewDecoder(res.Body).Decode(&fetchedSensorData)
-
-	if res.StatusCode != http.StatusOK || fetchedSensorData == nil || len(fetchedSensorData) == 0 {
-		log.Printf("fetchSensorById http status code %d for \"%s\" district with %d, revoking with fallback sensor", res.StatusCode, SensorIdsMapForDistricts[id].name, id)
-		for fallbackId := range fallback.fallbackIds {
-			// Done to make sure that "fallback go routines" won't fill data for "main go routines" districts
-			// TODO Think about better solution
-			time.Sleep(100)
-			go fetchSensorById(wg, resChan, fallbackId, DistrictsWithFallback{fallback.name, []int{}})
-		}
-		return
-	}
-
-	resChan <- fetchedSensorData
-	defer res.Body.Close()
-}
-
-func FetchSensorsData(sensors *[][]SensorData) {
-	respChan := make(chan []SensorData, len(SensorIdsMapForDistricts))
+func FetchSensorsData(sensors *[][]SensorDataHandled) {
+	respChan := make(chan []SensorDataHandled, len(SensorIdsMapForDistricts))
 	var wg sync.WaitGroup
 	wg.Add(len(SensorIdsMapForDistricts))
 
@@ -110,4 +80,52 @@ func FetchSensorsData(sensors *[][]SensorData) {
 	for resp := range respChan {
 		*sensors = append(*sensors, resp)
 	}
+}
+
+func fetchSensorById(wg *sync.WaitGroup, resChan chan []SensorDataHandled, id int, districtInfo DistrictsWithFallback) {
+	defer wg.Done()
+	var fetchedSensorData []SensorDataHandled
+
+	res, err := http.Post(
+		fmt.Sprintf("https://airkemerovo.ru/api/sensor/archive/%d/1", id),
+		"application/json",
+		nil,
+	)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	err = json.NewDecoder(res.Body).Decode(&fetchedSensorData)
+	if err != nil {
+		log.Println("Something went wrong on decoding JSON from API step")
+	}
+
+	if res.StatusCode != http.StatusOK || fetchedSensorData == nil || len(fetchedSensorData) == 0 {
+		log.Printf("\nfetchSensorById http status code %d for \"%s\" district with %d, revoking with fallback sensor", res.StatusCode, SensorIdsMapForDistricts[id].name, id)
+		for fallbackId := range districtInfo.fallbackIds {
+			// Done to make sure that "fallback go routines" won't fill data for "main go routines" districts
+			// TODO Think about better solution
+			time.Sleep(100)
+			go fetchSensorById(wg, resChan, fallbackId, DistrictsWithFallback{districtInfo.name, []int{}})
+		}
+		return
+	}
+
+	handleFetchSensorData(fetchedSensorData, districtInfo)
+
+	resChan <- fetchedSensorData
+	defer res.Body.Close()
+}
+
+func handleFetchSensorData(fetchedSensorData []SensorDataHandled, districtInfoRelatedToFetchedSensorData DistrictsWithFallback) {
+	var wg sync.WaitGroup
+	wg.Add(len(fetchedSensorData))
+
+	for i := range fetchedSensorData {
+		sensorData := &fetchedSensorData[i]
+		sensorData.District = districtInfoRelatedToFetchedSensorData.name
+		go sensorData.calculateAQI(&wg)
+	}
+
+	wg.Wait()
 }

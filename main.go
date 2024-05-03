@@ -14,6 +14,7 @@ func main() {
 	c := cron.New()
 	c.AddFunc("@every 1m", func() {
 		sensor.FetchSensorsData(&sensors)
+		data := sensor.ProvideSensorsData(sensors)
 		tgBot.ConsumeSensorsData(sensors)
 	})
 
