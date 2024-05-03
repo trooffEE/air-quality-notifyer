@@ -1,12 +1,12 @@
 package sensor
 
 import (
-	"air-quality-notifyer/entity"
 	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
 	"sync"
+	"time"
 )
 
 const (
@@ -65,9 +65,9 @@ var SensorIdsMapForDistricts map[int]DistrictsWithFallback = map[int]DistrictsWi
 	},
 }
 
-func fetchSensorById(wg *sync.WaitGroup, resChan chan []entity.SensorData, id int, fallback DistrictsWithFallback) {
+func fetchSensorById(wg *sync.WaitGroup, resChan chan []SensorData, id int, fallback DistrictsWithFallback) {
 	defer wg.Done()
-	var fetchedSensorData []entity.SensorData
+	var fetchedSensorData []SensorData
 
 	res, err := http.Post(
 		fmt.Sprintf("https://airkemerovo.ru/api/sensor/archive/%d/1", id),
@@ -83,6 +83,9 @@ func fetchSensorById(wg *sync.WaitGroup, resChan chan []entity.SensorData, id in
 	if res.StatusCode != http.StatusOK || fetchedSensorData == nil || len(fetchedSensorData) == 0 {
 		log.Printf("fetchSensorById http status code %d for \"%s\" district with %d, revoking with fallback sensor", res.StatusCode, SensorIdsMapForDistricts[id].name, id)
 		for fallbackId := range fallback.fallbackIds {
+			// Done to make sure that "fallback go routines" won't fill data for "main go routines" districts
+			// TODO Think about better solution
+			time.Sleep(100)
 			go fetchSensorById(wg, resChan, fallbackId, DistrictsWithFallback{fallback.name, []int{}})
 		}
 		return
@@ -92,8 +95,8 @@ func fetchSensorById(wg *sync.WaitGroup, resChan chan []entity.SensorData, id in
 	defer res.Body.Close()
 }
 
-func FetchSensorsData(sensors *[][]entity.SensorData) {
-	respChan := make(chan []entity.SensorData, len(SensorIdsMapForDistricts))
+func FetchSensorsData(sensors *[][]SensorData) {
+	respChan := make(chan []SensorData, len(SensorIdsMapForDistricts))
 	var wg sync.WaitGroup
 	wg.Add(len(SensorIdsMapForDistricts))
 

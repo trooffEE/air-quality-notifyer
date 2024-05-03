@@ -1,4 +1,4 @@
-package entity
+package sensor
 
 type SensorData struct {
 	Sensor_Id          int

@@ -2,18 +2,20 @@ package main
 
 import (
 	"air-quality-notifyer/bot"
-	"air-quality-notifyer/entity"
-	sensor "air-quality-notifyer/handlers"
+	"air-quality-notifyer/sensor"
 	_ "github.com/joho/godotenv/autoload"
 	"github.com/robfig/cron/v3"
 )
 
 func main() {
-	bot.NewTelegramBot()
-	sensors := entity.NewSensorsData()
+	sensors := sensor.NewSensorsData()
+	tgBot := bot.NewTelegramBot()
+
 	c := cron.New()
-	c.AddFunc("0 * * * * *", func() {
+	c.AddFunc("@every 1m", func() {
 		sensor.FetchSensorsData(&sensors)
+		tgBot.ConsumeSensorsData(sensors)
 	})
+
 	c.Start()
 }
