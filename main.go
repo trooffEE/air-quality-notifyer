@@ -12,7 +12,7 @@ func main() {
 	bot.NewTelegramBot()
 	sensors := entity.NewSensorsData()
 	c := cron.New()
-	c.AddFunc("1 * * * * *", func() {
+	c.AddFunc("0 * * * * *", func() {
 		sensor.FetchSensorsData(&sensors)
 	})
 	c.Start()

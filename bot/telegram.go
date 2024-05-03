@@ -35,8 +35,18 @@ func NewTelegramBot() {
 	}
 
 	updates := bot.ListenForWebhook("/webhook" + bot.Token)
+
 	go http.ListenAndServe(fmt.Sprintf(":%s", cfg.WebhookPort), nil)
+
 	for update := range updates {
-		log.Printf("%+v\n", update)
+		if update.Message == nil {
+			continue
+		}
+
+		if !update.Message.IsCommand() {
+			msg := tgbotapi.NewMessage(update.Message.Chat.ID, GetMessageByMention(NotCommandMessage))
+			bot.Send(msg)
+			continue
+		}
 	}
 }
