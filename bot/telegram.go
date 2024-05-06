@@ -13,7 +13,7 @@ var cfg = config.InitConfig()
 
 type TelegramBot struct {
 	API         *tgbotapi.BotAPI
-	sensorsData [][]sensor.SensorData
+	sensorsData [][]sensor.Data
 }
 
 func NewTelegramBot() *TelegramBot {
@@ -46,21 +46,27 @@ func NewTelegramBot() *TelegramBot {
 
 	var tgBot *TelegramBot = &TelegramBot{API: bot}
 
-	for update := range updates {
-		if update.Message == nil {
-			continue
-		}
+	//anyNewSensorUpdate := <-sensor.TelegramBotNotifySensorChangeChanel
 
-		if !(update.Message.IsCommand() || IsPublicCommandProvided(update.Message.Text)) {
-			tgBot.MessageSend(update.Message.Chat.ID, GetMessageByMention(NotCommandMessage))
-			continue
-		}
+	//fmt.Println("Как это работает?", anyNewSensorUpdate)
 
-		if isShowAQIForChosenDistrictCommandProvided(update.Message.Text) {
-			tgBot.MessageSend(update.Message.Chat.ID, GetMessageWithAQIStatsForChosenDistrict())
-			continue
+	go func() {
+		for update := range updates {
+			if update.Message == nil {
+				continue
+			}
+
+			if !(update.Message.IsCommand() || IsPublicCommandProvided(update.Message.Text)) {
+				tgBot.MessageSend(update.Message.Chat.ID, GetMessageByMention(NotCommandMessage))
+				continue
+			}
+
+			if isShowAQIForChosenDistrictCommandProvided(update.Message.Text) {
+				tgBot.MessageSend(update.Message.Chat.ID, GetMessageWithAQIStatsForChosenDistrict())
+				continue
+			}
 		}
-	}
+	}()
 
 	return tgBot
 }
@@ -74,7 +80,7 @@ func (t *TelegramBot) MessageSend(chatID int64, messagePayload string) {
 	}
 }
 
-func (t *TelegramBot) ConsumeSensorsData(data [][]sensor.SensorData) {
+func (t *TelegramBot) ConsumeSensorsData(data [][]sensor.Data) {
 	t.sensorsData = data
 	t.notifyUsersAboutSensorConsume()
 }

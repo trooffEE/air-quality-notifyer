@@ -9,14 +9,15 @@ import (
 
 func main() {
 	sensors := sensor.NewSensorsData()
-	tgBot := bot.NewTelegramBot()
+	bot.NewTelegramBot()
 
 	c := cron.New()
-	c.AddFunc("@every 1m", func() {
-		sensor.FetchSensorsData(&sensors)
-		data := sensor.ProvideSensorsData(sensors)
-		tgBot.ConsumeSensorsData(sensors)
-	})
-
+	sensor.FetchSensorsData(&sensors)
+	sensor.NotifyPackages(sensors)
+	//c.AddFunc("@every 1m", func() {
+	//	sensor.FetchSensorsData(&sensors)
+	//})
 	c.Start()
+
+	select {}
 }

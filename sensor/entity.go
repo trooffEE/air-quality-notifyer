@@ -1,35 +1,36 @@
 package sensor
 
-import "sync"
+import (
+	"sync"
+)
 
-type SensorData struct {
-	Sensor_Id          int
-	Date               string
-	SDS_P2             float32
-	SDS_P1             float32
-	BME280_temperature float32
-	BME280_humidity    float32
-	BME280_pressure    interface{}
+type Data struct {
+	SensorId       int64
+	Date           string
+	SDS_P2         float64
+	SDS_P1         float64
+	Temperature    float64
+	Humidity       int64
+	Pressure       int64
+	District       string
+	AQIPM25        float64
+	AQIPM10        float64
+	DangerLevel    string
+	DangerColor    string
+	AdditionalInfo string
 }
 
-type SensorDataHandled struct {
-	SensorData
-	District string
-	AQIPM25  int
-	AQIPM10  int
+func NewSensorsData() [][]Data {
+	return [][]Data{}
 }
 
-func NewSensorsData() [][]SensorDataHandled {
-	return [][]SensorDataHandled{}
-}
-
-var S = []struct {
+var PMLevelAirMap = []struct {
 	PM25Low   float64
 	PM25High  float64
-	PM10Low   int
-	PM10High  int
-	IndexLow  int
-	IndexHigh int
+	PM10Low   float64
+	PM10High  float64
+	IndexLow  float64
+	IndexHigh float64
 	Color     string
 	Name      string
 }{
@@ -105,9 +106,18 @@ var S = []struct {
 	},
 }
 
-func (s *SensorDataHandled) calculateAQI(wg *sync.WaitGroup) {
+func (s *Data) calculateAQI(wg *sync.WaitGroup) {
 	defer wg.Done()
-	// AQI = ((AQI_high - AQI_low) / (Conc_high - Conc_low)) * (Conc_measured - Conc_low) + AQI_low
-	s.AQIPM25 = 1
-	s.AQIPM25 = 1
+	for _, pm := range PMLevelAirMap {
+		if s.SDS_P1 >= pm.PM10Low && s.SDS_P1 < pm.PM10High {
+			s.AQIPM10 = ((pm.IndexHigh-pm.IndexLow)/(pm.PM10High-pm.PM10Low))*(s.SDS_P1-pm.PM10Low) + pm.IndexLow
+			s.DangerLevel = pm.Name
+			s.DangerColor = pm.Color
+		}
+		if s.SDS_P2 >= pm.PM25Low && s.SDS_P2 < pm.PM25High {
+			s.AQIPM25 = ((pm.IndexHigh-pm.IndexLow)/(pm.PM25High-pm.PM25Low))*(s.SDS_P2-pm.PM25Low) + pm.IndexLow
+			s.DangerLevel = pm.Name
+			s.DangerColor = pm.Color
+		}
+	}
 }

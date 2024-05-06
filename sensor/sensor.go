@@ -6,7 +6,6 @@ import (
 	"log"
 	"net/http"
 	"sync"
-	"time"
 )
 
 const (
@@ -21,7 +20,7 @@ const (
 
 type DistrictsWithFallback struct {
 	name        string
-	fallbackIds []int
+	fallbackIds []int64
 }
 
 var DistrictNames = map[string]string{
@@ -34,43 +33,47 @@ var DistrictNames = map[string]string{
 	lesnayaPolyana: "Лесная Поляна",
 }
 
-var SensorIdsMapForDistricts map[int]DistrictsWithFallback = map[int]DistrictsWithFallback{
+var Districts map[int64]DistrictsWithFallback = map[int64]DistrictsWithFallback{
 	7: DistrictsWithFallback{
 		boulevard,
-		[]int{},
+		[]int64{},
 	},
 	11: DistrictsWithFallback{
 		lesnayaPolyana,
-		[]int{},
+		[]int64{},
 	},
 	20: DistrictsWithFallback{
 		metalposhadka,
-		[]int{53},
+		[]int64{53},
 	},
 	40: DistrictsWithFallback{
 		center,
-		[]int{39, 48},
+		[]int64{39, 48},
 	},
 	47: DistrictsWithFallback{
 		kirovskii,
-		[]int{},
+		[]int64{},
 	},
 	56: DistrictsWithFallback{
 		yuzhinii,
-		[]int{51, 59},
+		[]int64{51, 59},
 	},
 	71: DistrictsWithFallback{
 		circus,
-		[]int{},
+		[]int64{},
 	},
 }
 
-func FetchSensorsData(sensors *[][]SensorDataHandled) {
-	respChan := make(chan []SensorDataHandled, len(SensorIdsMapForDistricts))
-	var wg sync.WaitGroup
-	wg.Add(len(SensorIdsMapForDistricts))
+func NotifyPackages(sensor [][]Data) {
+	TelegramBotNotifySensorChangeChanel <- sensor
+}
 
-	for key, value := range SensorIdsMapForDistricts {
+func FetchSensorsData(sensors *[][]Data) {
+	respChan := make(chan []Data, len(Districts))
+	var wg sync.WaitGroup
+	wg.Add(len(Districts))
+
+	for key, value := range Districts {
 		go fetchSensorById(&wg, respChan, key, value)
 	}
 
@@ -82,9 +85,8 @@ func FetchSensorsData(sensors *[][]SensorDataHandled) {
 	}
 }
 
-func fetchSensorById(wg *sync.WaitGroup, resChan chan []SensorDataHandled, id int, districtInfo DistrictsWithFallback) {
-	defer wg.Done()
-	var fetchedSensorData []SensorDataHandled
+func fetchSensorById(wg *sync.WaitGroup, resChan chan []Data, id int64, districtInfo DistrictsWithFallback) {
+	var fetchedSensorData []Data
 
 	res, err := http.Post(
 		fmt.Sprintf("https://airkemerovo.ru/api/sensor/archive/%d/1", id),
@@ -101,31 +103,47 @@ func fetchSensorById(wg *sync.WaitGroup, resChan chan []SensorDataHandled, id in
 	}
 
 	if res.StatusCode != http.StatusOK || fetchedSensorData == nil || len(fetchedSensorData) == 0 {
-		log.Printf("\nfetchSensorById http status code %d for \"%s\" district with %d, revoking with fallback sensor", res.StatusCode, SensorIdsMapForDistricts[id].name, id)
+		log.Printf("\nfetchSensorById http status code %d for \"%s\" district with %d, revoking with fallback sensor", res.StatusCode, Districts[id].name, id)
 		for fallbackId := range districtInfo.fallbackIds {
 			// Done to make sure that "fallback go routines" won't fill data for "main go routines" districts
-			// TODO Think about better solution
-			time.Sleep(100)
-			go fetchSensorById(wg, resChan, fallbackId, DistrictsWithFallback{districtInfo.name, []int{}})
+			go fetchSensorById(
+				wg,
+				resChan,
+				int64(fallbackId),
+				DistrictsWithFallback{districtInfo.name, []int64{}},
+			)
 		}
 		return
 	}
 
-	handleFetchSensorData(fetchedSensorData, districtInfo)
+	richSensorData(fetchedSensorData, districtInfo, id)
 
 	resChan <- fetchedSensorData
+	wg.Done()
 	defer res.Body.Close()
 }
 
-func handleFetchSensorData(fetchedSensorData []SensorDataHandled, districtInfoRelatedToFetchedSensorData DistrictsWithFallback) {
+func richSensorData(
+	fetchedSensorData []Data,
+	districtInfoRelatedToFetchedSensorData DistrictsWithFallback,
+	id int64,
+) []Data {
 	var wg sync.WaitGroup
 	wg.Add(len(fetchedSensorData))
 
 	for i := range fetchedSensorData {
 		sensorData := &fetchedSensorData[i]
+		sensorData.SensorId = id
 		sensorData.District = districtInfoRelatedToFetchedSensorData.name
+		if sensorData.Humidity >= 90 {
+			sensorData.AdditionalInfo = "Высокая влажность. Показания PM могут быть не корректны\n"
+		}
+		if sensorData.Temperature < -60 {
+			sensorData.AdditionalInfo += fmt.Sprintf("Датчики температуры в районе %s не исправен!\n", sensorData.District)
+		}
 		go sensorData.calculateAQI(&wg)
 	}
-
 	wg.Wait()
+
+	return fetchedSensorData
 }
