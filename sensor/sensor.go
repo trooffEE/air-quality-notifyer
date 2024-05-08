@@ -54,18 +54,14 @@ var Districts map[int64]DistrictsWithFallback = map[int64]DistrictsWithFallback{
 		kirovskii,
 		[]int64{},
 	},
-	56: DistrictsWithFallback{
+	59: DistrictsWithFallback{
 		yuzhinii,
-		[]int64{51, 59},
+		[]int64{51, 56},
 	},
 	71: DistrictsWithFallback{
 		circus,
 		[]int64{},
 	},
-}
-
-func NotifyPackages(sensor [][]Data) {
-	TelegramBotNotifySensorChangeChanel <- sensor
 }
 
 func FetchSensorsData(sensors *[][]Data) {
@@ -83,6 +79,8 @@ func FetchSensorsData(sensors *[][]Data) {
 	for resp := range respChan {
 		*sensors = append(*sensors, resp)
 	}
+
+	ChangesInAPIAppearedChannel <- *sensors
 }
 
 func fetchSensorById(wg *sync.WaitGroup, resChan chan []Data, id int64, districtInfo DistrictsWithFallback) {
