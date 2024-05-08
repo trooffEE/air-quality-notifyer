@@ -7,13 +7,19 @@ import (
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"log"
 	"net/http"
+	"time"
 )
 
 var cfg = config.InitConfig()
 
 type TelegramBot struct {
-	API         *tgbotapi.BotAPI
-	sensorsData [][]sensor.Data
+	API *tgbotapi.BotAPI
+}
+
+func getUpdatesAboutSensors(tgBot *TelegramBot) {
+	_sensor := <-sensor.ChangesInAPIAppearedChannel
+	tgBot.notifyUsersAboutSensors(_sensor)
+	go getUpdatesAboutSensors(tgBot)
 }
 
 func NewTelegramBot() *TelegramBot {
@@ -46,9 +52,7 @@ func NewTelegramBot() *TelegramBot {
 
 	var tgBot *TelegramBot = &TelegramBot{API: bot}
 
-	//anyNewSensorUpdate := <-sensor.TelegramBotNotifySensorChangeChanel
-
-	//fmt.Println("Как это работает?", anyNewSensorUpdate)
+	go getUpdatesAboutSensors(tgBot)
 
 	go func() {
 		for update := range updates {
@@ -80,13 +84,28 @@ func (t *TelegramBot) MessageSend(chatID int64, messagePayload string) {
 	}
 }
 
-func (t *TelegramBot) ConsumeSensorsData(data [][]sensor.Data) {
-	t.sensorsData = data
-	t.notifyUsersAboutSensorConsume()
-}
+func (t *TelegramBot) notifyUsersAboutSensors(sensors [][]sensor.Data) {
+	var currentSensorsData []sensor.Data
+	for _, sensorForDistrict := range sensors {
+		currentSensorsData = append(currentSensorsData, sensorForDistrict[len(sensorForDistrict)-1])
+	}
 
-func (t *TelegramBot) notifyUsersAboutSensorConsume() {
-	//// TODO In future make all users get notification about districts AQI they subscribed to
-	//msg := tgbotapi.NewMessage(cfg.GetTestTelegramChatID(), "Placeholder")
-	//t.API.Send(msg)
+	var messages []string
+	for _, s := range currentSensorsData {
+		if s.AQIPM10Dangerous || s.AQIPM25Dangerous {
+			loc, _ := time.LoadLocation("Asia/Novosibirsk")
+			now := time.Now().In(loc)
+			message := fmt.Sprintf("Район %s 🏠\n\nДля времени %s 🕛\n\nЗафиксировано значительное ухудшение качества воздуха - уровень опасности \"%s\"\n\n"+
+				"AQI(PM10): %.2f %s\nAQI(PM2.5): %.2f %s\n",
+				s.District, now.Format("02.01.2006 15:04"), s.DangerLevel,
+				s.AQIPM10, s.FormatAQIWarning(s.AQIPM10Dangerous), s.AQIPM25, s.FormatAQIWarning(s.AQIPM25Dangerous),
+			)
+			messages = append(messages, message)
+		}
+	}
+
+	for _, message := range messages {
+		// TODO Create notify for each individual user
+		t.MessageSend(cfg.GetTestTelegramChatID(), message)
+	}
 }

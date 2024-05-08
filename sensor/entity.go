@@ -5,19 +5,21 @@ import (
 )
 
 type Data struct {
-	SensorId       int64
-	Date           string
-	SDS_P2         float64
-	SDS_P1         float64
-	Temperature    float64
-	Humidity       int64
-	Pressure       int64
-	District       string
-	AQIPM25        float64
-	AQIPM10        float64
-	DangerLevel    string
-	DangerColor    string
-	AdditionalInfo string
+	SensorId         int64
+	Date             string
+	SDS_P2           float64
+	SDS_P1           float64
+	Temperature      float64
+	Humidity         int64
+	Pressure         int64
+	District         string
+	AQIPM25          float64
+	AQIPM10          float64
+	AQIPM10Dangerous bool
+	AQIPM25Dangerous bool
+	DangerLevel      string
+	DangerColor      string
+	AdditionalInfo   string
 }
 
 func NewSensorsData() [][]Data {
@@ -106,18 +108,27 @@ var PMLevelAirMap = []struct {
 	},
 }
 
+func (s *Data) FormatAQIWarning(isAQIDangerous bool) string {
+	if isAQIDangerous {
+		return "💀"
+	}
+	return ""
+}
+
 func (s *Data) calculateAQI(wg *sync.WaitGroup) {
 	defer wg.Done()
-	for _, pm := range PMLevelAirMap {
+	for index, pm := range PMLevelAirMap {
 		if s.SDS_P1 >= pm.PM10Low && s.SDS_P1 < pm.PM10High {
 			s.AQIPM10 = ((pm.IndexHigh-pm.IndexLow)/(pm.PM10High-pm.PM10Low))*(s.SDS_P1-pm.PM10Low) + pm.IndexLow
 			s.DangerLevel = pm.Name
 			s.DangerColor = pm.Color
+			s.AQIPM10Dangerous = index > 1
 		}
 		if s.SDS_P2 >= pm.PM25Low && s.SDS_P2 < pm.PM25High {
 			s.AQIPM25 = ((pm.IndexHigh-pm.IndexLow)/(pm.PM25High-pm.PM25Low))*(s.SDS_P2-pm.PM25Low) + pm.IndexLow
 			s.DangerLevel = pm.Name
 			s.DangerColor = pm.Color
+			s.AQIPM25Dangerous = index > 1
 		}
 	}
 }

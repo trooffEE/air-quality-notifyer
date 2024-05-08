@@ -13,7 +13,6 @@ func main() {
 
 	c := cron.New()
 	sensor.FetchSensorsData(&sensors)
-	sensor.NotifyPackages(sensors)
 	//c.AddFunc("@every 1m", func() {
 	//	sensor.FetchSensorsData(&sensors)
 	//})
