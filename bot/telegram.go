@@ -17,9 +17,9 @@ type TelegramBot struct {
 }
 
 func getUpdatesAboutSensors(tgBot *TelegramBot) {
-	_sensor := <-sensor.ChangesInAPIAppearedChannel
-	tgBot.notifyUsersAboutSensors(_sensor)
-	go getUpdatesAboutSensors(tgBot)
+	for update := range sensor.ChangesInAPIAppearedChannel {
+		tgBot.notifyUsersAboutSensors(update)
+	}
 }
 
 func NewTelegramBot() *TelegramBot {
