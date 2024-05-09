@@ -109,5 +109,7 @@ func (t *TelegramBot) notifyUsersAboutSensors(sensors [][]sensor.Data) {
 	for _, message := range messages {
 		// TODO Create notify for each individual user
 		t.MessageSend(cfg.GetTestTelegramChatID(), message)
+		t.MessageSend(cfg.GetTestTelegramChatID2(), message)
+		t.MessageSend(cfg.GetTestTelegramChatID3(), message)
 	}
 }
