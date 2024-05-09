@@ -14,7 +14,7 @@ const (
 	circus         = "circus"
 	boulevard      = "boulevard"
 	yuzhinii       = "yuzhinii"
-	metalposhadka  = "metalposhadka"
+	metalploshadka = "metalploshadka"
 	lesnayaPolyana = "lesnayaPolyana"
 )
 
@@ -29,7 +29,7 @@ var DistrictNames = map[string]string{
 	circus:         `"Цирк"`,
 	boulevard:      "Бульвар",
 	yuzhinii:       "Южный",
-	metalposhadka:  "Металлплощадка",
+	metalploshadka: "Металлплощадка",
 	lesnayaPolyana: "Лесная Поляна",
 }
 
@@ -43,7 +43,7 @@ var Districts map[int64]DistrictsWithFallback = map[int64]DistrictsWithFallback{
 		[]int64{},
 	},
 	20: DistrictsWithFallback{
-		metalposhadka,
+		metalploshadka,
 		[]int64{53},
 	},
 	40: DistrictsWithFallback{
@@ -139,7 +139,7 @@ func richSensorData(
 		if sensorData.Temperature < -60 {
 			sensorData.AdditionalInfo += fmt.Sprintf("Датчики температуры в районе %s не исправен!\n", sensorData.District)
 		}
-		go sensorData.calculateAQI(&wg)
+		go sensorData.getInformationAboutAQI(&wg)
 	}
 	wg.Wait()
 
