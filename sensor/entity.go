@@ -1,9 +1,5 @@
 package sensor
 
-import (
-	"fmt"
-)
-
 type Data struct {
 	Id                         int64
 	Date                       string
@@ -150,13 +146,6 @@ func (s *Data) GetFormatedDistrictName() string {
 }
 
 func calcAQI(particlePM, particlePMReferenceHigh, particlePMReferenceLow, pmReferenceIndexHigh, pmReferenceIndexLow float64) float64 {
-	fmt.Println(
-		pmReferenceIndexHigh,
-		pmReferenceIndexLow,
-		particlePMReferenceHigh,
-		particlePMReferenceLow,
-		particlePM,
-	)
 	return ((pmReferenceIndexHigh-pmReferenceIndexLow)/(particlePMReferenceHigh-particlePMReferenceLow))*(particlePM-particlePMReferenceLow) + pmReferenceIndexLow
 }
 
