@@ -5,30 +5,30 @@ import (
 	"strings"
 )
 
-type MentionSlug = string
+type mentionSlug = string
 
-type MentionResponse struct {
+type mentionResponse struct {
 	Response string
 }
 
 const (
-	NotCommandMessage MentionSlug = "notCommandMessage"
+	notCommandMessage mentionSlug = "notCommandMessage"
 )
 
-var Mentions = map[MentionSlug]MentionResponse{
-	NotCommandMessage: {
-		Response: fmt.Sprintf("😓Пожалуйста, на данный момент я понимаю только команды, начинающиейся на символ \"/\":\n %s", strings.Join(PublicCommandsList, "\n")),
+var mentions = map[mentionSlug]mentionResponse{
+	notCommandMessage: {
+		Response: fmt.Sprintf("😓Пожалуйста, на данный момент я понимаю только команды, начинающиейся на символ \"/\":\n %s", strings.Join(publicCommandsList, "\n")),
 	},
 }
 
-func GetMessageByMention(mention MentionSlug) string {
-	if extractedMention, ok := Mentions[mention]; ok {
+func getMessageByMention(mention mentionSlug) string {
+	if extractedMention, ok := mentions[mention]; ok {
 		return extractedMention.Response
 	}
 	return ""
 }
 
-func GetMessageWithAQIStatsForChosenDistrict() string {
+func getMessageWithAQIStatsForChosenDistrict() string {
 	// AQI = ((AQI_high - AQI_low) / (Conc_high - Conc_low)) * (Conc_measured - Conc_low) + AQI_low
 	return ""
 }

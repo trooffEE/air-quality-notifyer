@@ -3,6 +3,7 @@ package sensor
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/robfig/cron/v3"
 	"log"
 	"net/http"
 	"sync"
@@ -18,12 +19,21 @@ const (
 	lesnayaPolyana = "lesnayaPolyana"
 )
 
-type DistrictsWithFallback struct {
+// TODO вынести в отдельный пакет
+type requestDone struct {
+	_sensors []Data
+}
+
+func (r requestDone) notifyChangesInSensors() {
+	NotifyChangesInSensors(r._sensors)
+}
+
+type districtsWithFallback struct {
 	name        string
 	fallbackIds []int64
 }
 
-var DistrictNames = map[string]string{
+var districtNames = map[string]string{
 	center:         "Центральный",
 	kirovskii:      "Кировский",
 	circus:         `"Цирк"`,
@@ -33,43 +43,54 @@ var DistrictNames = map[string]string{
 	lesnayaPolyana: "Лесная Поляна",
 }
 
-var Districts map[int64]DistrictsWithFallback = map[int64]DistrictsWithFallback{
-	7: DistrictsWithFallback{
+var districts map[int64]districtsWithFallback = map[int64]districtsWithFallback{
+	7: districtsWithFallback{
 		boulevard,
 		[]int64{},
 	},
-	11: DistrictsWithFallback{
+	11: districtsWithFallback{
 		lesnayaPolyana,
 		[]int64{},
 	},
-	20: DistrictsWithFallback{
+	20: districtsWithFallback{
 		metalploshadka,
 		[]int64{53},
 	},
-	40: DistrictsWithFallback{
+	40: districtsWithFallback{
 		center,
 		[]int64{39, 48},
 	},
-	47: DistrictsWithFallback{
+	47: districtsWithFallback{
 		kirovskii,
 		[]int64{},
 	},
-	59: DistrictsWithFallback{
+	59: districtsWithFallback{
 		yuzhinii,
 		[]int64{51, 56},
 	},
-	71: DistrictsWithFallback{
+	71: districtsWithFallback{
 		circus,
 		[]int64{},
 	},
 }
 
-func FetchSensorsData(sensors *[][]Data) {
-	respChan := make(chan []Data, len(Districts))
-	var wg sync.WaitGroup
-	wg.Add(len(Districts))
+func PingForSensorsDataOnceIn(cronString string) {
+	sensors := NewSensorsData()
+	c := cron.New()
+	_, err := c.AddFunc(cronString, func() { fetchSensors(sensors).notifyChangesInSensors() })
+	if err != nil {
+		log.Panic(err)
+	}
+	c.Start()
+	select {}
+}
 
-	for key, value := range Districts {
+func fetchSensors(sensors []Data) requestDone {
+	respChan := make(chan Data, len(districts))
+	var wg sync.WaitGroup
+	wg.Add(len(districts))
+
+	for key, value := range districts {
 		go fetchSensorById(&wg, respChan, key, value)
 	}
 
@@ -77,13 +98,13 @@ func FetchSensorsData(sensors *[][]Data) {
 	close(respChan)
 
 	for resp := range respChan {
-		*sensors = append(*sensors, resp)
+		sensors = append(sensors, resp)
 	}
 
-	ChangesInAPIAppearedChannel <- *sensors
+	return requestDone{sensors}
 }
 
-func fetchSensorById(wg *sync.WaitGroup, resChan chan []Data, id int64, districtInfo DistrictsWithFallback) {
+func fetchSensorById(wg *sync.WaitGroup, resChan chan Data, id int64, districtInfo districtsWithFallback) {
 	var fetchedSensorData []Data
 
 	res, err := http.Post(
@@ -101,47 +122,42 @@ func fetchSensorById(wg *sync.WaitGroup, resChan chan []Data, id int64, district
 	}
 
 	if res.StatusCode != http.StatusOK || fetchedSensorData == nil || len(fetchedSensorData) == 0 {
-		log.Printf("\nfetchSensorById http status code %d for \"%s\" district with %d, revoking with fallback sensor", res.StatusCode, Districts[id].name, id)
+		log.Printf("\nfetchSensorById http status code %d for \"%s\" District with %d, revoking with fallback sensor", res.StatusCode, districts[id].name, id)
 		for fallbackId := range districtInfo.fallbackIds {
 			// Done to make sure that "fallback go routines" won't fill data for "main go routines" districts
 			go fetchSensorById(
 				wg,
 				resChan,
 				int64(fallbackId),
-				DistrictsWithFallback{districtInfo.name, []int64{}},
+				districtsWithFallback{districtInfo.name, []int64{}},
 			)
 		}
 		return
 	}
 
-	richSensorData(fetchedSensorData, districtInfo, id)
-
-	resChan <- fetchedSensorData
+	// TODO Переписать так, чтобы этот метод использовался только если нужны все данные, а не только данные о последнем сенсоре
+	// TODO нас интересует последний ответ в массиве, он является актуальным для текущего часа
+	resChan <- richSensorData(fetchedSensorData[len(fetchedSensorData)-1], districtInfo, id)
 	wg.Done()
 	defer res.Body.Close()
 }
 
 func richSensorData(
-	fetchedSensorData []Data,
-	districtInfoRelatedToFetchedSensorData DistrictsWithFallback,
+	fetchedSensorData Data,
+	districtInfoRelatedToFetchedSensorData districtsWithFallback,
 	id int64,
-) []Data {
-	var wg sync.WaitGroup
-	wg.Add(len(fetchedSensorData))
+) Data {
+	sensorData := fetchedSensorData
 
-	for i := range fetchedSensorData {
-		sensorData := &fetchedSensorData[i]
-		sensorData.SensorId = id
-		sensorData.District = districtInfoRelatedToFetchedSensorData.name
-		if sensorData.Humidity >= 90 {
-			sensorData.AdditionalInfo = "Высокая влажность. Показания PM могут быть не корректны\n"
-		}
-		if sensorData.Temperature < -60 {
-			sensorData.AdditionalInfo += fmt.Sprintf("Датчики температуры в районе %s не исправен!\n", sensorData.District)
-		}
-		go sensorData.getInformationAboutAQI(&wg)
+	sensorData.District = districtInfoRelatedToFetchedSensorData.name
+	sensorData.Id = id
+	if sensorData.Humidity >= 90 {
+		sensorData.AdditionalInfo = "Высокая влажность. Показания PM могут быть не корректны\n"
 	}
-	wg.Wait()
+	if sensorData.Temperature < -60 {
+		sensorData.AdditionalInfo += fmt.Sprintf("Датчики температуры в районе %s не исправен!\n", sensorData.District)
+	}
+	sensorData.getInformationAboutAQI()
 
-	return fetchedSensorData
+	return sensorData
 }

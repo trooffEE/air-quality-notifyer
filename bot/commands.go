@@ -1,21 +1,21 @@
 package bot
 
-type Command = string
+type command = string
 
 const (
-	help                     Command = "/help"
-	showAQIForChosenDistrict Command = "/showAQI"
+	help                     command = "/help"
+	showAQIForChosenDistrict command = "/showAQI"
 )
 
-var PublicCommandsDictionary map[Command]Command = map[Command]Command{
+var publicCommandsDictionary map[command]command = map[command]command{
 	help:                     help,
 	showAQIForChosenDistrict: showAQIForChosenDistrict,
 }
 
-var PublicCommandsList = []string{help, showAQIForChosenDistrict}
+var publicCommandsList = []string{help, showAQIForChosenDistrict}
 
-func IsPublicCommandProvided(message string) bool {
-	_, ok := PublicCommandsDictionary[message]
+func isPublicCommandProvided(message string) bool {
+	_, ok := publicCommandsDictionary[message]
 	return ok
 }
 
@@ -24,4 +24,4 @@ func isShowAQIForChosenDistrictCommandProvided(command string) bool {
 }
 
 // Список комманд полезных для разработки, доступны исключительно разработчику по ID
-var DevelopmentCommand = []string{""}
+var developmentCommand = []string{""}

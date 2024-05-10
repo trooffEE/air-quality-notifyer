@@ -12,17 +12,12 @@ import (
 
 var cfg = config.InitConfig()
 
-type TelegramBot struct {
-	API *tgbotapi.BotAPI
+type tgBot struct {
+	API     *tgbotapi.BotAPI
+	updates tgbotapi.UpdatesChannel
 }
 
-func getUpdatesAboutSensors(tgBot *TelegramBot) {
-	for update := range sensor.ChangesInAPIAppearedChannel {
-		tgBot.notifyUsersAboutSensors(update)
-	}
-}
-
-func NewTelegramBot() *TelegramBot {
+func InitTelegramBot() *tgBot {
 	bot, err := tgbotapi.NewBotAPI(cfg.TelegramToken)
 	if err != nil {
 		log.Panic(err)
@@ -50,34 +45,11 @@ func NewTelegramBot() *TelegramBot {
 
 	go http.ListenAndServe(fmt.Sprintf(":%s", cfg.WebhookPort), nil)
 
-	var tgBot *TelegramBot = &TelegramBot{API: bot}
-
-	go getUpdatesAboutSensors(tgBot)
-
-	go func() {
-		for update := range updates {
-			if update.Message == nil {
-				continue
-			}
-
-			if !(update.Message.IsCommand() || IsPublicCommandProvided(update.Message.Text)) {
-				fmt.Println(update.Message.Text, update.Message.Chat.ID, update.Message.From.UserName)
-				tgBot.MessageSend(update.Message.Chat.ID, GetMessageByMention(NotCommandMessage))
-				continue
-			}
-
-			if isShowAQIForChosenDistrictCommandProvided(update.Message.Text) {
-				tgBot.MessageSend(update.Message.Chat.ID, GetMessageWithAQIStatsForChosenDistrict())
-				continue
-			}
-		}
-	}()
-
-	return tgBot
+	return &tgBot{bot, updates}
 }
 
-// MessageSend is basically shortcut to cover potential errors upon sending message + for DRY principle
-func (t *TelegramBot) MessageSend(chatID int64, messagePayload string) {
+// messageSend is basically shortcut to cover potential errors upon sending message + for DRY principle
+func (t *tgBot) messageSend(chatID int64, messagePayload string) {
 	msg := tgbotapi.NewMessage(chatID, messagePayload)
 	msg.ParseMode = tgbotapi.ModeHTML
 	_, err := t.API.Send(msg)
@@ -86,14 +58,36 @@ func (t *TelegramBot) MessageSend(chatID int64, messagePayload string) {
 	}
 }
 
-func (t *TelegramBot) notifyUsersAboutSensors(sensors [][]sensor.Data) {
-	var currentSensorsData []sensor.Data
-	for _, sensorForDistrict := range sensors {
-		currentSensorsData = append(currentSensorsData, sensorForDistrict[len(sensorForDistrict)-1])
-	}
+func (t *tgBot) handleSensorsUpdates() {
+	sensor.ListenChangesInSensors(t.notifyUsersAboutSensors)
+}
 
+func (t *tgBot) handleWebhookUpdates() {
+	for update := range t.updates {
+		if update.Message == nil {
+			continue
+		}
+
+		if !(update.Message.IsCommand() || isPublicCommandProvided(update.Message.Text)) {
+			t.messageSend(update.Message.Chat.ID, getMessageByMention(notCommandMessage))
+			continue
+		}
+
+		if isShowAQIForChosenDistrictCommandProvided(update.Message.Text) {
+			t.messageSend(update.Message.Chat.ID, getMessageWithAQIStatsForChosenDistrict())
+			continue
+		}
+	}
+}
+
+func (t *tgBot) ListenForUpdates() {
+	go t.handleSensorsUpdates()
+	go t.handleWebhookUpdates()
+}
+
+func (t *tgBot) notifyUsersAboutSensors(sensors []sensor.Data) {
 	var messages []string
-	for _, s := range currentSensorsData {
+	for _, s := range sensors {
 		if s.AQIPM10WarningIndex > 1 || s.AQIPM25WarningIndex > 1 {
 			loc, _ := time.LoadLocation("Asia/Novosibirsk")
 			now := time.Now().In(loc)
@@ -108,8 +102,8 @@ func (t *TelegramBot) notifyUsersAboutSensors(sensors [][]sensor.Data) {
 
 	for _, message := range messages {
 		// TODO Create notify for each individual user
-		t.MessageSend(cfg.GetTestTelegramChatID(), message)
-		t.MessageSend(cfg.GetTestTelegramChatID2(), message)
-		t.MessageSend(cfg.GetTestTelegramChatID3(), message)
+		t.messageSend(cfg.GetTestTelegramChatID(), message)
+		t.messageSend(cfg.GetTestTelegramChatID2(), message)
+		t.messageSend(cfg.GetTestTelegramChatID3(), message)
 	}
 }

@@ -1,11 +1,11 @@
 package sensor
 
 import (
-	"sync"
+	"fmt"
 )
 
 type Data struct {
-	SensorId                   int64
+	Id                         int64
 	Date                       string
 	SDS_P2                     float64
 	SDS_P1                     float64
@@ -25,11 +25,11 @@ type Data struct {
 	AQIAnalysisRecommendations string
 }
 
-func NewSensorsData() [][]Data {
-	return [][]Data{}
+func NewSensorsData() []Data {
+	return []Data{}
 }
 
-type PMLevelAir struct {
+type pmLevelAir struct {
 	PM25Low                    float64
 	PM25High                   float64
 	PM10Low                    float64
@@ -42,7 +42,7 @@ type PMLevelAir struct {
 	AQIAnalysisRecommendations string
 }
 
-var PMLevelAirMap = []PMLevelAir{
+var pmLevelAirMap = []pmLevelAir{
 	{
 		PM25Low:                    0,
 		PM25High:                   12,
@@ -150,18 +150,24 @@ func (s *Data) GetFormatedDistrictName() string {
 }
 
 func calcAQI(particlePM, particlePMReferenceHigh, particlePMReferenceLow, pmReferenceIndexHigh, pmReferenceIndexLow float64) float64 {
+	fmt.Println(
+		pmReferenceIndexHigh,
+		pmReferenceIndexLow,
+		particlePMReferenceHigh,
+		particlePMReferenceLow,
+		particlePM,
+	)
 	return ((pmReferenceIndexHigh-pmReferenceIndexLow)/(particlePMReferenceHigh-particlePMReferenceLow))*(particlePM-particlePMReferenceLow) + pmReferenceIndexLow
 }
 
-func (s *Data) richWithPMLevelInformation(pm PMLevelAir) {
+func (s *Data) richWithPMLevelInformation(pm pmLevelAir) {
 	s.DangerLevel = pm.Name
 	s.DangerColor = pm.Color
 	s.AQIAnalysisRecommendations = pm.AQIAnalysisRecommendations
 }
 
-func (s *Data) getInformationAboutAQI(wg *sync.WaitGroup) {
-	defer wg.Done()
-	for index, pm := range PMLevelAirMap {
+func (s *Data) getInformationAboutAQI() {
+	for index, pm := range pmLevelAirMap {
 		if s.SDS_P1 >= pm.PM10Low && s.SDS_P1 < pm.PM10High {
 			s.AQIPM10 = calcAQI(s.SDS_P1, pm.PM10High, pm.PM10Low, pm.IndexHigh, pm.IndexLow)
 			s.AQIPM10Analysis = pm.AQIAnalysis
@@ -176,8 +182,8 @@ func (s *Data) getInformationAboutAQI(wg *sync.WaitGroup) {
 		}
 	}
 	if s.AQIPM10WarningIndex >= s.AQIPM25WarningIndex {
-		s.AQIAnalysisRecommendations = PMLevelAirMap[s.AQIPM10WarningIndex].AQIAnalysisRecommendations
+		s.AQIAnalysisRecommendations = pmLevelAirMap[s.AQIPM10WarningIndex].AQIAnalysisRecommendations
 	} else {
-		s.AQIAnalysisRecommendations = PMLevelAirMap[s.AQIPM25WarningIndex].AQIAnalysisRecommendations
+		s.AQIAnalysisRecommendations = pmLevelAirMap[s.AQIPM25WarningIndex].AQIAnalysisRecommendations
 	}
 }
