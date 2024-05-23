@@ -1,13 +1,17 @@
 package sensor
 
+import (
+	"air-quality-notifyer/districts"
+)
+
 type Data struct {
-	Id                         int64
+	Id                         int
 	Date                       string
 	SDS_P2                     float64
 	SDS_P1                     float64
 	Temperature                float64
-	Humidity                   int64
-	Pressure                   int64
+	Humidity                   int
+	Pressure                   int
 	District                   string
 	AQIPM25                    float64
 	AQIPM10                    float64
@@ -19,6 +23,7 @@ type Data struct {
 	AQIPM10Analysis            string
 	AQIPM25Analysis            string
 	AQIAnalysisRecommendations string
+	SourceLink                 string
 }
 
 func NewSensorsData() []Data {
@@ -125,24 +130,10 @@ var pmLevelAirMap = []pmLevelAir{
 }
 
 func (s *Data) GetFormatedDistrictName() string {
-	switch s.District {
-	case center:
-		return "Центральный"
-	case yuzhinii:
-		return "Южный"
-	case metalploshadka:
-		return "Металлплощадка"
-	case lesnayaPolyana:
-		return "Лесная поляна"
-	case circus:
-		return "Цирк"
-	case kirovskii:
-		return "Кировский"
-	case boulevard:
-		return "Бульвар"
-	default:
-		return ""
+	if value, ok := districts.DictionaryNames[s.District]; ok {
+		return value
 	}
+	return ""
 }
 
 func calcAQI(particlePM, particlePMReferenceHigh, particlePMReferenceLow, pmReferenceIndexHigh, pmReferenceIndexLow float64) float64 {

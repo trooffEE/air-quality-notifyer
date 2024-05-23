@@ -8,5 +8,5 @@ import (
 
 func main() {
 	bot.InitTelegramBot().ListenForUpdates()
-	sensor.PingForSensorsDataOnceIn("0 * * * *")
+	sensor.GetSensorsDataOnceIn("0 * * * *")
 }
