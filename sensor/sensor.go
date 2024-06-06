@@ -84,7 +84,7 @@ func fetchSensorById(resChan chan Data, district districts.DictionaryWithSensors
 				nil,
 			)
 			if err != nil {
-				log.Fatal(err)
+				log.Println("Ошибка api")
 			}
 
 			err = json.NewDecoder(res.Body).Decode(&fetchedSensorData)

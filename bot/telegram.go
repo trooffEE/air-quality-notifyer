@@ -34,7 +34,7 @@ func InitTelegramBot() *tgBot {
 
 	info, err := bot.GetWebhookInfo()
 	if err != nil {
-		log.Fatal(err)
+		log.Println(err)
 	}
 
 	if info.LastErrorDate != 0 {
