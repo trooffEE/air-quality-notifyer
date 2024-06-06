@@ -101,7 +101,7 @@ func (t *tgBot) notifyUsersAboutSensors(sensors []sensor.Data) {
 			//	fmt.Printf("Sensor with ID - %d - is outdated - TODO Logic remove it from grasp\n", s.Id)
 			//	return
 			//}
-			message := fmt.Sprintf("<b>В районе - %s</b> 🏠\n\nДля времени %s 🕛\n\nЗафиксировано значительное ухудшение качества воздуха - уровень опасности \"%s\"\n\n<b>AQI(PM10): %.2f  - %s\nAQI(PM2.5): %.2f - %s</b>\n\nПодробнее: %s",
+			message := fmt.Sprintf("<b>В районе - %s</b> 🏠\n\nЗа прошедший час - для времени %s 🕛 \n\nЗафиксировано значительное ухудшение качества воздуха - уровень опасности \"%s\"\n\n<b>AQI(PM10): %.2f  - %s\nAQI(PM2.5): %.2f - %s</b>\n\nПодробнее (отматать 1 час назад): %s",
 				s.GetFormatedDistrictName(), sDate.Format("02.01.2006 15:04"), s.DangerLevel,
 				s.AQIPM10, s.AQIPM10Analysis,
 				s.AQIPM25, s.AQIPM25Analysis, s.SourceLink,
