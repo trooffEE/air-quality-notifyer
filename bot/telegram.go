@@ -113,7 +113,7 @@ func (t *tgBot) notifyUsersAboutSensors(sensors []sensor.Data) {
 	for _, message := range messages {
 		// TODO Create notify for each individual user
 		t.messageSend(cfg.GetTestTelegramChatID(), message)
-		//t.messageSend(cfg.GetTestTelegramChatID2(), message)
-		//t.messageSend(cfg.GetTestTelegramChatID3(), message)
+		t.messageSend(cfg.GetTestTelegramChatID2(), message)
+		t.messageSend(cfg.GetTestTelegramChatID3(), message)
 	}
 }
