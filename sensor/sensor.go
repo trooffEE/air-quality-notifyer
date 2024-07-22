@@ -92,8 +92,10 @@ func fetchSensorById(resChan chan Data, district districts.DictionaryWithSensors
 				log.Println("Something went wrong on decoding JSON from API step")
 			}
 
-			// TODO
-			result = append(result, richSensorData(fetchedSensorData[len(fetchedSensorData)-1], district.Name, id))
+			//
+			if len(fetchedSensorData) > 0 {
+				result = append(result, richSensorData(fetchedSensorData[len(fetchedSensorData)-1], district.Name, id))
+			}
 
 			wg.Done()
 			defer res.Body.Close()
