@@ -77,6 +77,8 @@ func fetchSensorById(resChan chan Data, district districts.DictionaryWithSensors
 
 	for _, id := range district.SensorIds {
 		go func() {
+			defer wg.Done()
+
 			var fetchedSensorData []Data
 			res, err := http.Post(
 				fmt.Sprintf("https://airkemerovo.ru/api/sensor/archive/%d/1", id),
@@ -84,7 +86,14 @@ func fetchSensorById(resChan chan Data, district districts.DictionaryWithSensors
 				nil,
 			)
 			if err != nil {
-				log.Println("Ошибка api")
+				log.Printf("Error in API call for sensor ID %d: %v", id, err)
+				return
+			}
+			defer res.Body.Close()
+
+			if res == nil {
+				log.Printf("Unexpected nil response from API for sensor ID: %d", id)
+				return
 			}
 
 			err = json.NewDecoder(res.Body).Decode(&fetchedSensorData)
@@ -92,13 +101,9 @@ func fetchSensorById(resChan chan Data, district districts.DictionaryWithSensors
 				log.Println("Something went wrong on decoding JSON from API step")
 			}
 
-			//
 			if len(fetchedSensorData) > 0 {
 				result = append(result, richSensorData(fetchedSensorData[len(fetchedSensorData)-1], district.Name, id))
 			}
-
-			wg.Done()
-			defer res.Body.Close()
 		}()
 	}
 
