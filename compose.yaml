@@ -1,0 +1,33 @@
+version: "0.1"
+
+networks:
+  server-network:
+    driver: bridge
+
+services:
+  app:
+    container_name: airquality-app-container
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: [ "./main" ]
+    ports:
+      - "3001:3001"
+    depends_on:
+      - db
+    networks:
+      - server-network
+    restart: always
+
+  db:
+    container_name: airquality-db-container
+    image: postgres:14.12
+    ports:
+      - "5432:5432"
+    volumes:
+      - ~/db:/var/lib/postgresql/data
+    environment:
+      - DB_PASSWORD=$DB_PASSWORD
+      - DB_USER=$DB_USER
+      - DB_NAME=$DB_NAME
+
