@@ -18,16 +18,22 @@ services:
     networks:
       - server-network
     restart: always
+    environment:
+      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_USER=${DB_USER}
+      - DB_NAME=${DB_NAME}
 
   db:
     container_name: airquality-db-container
-    image: postgres:14.12
+    image: postgres:16.4
+    restart: always
     ports:
       - "5432:5432"
     volumes:
-      - ~/db:/var/lib/postgresql/data
+      - ./db:/var/lib/postgresql/data
+    networks:
+      - server-network
     environment:
-      - DB_PASSWORD=$DB_PASSWORD
-      - DB_USER=$DB_USER
-      - DB_NAME=$DB_NAME
-
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+      - POSTGRES_USER=${DB_USER}
+      - POSTGRES_DB=${DB_NAME}
