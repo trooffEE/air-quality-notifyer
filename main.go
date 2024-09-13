@@ -2,28 +2,37 @@ package main
 
 import (
 	"air-quality-notifyer/bot"
+	"air-quality-notifyer/pkg"
+	"air-quality-notifyer/pkg/repository"
+	"air-quality-notifyer/pkg/service"
 	"air-quality-notifyer/sensor"
 	_ "database/sql"
 	"fmt"
-	"github.com/jmoiron/sqlx"
 	_ "github.com/joho/godotenv/autoload"
 	_ "github.com/lib/pq"
 	"log"
-	"os"
 )
 
 func main() {
-	fmt.Println("TEST")
-	connString := fmt.Sprintf("user=%s dbname=%s password=%s sslmode=disable", os.Getenv("DB_USER"), os.Getenv("DB_NAME"), os.Getenv("DB_PASSWORD"))
-	db, err := sqlx.Connect("postgres", connString)
-	if err != nil {
-		log.Fatal(err, connString)
-	}
-	result, err := db.Exec("SELECT * from user_table")
+	db, err := pkg.NewDB()
 	if err != nil {
 		log.Fatal(err, 9)
 	}
-	fmt.Println(result, "test")
+	psqlRepo := repository.NewUserRepository(db)
+	usrService := service.NewUserService(psqlRepo)
+	fmt.Println(usrService)
 	bot.InitTelegramBot().ListenForUpdates()
 	sensor.GetSensorsDataOnceIn("0 * * * *")
+
+	//c := make(chan os.Signal)
+	//signal.Notify(c, os.Kill)
+	//
+	//go func() {
+	//	select {
+	//	case <-c:
+	//		fmt.Println("test")
+	//		os.Exit(1)
+	//	}
+	//}()
+	//select {}
 }

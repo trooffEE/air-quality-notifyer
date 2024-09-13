@@ -29,7 +29,6 @@ func GetSensorsDataOnceIn(cronString string) {
 		log.Panic(err)
 	}
 	c.Start()
-	select {}
 }
 
 func fetchSensors(sensors []Data) requestDone {

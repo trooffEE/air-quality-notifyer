@@ -30,10 +30,13 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      - ./db:/var/lib/postgresql/data
+      - db:/var/lib/postgresql/data
     networks:
       - server-network
     environment:
       - POSTGRES_PASSWORD=${DB_PASSWORD}
       - POSTGRES_USER=${DB_USER}
       - POSTGRES_DB=${DB_NAME}
+
+volumes:
+  db:

@@ -10,6 +10,7 @@ type ApplicationConfig struct {
 	TelegramToken      string
 	WebhookPort        string
 	WebhookHost        string
+	Development        bool
 	TestTelegramChatID string
 	// TODO Убрать
 	TestTelegramChatID2 string
@@ -18,14 +19,17 @@ type ApplicationConfig struct {
 }
 
 func InitConfig() ApplicationConfig {
-	return ApplicationConfig{
+	var config ApplicationConfig = ApplicationConfig{
 		TelegramToken:       os.Getenv("TELEGRAM_SECRET"),
 		WebhookHost:         os.Getenv("WEBHOOK_HOST"),
 		WebhookPort:         os.Getenv("WEBHOOK_PORT"),
 		TestTelegramChatID:  os.Getenv("TEST_CHAT_ID"),
 		TestTelegramChatID2: os.Getenv("TEST_CHAT_ID2"),
 		TestTelegramChatID3: os.Getenv("TEST_CHAT_ID3"),
+		Development:         os.Getenv("DEVELOPMENT") == "true",
 	}
+
+	return config
 }
 
 func (a *ApplicationConfig) GetTestTelegramChatID() int64 {
