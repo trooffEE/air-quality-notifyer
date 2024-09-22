@@ -3,7 +3,6 @@ package bot
 import (
 	"air-quality-notifyer/config"
 	"air-quality-notifyer/sensor"
-	"air-quality-notifyer/utils"
 	"fmt"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"log"
@@ -25,14 +24,6 @@ func InitTelegramBot() *tgBot {
 
 	if cfg.Development {
 		bot.Debug = true
-		_, err := http.Get(fmt.Sprintf("https://api.telegram.org/bot%s/deleteWebhook?url=https://%s/webhook", bot.Token, cfg.WebhookHost))
-		go utils.DeferShutdown(func() {
-			fmt.Println("Test")
-			http.Get(fmt.Sprintf("https://api.telegram.org/bot%s/setWebhook?url=https://%s/webhook", bot.Token, cfg.WebhookHost))
-		})
-		if err != nil {
-			log.Panic("Wasn't able to delete telegram bot webhook", err)
-		}
 		go http.ListenAndServe(fmt.Sprintf(":%s", cfg.WebhookPort), nil)
 		return &tgBot{bot, nil}
 	}
@@ -68,10 +59,10 @@ func (t *tgBot) ListenForUpdates() {
 }
 
 func (t *tgBot) handleUpdates() {
-	//if cfg.Development {
-	//	go t.handleUpdatesLocally()
-	//	return
-	//}
+	if cfg.Development {
+		go t.handleUpdatesLocally()
+		return
+	}
 	go t.handleWebhookUpdates()
 }
 

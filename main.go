@@ -23,16 +23,5 @@ func main() {
 	fmt.Println(usrService)
 	bot.InitTelegramBot().ListenForUpdates()
 	sensor.GetSensorsDataOnceIn("0 * * * *")
-
-	//c := make(chan os.Signal)
-	//signal.Notify(c, os.Kill)
-	//
-	//go func() {
-	//	select {
-	//	case <-c:
-	//		fmt.Println("test")
-	//		os.Exit(1)
-	//	}
-	//}()
-	//select {}
+	select {}
 }

@@ -5,8 +5,8 @@ COPY go.mod go.sum ./
 RUN go mod download
 COPY . .
 
-# Build the Go app
+RUN chmod +x ./scripts/startup.sh
+RUN chmod +x ./scripts/shutdown.sh
 RUN go build -o main
-EXPOSE 3001
 
-CMD ["./main"]
+ENTRYPOINT ["./scripts/startup.sh"]

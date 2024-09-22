@@ -10,7 +10,6 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    command: [ "./main" ]
     ports:
       - "3001:3001"
     depends_on:
@@ -18,10 +17,8 @@ services:
     networks:
       - server-network
     restart: always
-    environment:
-      - DB_PASSWORD=${DB_PASSWORD}
-      - DB_USER=${DB_USER}
-      - DB_NAME=${DB_NAME}
+    env_file:
+      - .env
 
   db:
     container_name: airquality-db-container
