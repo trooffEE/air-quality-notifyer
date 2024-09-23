@@ -1,7 +1,5 @@
 #!/bin/bash
 
-echo "Test Startup"
-
 if [[ ! -z $DEVELOPMENT ]]; then
   echo "DEVELOPMENT: Deleting Webhook"
   curl "https://api.telegram.org/bot${TELEGRAM_SECRET}/deleteWebhook?url=https://${WEBHOOK_HOST}/webhook${TELEGRAM_SECRET}"
