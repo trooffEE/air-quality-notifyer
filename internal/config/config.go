@@ -1,6 +1,7 @@
 package config
 
 import (
+	"github.com/joho/godotenv"
 	"log"
 	"os"
 	"strconv"
@@ -18,8 +19,13 @@ type ApplicationConfig struct {
 	TestTelegramChatID3 string
 }
 
-func InitConfig() ApplicationConfig {
-	var config ApplicationConfig = ApplicationConfig{
+func initConfig() ApplicationConfig {
+	err := godotenv.Load()
+	if err != nil {
+		log.Fatal("Error loading .env file")
+	}
+
+	var config = ApplicationConfig{
 		TelegramToken:       os.Getenv("TELEGRAM_SECRET"),
 		WebhookHost:         os.Getenv("WEBHOOK_HOST"),
 		WebhookPort:         os.Getenv("WEBHOOK_PORT"),
@@ -31,6 +37,8 @@ func InitConfig() ApplicationConfig {
 
 	return config
 }
+
+var Cfg = initConfig()
 
 func (a *ApplicationConfig) GetTestTelegramChatID() int64 {
 	testTelegramChatId, err := strconv.Atoi(a.TestTelegramChatID)

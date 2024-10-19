@@ -1,10 +1,11 @@
-package pkg
+package db
 
 import (
-	config "air-quality-notifyer/config"
+	"air-quality-notifyer/internal/config"
 	"errors"
 	"fmt"
 	"github.com/jmoiron/sqlx"
+	"log"
 	"os"
 )
 
@@ -19,7 +20,7 @@ type Config struct {
 	password string
 }
 
-func NewDB(args ...func(*Config)) (*sqlx.DB, error) {
+func NewDB(args ...func(*Config)) *sqlx.DB {
 	cfg := NewConfig(args)
 
 	connString := fmt.Sprintf(
@@ -29,11 +30,10 @@ func NewDB(args ...func(*Config)) (*sqlx.DB, error) {
 	db, err := sqlx.Connect("postgres", connString)
 
 	if err != nil {
-		fmt.Println(fmt.Errorf("Establish failed: %w ", ErrConnectionFailed))
-		return nil, err
+		log.Panicf("Establish failed: %w ", ErrConnectionFailed)
 	}
 
-	return db, nil
+	return db
 }
 
 func NewConfig(args []func(*Config)) *Config {
@@ -45,7 +45,7 @@ func NewConfig(args []func(*Config)) *Config {
 	}
 
 	//TODO
-	if config.InitConfig().Development {
+	if config.Cfg.Development {
 		dbConfig.host = "localhost"
 	}
 
@@ -54,10 +54,4 @@ func NewConfig(args []func(*Config)) *Config {
 	}
 
 	return &dbConfig
-}
-
-func WithHost(host string) func(config *Config) {
-	return func(s *Config) {
-		s.host = host
-	}
 }

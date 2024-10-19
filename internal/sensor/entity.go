@@ -1,7 +1,7 @@
 package sensor
 
 import (
-	"air-quality-notifyer/districts"
+	"air-quality-notifyer/internal/districts"
 )
 
 type Data struct {

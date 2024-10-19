@@ -1,7 +1,7 @@
 package sensor
 
 import (
-	"air-quality-notifyer/districts"
+	"air-quality-notifyer/internal/districts"
 	"encoding/json"
 	"fmt"
 	"github.com/robfig/cron/v3"
@@ -45,27 +45,6 @@ func fetchSensors(sensors []Data) requestDone {
 	}
 
 	return requestDone{sensors}
-}
-
-func richSensorData(
-	fetchedSensorData Data,
-	districtName string,
-	id int,
-) Data {
-	sensorData := fetchedSensorData
-
-	sensorData.District = districtName
-	sensorData.Id = id
-	sensorData.SourceLink = fmt.Sprintf("https://airkemerovo.ru/sensor/%d", id)
-	if sensorData.Humidity >= 90 {
-		sensorData.AdditionalInfo = "Высокая влажность. Показания PM могут быть не корректны\n"
-	}
-	if sensorData.Temperature < -60 {
-		sensorData.AdditionalInfo += fmt.Sprintf("Датчики температуры в районе %s не исправен!\n", sensorData.District)
-	}
-	sensorData.getInformationAboutAQI()
-
-	return sensorData
 }
 
 func fetchSensorById(resChan chan Data, district districts.DictionaryWithSensors) {
@@ -122,4 +101,25 @@ func fetchSensorById(resChan chan Data, district districts.DictionaryWithSensors
 	}
 
 	resChan <- worstAQISensor
+}
+
+func richSensorData(
+	fetchedSensorData Data,
+	districtName string,
+	id int,
+) Data {
+	sensorData := fetchedSensorData
+
+	sensorData.District = districtName
+	sensorData.Id = id
+	sensorData.SourceLink = fmt.Sprintf("https://airkemerovo.ru/sensor/%d", id)
+	if sensorData.Humidity >= 90 {
+		sensorData.AdditionalInfo = "Высокая влажность. Показания PM могут быть не корректны\n"
+	}
+	if sensorData.Temperature < -60 {
+		sensorData.AdditionalInfo += fmt.Sprintf("Датчики температуры в районе %s не исправен!\n", sensorData.District)
+	}
+	sensorData.getInformationAboutAQI()
+
+	return sensorData
 }

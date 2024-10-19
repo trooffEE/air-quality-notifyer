@@ -1,4 +1,4 @@
-package entity
+package models
 
 type User struct {
 	Id       string `db:"id"`
