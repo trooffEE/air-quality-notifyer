@@ -3,6 +3,7 @@ package repository
 import (
 	"air-quality-notifyer/pkg/entity"
 	"context"
+	"database/sql"
 	"errors"
 	"fmt"
 	"github.com/jmoiron/sqlx"
@@ -10,10 +11,11 @@ import (
 
 var (
 	ErrInternalServerError = errors.New("Internal Server Error")
+	UserNotFound           = errors.New("User not found")
 )
 
 type UserRepositoryInterface interface {
-	FindById(id string) (*entity.User, error)
+	FindById(id int64) (*entity.User, error)
 	FindByUsername(username string) (*entity.User, error)
 	Create(user entity.User) (*entity.User, error)
 }
@@ -28,9 +30,13 @@ func NewUserRepository(db *sqlx.DB) *UserRepository {
 	}
 }
 
-func (r *UserRepository) FindById(id string) (*entity.User, error) {
+func (r *UserRepository) FindById(id int64) (*entity.User, error) {
 	var user entity.User
-	err := r.db.QueryRow("SELECT * FROM users_telegram WHERE id = ?", id).Scan(&user)
+	err := r.db.QueryRow("SELECT * FROM users WHERE id = $1", id).Scan(&user)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, UserNotFound
+	}
+
 	if err != nil {
 		fmt.Printf("%w", err)
 		return nil, ErrInternalServerError
@@ -41,7 +47,7 @@ func (r *UserRepository) FindById(id string) (*entity.User, error) {
 
 func (r *UserRepository) FindByUsername(username string) (*entity.User, error) {
 	var user entity.User
-	err := r.db.QueryRow("SELECT * FROM users_telegram WHERE username = ?", username).Scan(&user)
+	err := r.db.QueryRow("SELECT * FROM users WHERE username = ?", username).Scan(&user)
 	if err != nil {
 		fmt.Printf("%w", err)
 		return nil, ErrInternalServerError
@@ -51,7 +57,7 @@ func (r *UserRepository) FindByUsername(username string) (*entity.User, error) {
 }
 
 func (r *UserRepository) Create(user entity.User) (*entity.User, error) {
-	_, err := r.db.Exec("INSERT INTO users_telegram (id, username) VALUES (?, ?)", user.Id, user.Username)
+	_, err := r.db.Exec("INSERT INTO users (id, username) VALUES (?, ?)", user.Id, user.Username)
 	if err != nil {
 		return nil, ErrInternalServerError
 	}

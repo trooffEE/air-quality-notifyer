@@ -2,21 +2,28 @@ package bot
 
 import (
 	"air-quality-notifyer/config"
+	"air-quality-notifyer/pkg/service"
 	"air-quality-notifyer/sensor"
 	"fmt"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"log"
 	"net/http"
+	"strconv"
 )
 
 var cfg = config.InitConfig()
 
 type tgBot struct {
-	bot     *tgbotapi.BotAPI
-	updates tgbotapi.UpdatesChannel
+	bot      *tgbotapi.BotAPI
+	updates  tgbotapi.UpdatesChannel
+	services BotServices
 }
 
-func InitTelegramBot() *tgBot {
+type BotServices struct {
+	UserService *service.UserService
+}
+
+func InitTelegramBot(services BotServices) *tgBot {
 	bot, err := tgbotapi.NewBotAPI(cfg.TelegramToken)
 	if err != nil {
 		log.Panic(err)
@@ -25,7 +32,7 @@ func InitTelegramBot() *tgBot {
 	if cfg.Development {
 		bot.Debug = true
 		go http.ListenAndServe(fmt.Sprintf(":%s", cfg.WebhookPort), nil)
-		return &tgBot{bot, nil}
+		return &tgBot{bot, nil, services}
 	}
 
 	wh, err := tgbotapi.NewWebhook(fmt.Sprintf("https://%s/webhook%s", cfg.WebhookHost, bot.Token))
@@ -50,7 +57,7 @@ func InitTelegramBot() *tgBot {
 
 	go http.ListenAndServe(fmt.Sprintf(":%s", cfg.WebhookPort), nil)
 
-	return &tgBot{bot, updates}
+	return &tgBot{bot, updates, services}
 }
 
 func (t *tgBot) ListenForUpdates() {
@@ -75,7 +82,11 @@ func (t *tgBot) handleUpdatesLocally() {
 		if update.Message == nil {
 			continue
 		}
-		msg := tgbotapi.NewMessage(update.Message.Chat.ID, update.Message.Text)
+
+		msg := tgbotapi.NewMessage(
+			update.Message.Chat.ID,
+			strconv.FormatBool(t.services.UserService.IsNewUser(update.Message.Chat.ID)),
+		)
 
 		msg.ReplyToMessageID = update.Message.MessageID
 

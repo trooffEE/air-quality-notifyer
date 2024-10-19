@@ -2,7 +2,6 @@ package service
 
 import (
 	"air-quality-notifyer/pkg/entity"
-	errApp "air-quality-notifyer/pkg/errors"
 	repo "air-quality-notifyer/pkg/repository"
 	"errors"
 	"fmt"
@@ -18,6 +17,19 @@ func NewUserService(ur repo.UserRepositoryInterface) *UserService {
 	}
 }
 
+func (ur *UserService) IsNewUser(id int64) bool {
+	_, err := ur.repo.FindById(id)
+	if errors.Is(repo.UserNotFound, err) {
+		return true
+	}
+
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	return false
+}
+
 func (ur *UserService) Register(id, username string) *entity.User {
 	fmt.Println("Hello new User!, ")
 
@@ -28,16 +40,6 @@ func (ur *UserService) Register(id, username string) *entity.User {
 
 	if err != nil {
 		fmt.Println("Error Appeared on creating new User record in DB")
-	}
-
-	return usr
-}
-
-func (ur *UserService) IsRegistered(id string) *entity.User {
-	usr, err := ur.repo.FindById(id)
-	if errors.Is(err, errApp.ErrUserNotFound) {
-		fmt.Println("Error Appeared on creating new User record in DB")
-		return nil
 	}
 
 	return usr

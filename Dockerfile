@@ -7,6 +7,5 @@ COPY . .
 
 RUN chmod +x ./scripts/startup.sh
 RUN chmod +x ./scripts/shutdown.sh
-RUN go build -o main
 
 ENTRYPOINT ["./scripts/startup.sh"]

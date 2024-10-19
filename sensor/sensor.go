@@ -85,7 +85,7 @@ func fetchSensorById(resChan chan Data, district districts.DictionaryWithSensors
 				nil,
 			)
 			if err != nil {
-				log.Printf("Error in API call for sensor ID %d: %v", id, err)
+				log.Printf("Error in API call for sensor ID %d: %+v", id, err)
 				return
 			}
 			defer res.Body.Close()
@@ -94,7 +94,6 @@ func fetchSensorById(resChan chan Data, district districts.DictionaryWithSensors
 				log.Printf("Unexpected nil response from API for sensor ID: %d", id)
 				return
 			}
-
 			err = json.NewDecoder(res.Body).Decode(&fetchedSensorData)
 			if err != nil {
 				log.Println("Something went wrong on decoding JSON from API step")

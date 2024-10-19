@@ -7,7 +7,6 @@ import (
 	"air-quality-notifyer/pkg/service"
 	"air-quality-notifyer/sensor"
 	_ "database/sql"
-	"fmt"
 	_ "github.com/joho/godotenv/autoload"
 	_ "github.com/lib/pq"
 	"log"
@@ -20,8 +19,11 @@ func main() {
 	}
 	psqlRepo := repository.NewUserRepository(db)
 	usrService := service.NewUserService(psqlRepo)
-	fmt.Println(usrService)
-	bot.InitTelegramBot().ListenForUpdates()
+
+	services := bot.BotServices{
+		UserService: usrService,
+	}
+	bot.InitTelegramBot(services).ListenForUpdates()
 	sensor.GetSensorsDataOnceIn("0 * * * *")
 	select {}
 }

@@ -1,6 +1,7 @@
 package pkg
 
 import (
+	config "air-quality-notifyer/config"
 	"errors"
 	"fmt"
 	"github.com/jmoiron/sqlx"
@@ -19,11 +20,11 @@ type Config struct {
 }
 
 func NewDB(args ...func(*Config)) (*sqlx.DB, error) {
-	config := NewConfig(args)
+	cfg := NewConfig(args)
 
 	connString := fmt.Sprintf(
 		"host=%s user=%s dbname=%s password=%s sslmode=disable",
-		config.host, config.user, config.dbname, config.password,
+		cfg.host, cfg.user, cfg.dbname, cfg.password,
 	)
 	db, err := sqlx.Connect("postgres", connString)
 
@@ -42,6 +43,12 @@ func NewConfig(args []func(*Config)) *Config {
 		dbname:   os.Getenv("DB_NAME"),
 		password: os.Getenv("DB_PASSWORD"),
 	}
+
+	//TODO
+	if config.InitConfig().Development {
+		dbConfig.host = "localhost"
+	}
+
 	for _, fn := range args {
 		fn(&dbConfig)
 	}
