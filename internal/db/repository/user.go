@@ -37,7 +37,7 @@ func (r *UserRepository) FindById(id int64) (*models.User, error) {
 		return nil, exceptions.ErrInternalDBError
 	}
 
-	return &user, exceptions.ErrInternalDBError
+	return &user, nil
 }
 
 func (r *UserRepository) Register(user models.User) error {

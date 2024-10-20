@@ -10,9 +10,6 @@ import (
 	_ "github.com/lib/pq"
 )
 
-// 1. Help command / Commands
-// 2. Check if app is working
-
 func main() {
 	database := db.NewDB()
 	psqlRepo := repository.NewUserRepository(database)

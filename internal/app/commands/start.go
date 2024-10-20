@@ -11,6 +11,7 @@ import (
 func (c *Commander) Start(message *tgbotapi.Message, service *user.Service) {
 	chatId, username := message.Chat.ID, message.Chat.UserName
 
+	fmt.Println(chatId, username)
 	if service.IsNewUser(chatId) {
 		service.Register(user.User{
 			Id:       strconv.Itoa(int(chatId)),
