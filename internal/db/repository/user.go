@@ -11,6 +11,8 @@ import (
 
 type UserRepositoryInterface interface {
 	FindById(id int64) (*models.User, error)
+	Register(user models.User) error
+	GetAllIds() (*[]int64, error)
 }
 
 type UserRepository struct {
@@ -25,7 +27,7 @@ func NewUserRepository(db *sqlx.DB) *UserRepository {
 
 func (r *UserRepository) FindById(id int64) (*models.User, error) {
 	var user models.User
-	err := r.db.QueryRow("SELECT * FROM users WHERE id = $1", id).Scan(&user)
+	err := r.db.Get(&user, "SELECT * FROM users WHERE telegram_id = $1", id)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, exceptions.UserNotFound
 	}
@@ -36,4 +38,26 @@ func (r *UserRepository) FindById(id int64) (*models.User, error) {
 	}
 
 	return &user, exceptions.ErrInternalDBError
+}
+
+func (r *UserRepository) Register(user models.User) error {
+	_, err := r.db.NamedExec(`INSERT INTO users (username, telegram_id) VALUES (:username, :telegram_id)`, user)
+
+	if err != nil {
+		log.Printf("%w\n", err)
+		return err
+	}
+
+	return nil
+}
+
+func (r *UserRepository) GetAllIds() (*[]int64, error) {
+	var ids []int64
+	err := r.db.Select(&ids, "SELECT telegram_id FROM users")
+
+	if err != nil {
+		return nil, exceptions.ErrInternalDBError
+	}
+
+	return &ids, nil
 }

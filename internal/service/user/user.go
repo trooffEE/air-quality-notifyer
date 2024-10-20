@@ -2,6 +2,7 @@ package user
 
 import (
 	"air-quality-notifyer/internal/db/exceptions"
+	"air-quality-notifyer/internal/db/models"
 	repo "air-quality-notifyer/internal/db/repository"
 	"errors"
 	"fmt"
@@ -28,4 +29,29 @@ func (ur *Service) IsNewUser(id int64) bool {
 	}
 
 	return false
+}
+
+func (ur *Service) Register(user User) {
+	dto := models.User{
+		TelegramId: user.Id,
+		Username:   user.Username,
+	}
+
+	err := ur.repo.Register(dto)
+
+	if err != nil {
+		fmt.Println(err)
+	}
+}
+
+func (ur *Service) GetUsersIds() *[]int64 {
+	ids, err := ur.repo.GetAllIds()
+
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	fmt.Println(ids)
+
+	return ids
 }

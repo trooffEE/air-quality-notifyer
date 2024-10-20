@@ -88,6 +88,8 @@ func (t *tgBot) handleUpdates() {
 		switch update.Message.Command() {
 		case "help":
 			t.Commander.Help(update.Message.Chat.ID)
+		case "start":
+			t.Commander.Start(update.Message, t.services.UserService)
 		}
 	}
 }

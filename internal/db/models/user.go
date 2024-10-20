@@ -1,6 +1,7 @@
 package models
 
 type User struct {
-	Id       string `db:"id"`
-	Username string `db:"username"`
+	Id         int64
+	Username   string `db:"username"`
+	TelegramId string `db:"telegram_id"`
 }

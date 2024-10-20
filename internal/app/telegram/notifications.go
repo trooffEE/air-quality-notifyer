@@ -1,7 +1,6 @@
 package telegram
 
 import (
-	"air-quality-notifyer/internal/config"
 	"air-quality-notifyer/internal/sensor"
 	"fmt"
 	"log"
@@ -33,10 +32,10 @@ func (t *tgBot) notifyUsersAboutSensors(sensors []sensor.Data) {
 		}
 	}
 
+	userIds := *t.services.UserService.GetUsersIds()
 	for _, message := range messages {
-		// TODO Create notify for each individual user
-		t.Commander.DefaultSend(config.Cfg.GetTestTelegramChatID2(), message)
-		t.Commander.DefaultSend(config.Cfg.GetTestTelegramChatID2(), message)
-		t.Commander.DefaultSend(config.Cfg.GetTestTelegramChatID3(), message)
+		for _, id := range userIds {
+			t.Commander.DefaultSend(id, message)
+		}
 	}
 }
