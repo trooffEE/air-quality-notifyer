@@ -18,7 +18,15 @@ func main() {
 	services := telegram.BotServices{
 		UserService: usrService,
 	}
-	telegram.InitTelegramBot(services).ListenForUpdates()
+	bot := telegram.InitTelegramBot(services)
+	bot.ListenForUpdates()
 	sensor.GetSensorsDataOnceIn("0 * * * *")
+
+	defer func() {
+		if err := recover(); err != nil {
+			bot.AlertAdminWithPanic(err)
+		}
+	}()
+
 	select {}
 }

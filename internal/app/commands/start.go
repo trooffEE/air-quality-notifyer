@@ -11,8 +11,9 @@ import (
 func (c *Commander) Start(message *tgbotapi.Message, service *user.Service) {
 	chatId, username := message.Chat.ID, message.Chat.UserName
 
-	fmt.Println(chatId, username)
 	if service.IsNewUser(chatId) {
+		c.greetNewUser(chatId)
+
 		service.Register(user.User{
 			Id:       strconv.Itoa(int(chatId)),
 			Username: username,
@@ -20,7 +21,7 @@ func (c *Commander) Start(message *tgbotapi.Message, service *user.Service) {
 	}
 }
 
-func (c *Commander) greeting(chatId int64) {
+func (c *Commander) greetNewUser(chatId int64) {
 	text := "Привествую. Данный бот оповещает о плохом качестве воздуха по районам в городе Кемерово.\n\nПросьба настроить уведомления, чтобы бот не беспокоил ночью! 🍵"
 	msg := tgbotapi.NewMessage(chatId, text)
 	msg.ParseMode = tgbotapi.ModeHTML
