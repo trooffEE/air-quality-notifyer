@@ -29,9 +29,10 @@ func InitTelegramBot(services BotServices) *tgBot {
 		log.Panic(err)
 	}
 
+	go http.ListenAndServe(fmt.Sprintf(":%s", config.Cfg.WebhookPort), nil)
+
 	if config.Cfg.Development {
 		bot.Debug = true
-		go http.ListenAndServe(fmt.Sprintf(":%s", config.Cfg.WebhookPort), nil)
 
 		updateConfig := tgbotapi.NewUpdate(0)
 		updateConfig.Timeout = 30
@@ -43,7 +44,7 @@ func InitTelegramBot(services BotServices) *tgBot {
 			Commander: commander,
 		}
 	}
-
+	
 	wh, err := tgbotapi.NewWebhook(fmt.Sprintf("https://%s/webhook%s", config.Cfg.WebhookHost, bot.Token))
 	if err != nil {
 		log.Panic(err)
@@ -63,8 +64,6 @@ func InitTelegramBot(services BotServices) *tgBot {
 	}
 
 	updates := bot.ListenForWebhook("/webhook" + bot.Token)
-
-	go http.ListenAndServe(fmt.Sprintf(":%s", config.Cfg.WebhookPort), nil)
 
 	return &tgBot{
 		bot:       bot,
