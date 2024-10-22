@@ -1,11 +1,9 @@
-version: "0.2"
-
 networks:
   server-network:
     driver: bridge
 
 services:
-  app:
+  airquality_app:
     container_name: airquality-app-container
     build:
       context: .
@@ -13,14 +11,14 @@ services:
     ports:
       - "3001:3001"
     depends_on:
-      - db
+      - airquality_db
     networks:
       - server-network
     restart: always
     env_file:
       - .env
 
-  db:
+  airquality_db:
     container_name: airquality-db-container
     image: postgres:16.4
     restart: always
@@ -36,4 +34,4 @@ services:
       - POSTGRES_DB=${DB_NAME}
 
 volumes:
-  db:
+  airquality_db:
