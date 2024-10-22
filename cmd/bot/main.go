@@ -21,12 +21,5 @@ func main() {
 	bot := telegram.InitTelegramBot(services)
 	bot.ListenForUpdates()
 	sensor.GetSensorsDataOnceIn("0 * * * *")
-
-	defer func() {
-		if err := recover(); err != nil {
-			bot.AlertAdminWithPanic(err)
-		}
-	}()
-
 	select {}
 }
