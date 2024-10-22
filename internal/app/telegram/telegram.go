@@ -44,7 +44,7 @@ func InitTelegramBot(services BotServices) *tgBot {
 			Commander: commander,
 		}
 	}
-	
+
 	wh, err := tgbotapi.NewWebhook(fmt.Sprintf("https://%s/webhook%s", config.Cfg.WebhookHost, bot.Token))
 	if err != nil {
 		log.Panic(err)
