@@ -79,7 +79,10 @@ func fetchSensorById(resChan chan Data, district districts.DictionaryWithSensors
 			}
 
 			if len(fetchedSensorData) > 0 {
+				var mu sync.Mutex
+				mu.Lock()
 				result = append(result, richSensorData(fetchedSensorData[len(fetchedSensorData)-1], district.Name, id))
+				mu.Unlock()
 			}
 		}()
 	}
