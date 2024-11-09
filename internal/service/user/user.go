@@ -51,7 +51,5 @@ func (ur *Service) GetUsersIds() *[]int64 {
 		fmt.Println(err)
 	}
 
-	fmt.Println(ids)
-
 	return ids
 }

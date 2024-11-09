@@ -13,7 +13,7 @@ func (t *tgBot) notifyUsersAboutSensors(sensors []sensor.Data) {
 		if s.AQIPM10WarningIndex > 1 || s.AQIPM25WarningIndex > 1 {
 			t, err := time.Parse("2006-01-02 15", s.Date)
 			if err != nil {
-				log.Printf("Error parsing date %s", s.Date)
+				log.Printf("Error parsing date %#v", err)
 				return
 			}
 			loc, _ := time.LoadLocation("Asia/Novosibirsk")
