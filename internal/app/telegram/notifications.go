@@ -33,9 +33,13 @@ func (t *tgBot) notifyUsersAboutSensors(sensors []sensor.Data) {
 	}
 
 	userIds := *t.services.UserService.GetUsersIds()
-	for _, message := range messages {
-		for _, id := range userIds {
-			t.Commander.DefaultSend(id, message)
+	for _, id := range userIds {
+		for _, message := range messages {
+			err := t.Commander.DefaultSend(id, message)
+			if err != nil && err.Code == 403 {
+				t.services.UserService.DeleteUser(id)
+				break
+			}
 		}
 	}
 }

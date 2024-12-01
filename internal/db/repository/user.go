@@ -13,6 +13,7 @@ type UserRepositoryInterface interface {
 	FindById(id int64) (*models.User, error)
 	Register(user models.User) error
 	GetAllIds() (*[]int64, error)
+	DeleteUserById(id int64) error
 }
 
 type UserRepository struct {
@@ -60,4 +61,14 @@ func (r *UserRepository) GetAllIds() (*[]int64, error) {
 	}
 
 	return &ids, nil
+}
+
+func (r *UserRepository) DeleteUserById(id int64) error {
+	_, err := r.db.Exec(`DELETE FROM users WHERE telegram_id = $1`, id)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

@@ -53,3 +53,11 @@ func (ur *Service) GetUsersIds() *[]int64 {
 
 	return ids
 }
+
+func (ur *Service) DeleteUser(id int64) {
+	err := ur.repo.DeleteUserById(id)
+
+	if err != nil {
+		fmt.Println(err)
+	}
+}
