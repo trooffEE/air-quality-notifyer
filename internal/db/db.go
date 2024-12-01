@@ -29,7 +29,7 @@ func NewDB(args ...func(*Config)) *sqlx.DB {
 	)
 	db, err := sqlx.Connect("postgres", connString)
 	if err != nil {
-		log.Panicf("Establish failed: %w ", ErrConnectionFailed)
+		log.Panicf("Establish failed: %w", ErrConnectionFailed)
 	}
 
 	db.MustExec(schema)

@@ -51,7 +51,23 @@ func (ur *Service) GetUsersIds() *[]int64 {
 		fmt.Println(err)
 	}
 
-	fmt.Println(ids)
-
 	return ids
+}
+
+func (ur *Service) GetUsersNames() *[]string {
+	names, err := ur.repo.GetAllNames()
+
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	return names
+}
+
+func (ur *Service) DeleteUser(id int64) {
+	err := ur.repo.DeleteUserById(id)
+
+	if err != nil {
+		fmt.Println(err)
+	}
 }
