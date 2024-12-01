@@ -13,6 +13,7 @@ type UserRepositoryInterface interface {
 	FindById(id int64) (*models.User, error)
 	Register(user models.User) error
 	GetAllIds() (*[]int64, error)
+	GetAllNames() (*[]string, error)
 	DeleteUserById(id int64) error
 }
 
@@ -61,6 +62,16 @@ func (r *UserRepository) GetAllIds() (*[]int64, error) {
 	}
 
 	return &ids, nil
+}
+func (r *UserRepository) GetAllNames() (*[]string, error) {
+	var names []string
+	err := r.db.Select(&names, "SELECT username FROM users")
+
+	if err != nil {
+		return nil, exceptions.ErrInternalDBError
+	}
+
+	return &names, nil
 }
 
 func (r *UserRepository) DeleteUserById(id int64) error {
