@@ -9,7 +9,6 @@ import (
 	"air-quality-notifyer/internal/service/user"
 	"context"
 	_ "database/sql"
-	"fmt"
 	_ "github.com/lib/pq"
 	"os"
 	"os/signal"
@@ -27,8 +26,6 @@ func main() {
 	userService := user.NewUserService(userRepository)
 	districtService := districts.NewDistrictService(districtRepository)
 	sensorService := sensor.NewSensorService(sensorRepository, districtService)
-
-	fmt.Println("Placeholder so runtime not gets grumpy of unused variable", districtService)
 
 	sensorService.ScrapSensorDataPeriodically()
 

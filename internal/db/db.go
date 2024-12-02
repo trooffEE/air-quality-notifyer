@@ -45,7 +45,6 @@ func NewConfig(args []func(*Config)) *Config {
 		password: os.Getenv("DB_PASSWORD"),
 	}
 
-	//TODO
 	if config.Cfg.Development {
 		dbConfig.host = "localhost"
 	}
