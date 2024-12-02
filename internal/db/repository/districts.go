@@ -9,9 +9,7 @@ type DistrictRepository struct {
 }
 
 func NewDistrictRepository(db *sqlx.DB) *DistrictRepository {
-	return &DistrictRepository{
-		db: db,
-	}
+	return &DistrictRepository{db: db}
 }
 
 type DistrictRepositoryType interface {

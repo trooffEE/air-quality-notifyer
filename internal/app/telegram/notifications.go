@@ -1,7 +1,7 @@
 package telegram
 
 import (
-	"air-quality-notifyer/internal/sensor"
+	"air-quality-notifyer/internal/service/sensor"
 	"fmt"
 	"log"
 	"time"

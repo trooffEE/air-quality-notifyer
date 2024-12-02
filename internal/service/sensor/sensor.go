@@ -1,7 +1,9 @@
 package sensor
 
 import (
+	repo "air-quality-notifyer/internal/db/repository"
 	"air-quality-notifyer/internal/districts"
+	districts2 "air-quality-notifyer/internal/service/districts"
 	"encoding/json"
 	"fmt"
 	"github.com/robfig/cron/v3"
@@ -10,20 +12,33 @@ import (
 	"sync"
 )
 
-// TODO вынести в отдельный пакет
-type requestDone struct {
-	_sensors []Data
+type Service struct {
+	sensorChannel chan []Data
+	//TODO rename districts2 to be districts
+	districts *districts2.Service
+	repo      repo.SensorRepositoryType
 }
 
-func (r requestDone) notifyChangesInSensors() {
-	NotifyChangesInSensors(r._sensors)
+func NewSensorService(repository repo.SensorRepositoryType, districtService *districts2.Service) *Service {
+	return &Service{
+		repo:          repository,
+		districts:     districtService,
+		sensorChannel: make(chan []Data),
+	}
 }
 
-func GetSensorsDataOnceIn(cronString string) {
+func (s *Service) ListenChangesInSensors(handler func([]Data)) {
+	for update := range s.sensorChannel {
+		handler(update)
+	}
+}
+
+func (s *Service) ScrapSensorDataPeriodically() {
 	sensors := NewSensorsData()
-	c := cron.New()
+	c, cronString := cron.New(), "0 * * * *"
 	_, err := c.AddFunc(cronString, func() {
-		fetchSensors(sensors).notifyChangesInSensors()
+		sensors := fetchSensors(sensors)
+		s.sensorChannel <- sensors
 	})
 	if err != nil {
 		log.Panic(err)
@@ -31,7 +46,7 @@ func GetSensorsDataOnceIn(cronString string) {
 	c.Start()
 }
 
-func fetchSensors(sensors []Data) requestDone {
+func fetchSensors(sensors []Data) []Data {
 	respChan := make(chan Data, len(districts.Dictionary))
 
 	for _, district := range districts.Dictionary {
@@ -44,9 +59,10 @@ func fetchSensors(sensors []Data) requestDone {
 		sensors = append(sensors, resp)
 	}
 
-	return requestDone{sensors}
+	return sensors
 }
 
+// TODO Needs refactor
 func fetchSensorById(resChan chan Data, district districts.DictionaryWithSensors) {
 	var wg sync.WaitGroup
 	wg.Add(len(district.SensorIds))

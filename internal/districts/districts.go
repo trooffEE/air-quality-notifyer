@@ -25,32 +25,32 @@ var DictionaryNames = map[string]string{
 	lesnayaPolyana: "Лесная Поляна",
 }
 
-var Dictionary []DictionaryWithSensors = []DictionaryWithSensors{
-	DictionaryWithSensors{
+var Dictionary = []DictionaryWithSensors{
+	{
 		boulevard,
 		[]int{7},
 	},
-	DictionaryWithSensors{
+	{
 		lesnayaPolyana,
 		[]int{11},
 	},
-	DictionaryWithSensors{
+	{
 		metalploshadka,
 		[]int{20, 53},
 	},
-	DictionaryWithSensors{
+	{
 		center,
 		[]int{73, 40, 39, 48},
 	},
-	DictionaryWithSensors{
+	{
 		kirovskii,
 		[]int{47},
 	},
-	DictionaryWithSensors{
+	{
 		yuzhinii,
 		[]int{59, 51, 56},
 	},
-	DictionaryWithSensors{
+	{
 		circus,
 		[]int{71},
 	},

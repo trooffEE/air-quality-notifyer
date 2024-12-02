@@ -22,9 +22,7 @@ type UserRepository struct {
 }
 
 func NewUserRepository(db *sqlx.DB) *UserRepository {
-	return &UserRepository{
-		db: db,
-	}
+	return &UserRepository{db: db}
 }
 
 func (r *UserRepository) FindById(id int64) (*models.User, error) {
