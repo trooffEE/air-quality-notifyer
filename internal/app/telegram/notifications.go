@@ -7,7 +7,7 @@ import (
 	"time"
 )
 
-func (t *tgBot) notifyUsersAboutSensors(sensors []sensor.Data) {
+func (t *tgBot) notifyUsersAboutSensors(sensors []sensor.AirqualitySensor) {
 	var messages []string
 	for _, s := range sensors {
 		if s.AQIPM10WarningIndex > 1 || s.AQIPM25WarningIndex > 1 {

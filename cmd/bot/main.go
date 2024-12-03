@@ -27,14 +27,14 @@ func main() {
 	districtService := districts.NewDistrictService(districtRepository)
 	sensorService := sensor.NewSensorService(sensorRepository, districtService)
 
-	sensorService.ScrapSensorDataPeriodically()
-
 	services := telegram.BotServices{
 		UserService:   userService,
 		SensorService: sensorService,
 	}
 	bot := telegram.InitTelegramBot(services)
 	bot.ListenForUpdates()
+
+	sensorService.ScrapSensorDataPeriodically()
 
 	<-ctx.Done()
 }

@@ -2,9 +2,11 @@ package sensor
 
 import (
 	"air-quality-notifyer/internal/districts"
+	"air-quality-notifyer/internal/lib"
+	"fmt"
 )
 
-type Data struct {
+type AirqualitySensor struct {
 	Id                         int
 	Date                       string
 	SDS_P2                     float64
@@ -24,10 +26,6 @@ type Data struct {
 	AQIPM25Analysis            string
 	AQIAnalysisRecommendations string
 	SourceLink                 string
-}
-
-func NewSensorsData() []Data {
-	return []Data{}
 }
 
 type pmLevelAir struct {
@@ -129,38 +127,50 @@ var pmLevelAirMap = []pmLevelAir{
 	},
 }
 
-func (s *Data) GetFormatedDistrictName() string {
+func (s *AirqualitySensor) GetFormatedDistrictName() string {
 	if value, ok := districts.DictionaryNames[s.District]; ok {
 		return value
 	}
 	return ""
 }
 
-func calcAQI(particlePM, particlePMReferenceHigh, particlePMReferenceLow, pmReferenceIndexHigh, pmReferenceIndexLow float64) float64 {
-	return ((pmReferenceIndexHigh-pmReferenceIndexLow)/(particlePMReferenceHigh-particlePMReferenceLow))*(particlePM-particlePMReferenceLow) + pmReferenceIndexLow
+func (s *AirqualitySensor) withDistrict(districtName string) {
+	s.District = districtName
 }
 
-func (s *Data) richWithPMLevelInformation(pm pmLevelAir) {
-	s.DangerLevel = pm.Name
-	s.DangerColor = pm.Color
-	s.AQIAnalysisRecommendations = pm.AQIAnalysisRecommendations
-}
+func (s *AirqualitySensor) withApiData(id int) {
+	s.Id = id
+	s.SourceLink = fmt.Sprintf("https://airkemerovo.ru/sensor/%d", id)
+	if s.Humidity >= 90 {
+		s.AdditionalInfo = "Высокая влажность. Показания PM могут быть не корректны\n"
+	}
+	if s.Temperature < -60 {
+		s.AdditionalInfo += fmt.Sprintf("Датчики температуры в районе %s не исправен!\n", s.District)
+	}
 
-func (s *Data) getInformationAboutAQI() {
 	for index, pm := range pmLevelAirMap {
-		if s.SDS_P1 >= pm.PM10Low && s.SDS_P1 < pm.PM10High {
-			s.AQIPM10 = calcAQI(s.SDS_P1, pm.PM10High, pm.PM10Low, pm.IndexHigh, pm.IndexLow)
+		isPM10Dangerous := s.SDS_P1 >= pm.PM10Low && s.SDS_P1 < pm.PM10High
+		isPM25Dangerous := s.SDS_P2 >= pm.PM25Low && s.SDS_P2 < pm.PM25High
+
+		if isPM10Dangerous || isPM25Dangerous {
+			s.DangerLevel = pm.Name
+			s.DangerColor = pm.Color
+			s.AQIAnalysisRecommendations = pm.AQIAnalysisRecommendations
+		}
+
+		if isPM10Dangerous {
+			s.AQIPM10 = lib.CalcAQI(s.SDS_P1, pm.PM10High, pm.PM10Low, pm.IndexHigh, pm.IndexLow)
 			s.AQIPM10Analysis = pm.AQIAnalysis
 			s.AQIPM10WarningIndex = index
-			s.richWithPMLevelInformation(pm)
 		}
-		if s.SDS_P2 >= pm.PM25Low && s.SDS_P2 < pm.PM25High {
-			s.AQIPM25 = calcAQI(s.SDS_P2, pm.PM25High, pm.PM25Low, pm.IndexHigh, pm.IndexLow)
+
+		if isPM25Dangerous {
+			s.AQIPM25 = lib.CalcAQI(s.SDS_P2, pm.PM25High, pm.PM25Low, pm.IndexHigh, pm.IndexLow)
 			s.AQIPM25Analysis = pm.AQIAnalysis
 			s.AQIPM25WarningIndex = index
-			s.richWithPMLevelInformation(pm)
 		}
 	}
+
 	if s.AQIPM10WarningIndex >= s.AQIPM25WarningIndex {
 		s.AQIAnalysisRecommendations = pmLevelAirMap[s.AQIPM10WarningIndex].AQIAnalysisRecommendations
 	} else {
