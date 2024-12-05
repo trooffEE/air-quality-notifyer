@@ -20,12 +20,12 @@ services:
 
   airquality_db:
     container_name: airquality-db-container
-    image: postgres:16.4
+    image: postgis/postgis:16-3.5
     restart: always
     ports:
       - "5432:5432"
     volumes:
-      - airquality_db:/var/lib/postgresql/data
+      - ./data/data:/var/lib/postgresql/data
     networks:
       - server-network
     environment:
