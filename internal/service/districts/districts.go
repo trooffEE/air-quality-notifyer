@@ -12,7 +12,7 @@ func NewDistrictService(ur repo.DistrictRepositoryType) *Service {
 	}
 }
 
-func (s *Service) GetDistrictsPeriodically() {
+func (s *Service) ScrapDistrictsDataPeriodically() {
 	/** TODO uncomment me */
 	//cronString := "0 0 * * *"
 }

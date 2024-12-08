@@ -32,8 +32,6 @@ func NewDB(args ...func(*Config)) *sqlx.DB {
 		log.Panicf("Establish failed: %w", ErrConnectionFailed)
 	}
 
-	db.MustExec(schema)
-
 	return db
 }
 

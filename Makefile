@@ -9,7 +9,7 @@ run:
 	go run ./cmd/bot/main.go
 
 createMigration:
-	migrate create -ext sql -dir ./data/migrations/ -seq init_schema
+	migrate create -ext sql -dir ./data/migrations/ -seq $(name)
 
 createDump:
 	DB_USER=${DB_USER} DB_NAME=${DB_NAME} sh ./scripts/db/create_dump.sh
