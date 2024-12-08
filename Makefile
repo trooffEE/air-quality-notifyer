@@ -1,5 +1,6 @@
 include .env
-include ./scripts/lts_dump.sh
+
+# THIS FILE IS ONLY SUITABLE FOR LOCAL DEVELOPMENT - WIP
 
 build:
 	go build -o main ./cmd/bot/main.go
@@ -11,10 +12,10 @@ createMigration:
 	migrate create -ext sql -dir ./data/migrations/ -seq init_schema
 
 createDump:
-	docker exec -it airquality-db-container sh -c "pg_dump -U ${DB_USER} ${DB_NAME} > dump_$(date +%Y-%m-%d_%H-%M-%S).sql;"
+	DB_USER=${DB_USER} DB_NAME=${DB_NAME} sh ./scripts/db/create_dump.sh
 
 applyDump:
-	find_lts_dump
+	DB_USER=${DB_USER} DB_NAME=${DB_NAME} sh ./scripts/db/find_apply_dump.sh
 
 migrationDown: createDump
 	migrate -path ./data/migrations -database "postgresql://${DB_USER}:${DB_PASSWORD}@localhost:5432/${DB_NAME}?sslmode=disable" -verbose \
