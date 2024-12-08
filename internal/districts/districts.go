@@ -25,6 +25,7 @@ var DictionaryNames = map[string]string{
 	lesnayaPolyana: "Лесная Поляна",
 }
 
+// TODO Remove it, use district table
 var Dictionary = []DictionaryWithSensors{
 	{
 		boulevard,

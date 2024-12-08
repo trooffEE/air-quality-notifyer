@@ -34,7 +34,7 @@ func main() {
 	bot := telegram.InitTelegramBot(services)
 	bot.ListenForUpdates()
 
-	sensorService.ScrapSensorDataPeriodically()
+	sensorService.ScrapSensorDataEveryHour()
 
 	<-ctx.Done()
 }

@@ -30,7 +30,7 @@ func InitTelegramBot(services BotServices) *tgBot {
 		log.Panic(err)
 	}
 
-	//TODO wait for routine?
+	//TODO wait for a routine?
 	go http.ListenAndServe(fmt.Sprintf(":%s", config.Cfg.WebhookPort), nil)
 
 	if config.Cfg.Development {

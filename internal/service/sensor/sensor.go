@@ -30,7 +30,7 @@ func (s *Service) ListenChangesInSensors(handler func([]AirqualitySensor)) {
 	}
 }
 
-func (s *Service) ScrapSensorDataPeriodically() {
+func (s *Service) ScrapSensorDataEveryHour() {
 	cronCreator := cron.New()
 	cronString := "0 * * * *"
 
