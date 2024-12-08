@@ -1,4 +1,5 @@
 include .env
+include ./scripts/lts_dump.sh
 
 build:
 	go build -o main ./cmd/bot/main.go
@@ -6,14 +7,23 @@ build:
 run:
 	go run ./cmd/bot/main.go
 
+createMigration:
+	migrate create -ext sql -dir ./data/migrations/ -seq init_schema
+
+createDump:
+	docker exec -it airquality-db-container sh -c "pg_dump -U ${DB_USER} ${DB_NAME} > dump_$(date +%Y-%m-%d_%H-%M-%S).sql;"
+
 applyDump:
-	docker cp ./data/dump/dump.sql airquality-db-container:/dump.sql && \
-	docker exec -it airquality-db-container sh -c "psql -U ${DB_USER} ${DB_NAME} < dump.sql;"
+	find_lts_dump
 
-migrationDown:
-	migrate -path ./data/migrations -database "postgresql://${DB_USER}:${DB_PASSWORD}@localhost:5432/${DB_NAME}?sslmode=disable" -verbose down
+migrationDown: createDump
+	migrate -path ./data/migrations -database "postgresql://${DB_USER}:${DB_PASSWORD}@localhost:5432/${DB_NAME}?sslmode=disable" -verbose \
+	down
 
-migrationUp:
-	migrate -path ./data/migrations -database "postgresql://${DB_USER}:${DB_PASSWORD}@localhost:5432/${DB_NAME}?sslmode=disable" -verbose up
+_migrationUp:
+	migrate -path ./data/migrations -database "postgresql://${DB_USER}:${DB_PASSWORD}@localhost:5432/${DB_NAME}?sslmode=disable" -verbose \
+	up
 
-.PHONY: build run applyDump migrationDown migrationUp
+migrationUp: _migrationUp applyDump
+
+.PHONY: build run migrationUp migrationDown applyDump createMigration
