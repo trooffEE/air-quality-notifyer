@@ -61,6 +61,7 @@ func (r *UserRepository) GetAllIds() (*[]int64, error) {
 
 	return &ids, nil
 }
+
 func (r *UserRepository) GetAllNames() (*[]string, error) {
 	var names []string
 	err := r.db.Select(&names, "SELECT username FROM users")

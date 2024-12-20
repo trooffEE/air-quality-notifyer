@@ -3,5 +3,5 @@ package exceptions
 import "errors"
 
 var (
-	ErrInternalDBError = errors.New("Internal Server Error")
+	UserNotFound = errors.New("User not found")
 )

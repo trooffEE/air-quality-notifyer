@@ -27,6 +27,9 @@ func main() {
 	districtService := districts.NewDistrictService(districtRepository)
 	sensorService := sensor.NewSensorService(sensorRepository, districtService)
 
+	//districtService.GetDistrictByCoords()
+	sensorService.ScrapSensorData()
+
 	services := telegram.BotServices{
 		UserService:   userService,
 		SensorService: sensorService,
@@ -34,7 +37,7 @@ func main() {
 	bot := telegram.InitTelegramBot(services)
 	bot.ListenForUpdates()
 
-	sensorService.ScrapSensorDataEveryHour()
+	sensorService.FetchSensorsEveryHour()
 
 	<-ctx.Done()
 }

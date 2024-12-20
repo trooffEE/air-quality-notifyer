@@ -30,7 +30,7 @@ func (s *Service) ListenChangesInSensors(handler func([]AirqualitySensor)) {
 	}
 }
 
-func (s *Service) ScrapSensorDataEveryHour() {
+func (s *Service) FetchSensorsEveryHour() {
 	cronCreator := cron.New()
 	cronString := "0 * * * *"
 
@@ -40,6 +40,27 @@ func (s *Service) ScrapSensorDataEveryHour() {
 	}
 
 	cronCreator.Start()
+}
+
+func (s *Service) InvalidateSensorsEveryday() {
+	cronCreator := cron.New()
+	cronString := "0 0 * * *"
+
+	_, err := cronCreator.AddFunc(cronString, s.startInvalidation)
+	if err != nil {
+		log.Panic(err)
+	}
+
+	cronCreator.Start()
+}
+
+func (s *Service) startInvalidation() {
+	aliveSensors := scrapSensorData()
+
+	for _, sensor := range aliveSensors {
+		id := s.districts.GetDistrictByCoords(sensor.Lat, sensor.Lon)
+		s.invalidateSensor(sensor, id)
+	}
 }
 
 func (s *Service) getWorstAirqualitySensors() {
