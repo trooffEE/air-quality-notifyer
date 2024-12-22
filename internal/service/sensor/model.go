@@ -1,7 +1,6 @@
 package sensor
 
 import (
-	"air-quality-notifyer/internal/districts"
 	"air-quality-notifyer/internal/lib"
 	"fmt"
 )
@@ -17,8 +16,8 @@ type AirqualitySensor struct {
 	District                   string
 	AQIPM25                    float64
 	AQIPM10                    float64
-	AQIPM10WarningIndex        int
-	AQIPM25WarningIndex        int
+	AQIPM10WarningIndex        int64
+	AQIPM25WarningIndex        int64
 	DangerLevel                string
 	DangerColor                string
 	AdditionalInfo             string
@@ -122,24 +121,18 @@ var pmLevelAirMap = []pmLevelAir{
 		IndexLow:                   401,
 		IndexHigh:                  500,
 		Color:                      "#960032",
-		AQIAnalysis:                "Опасный уровень - \"чрезвычайно опасно\" 💀💀💀",
+		Name:                       "Опасно для жизни",
+		AQIAnalysis:                "Опасный для жизни уровень 😵",
 		AQIAnalysisRecommendations: "<b>Для всех</b>: избегайте любых физических нагрузок на открытом воздухе.\n\n<b>Чувствительные группы</b>: оставайтесь в помещении и сохраняйте низкий уровень активности. Следуйте советам по сохранению низкого уровня частиц в помещении.",
 	},
-}
-
-func (s *AirqualitySensor) GetFormatedDistrictName() string {
-	if value, ok := districts.DictionaryNames[s.District]; ok {
-		return value
-	}
-	return ""
 }
 
 func (s *AirqualitySensor) withDistrict(districtName string) {
 	s.District = districtName
 }
 
-func (s *AirqualitySensor) withApiData(id int) {
-	s.Id = id
+func (s *AirqualitySensor) withApiData(id int64) {
+	s.Id = int(id)
 	s.SourceLink = fmt.Sprintf("https://airkemerovo.ru/sensor/%d", id)
 	if s.Humidity >= 90 {
 		s.AdditionalInfo = "Высокая влажность. Показания PM могут быть не корректны\n"
@@ -161,13 +154,13 @@ func (s *AirqualitySensor) withApiData(id int) {
 		if isPM10Dangerous {
 			s.AQIPM10 = lib.CalcAQI(s.SDS_P1, pm.PM10High, pm.PM10Low, pm.IndexHigh, pm.IndexLow)
 			s.AQIPM10Analysis = pm.AQIAnalysis
-			s.AQIPM10WarningIndex = index
+			s.AQIPM10WarningIndex = int64(index)
 		}
 
 		if isPM25Dangerous {
 			s.AQIPM25 = lib.CalcAQI(s.SDS_P2, pm.PM25High, pm.PM25Low, pm.IndexHigh, pm.IndexLow)
 			s.AQIPM25Analysis = pm.AQIAnalysis
-			s.AQIPM25WarningIndex = index
+			s.AQIPM25WarningIndex = int64(index)
 		}
 	}
 

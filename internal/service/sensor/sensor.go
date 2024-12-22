@@ -3,8 +3,8 @@ package sensor
 import (
 	"air-quality-notifyer/internal/db/models"
 	repo "air-quality-notifyer/internal/db/repository"
-	"air-quality-notifyer/internal/districts"
 	districts2 "air-quality-notifyer/internal/service/districts"
+	"context"
 	"database/sql"
 	"errors"
 	"fmt"
@@ -16,13 +16,15 @@ type Service struct {
 	worstAirqualitySensorsChannel chan []AirqualitySensor
 	districts                     *districts2.Service
 	repo                          repo.SensorRepositoryType
+	ctx                           context.Context
 }
 
-func NewSensorService(repository repo.SensorRepositoryType, districtService *districts2.Service) *Service {
+func NewSensorService(ctx context.Context, repository repo.SensorRepositoryType, districtService *districts2.Service) *Service {
 	return &Service{
 		repo:                          repository,
 		districts:                     districtService,
 		worstAirqualitySensorsChannel: make(chan []AirqualitySensor),
+		ctx:                           ctx,
 	}
 }
 
@@ -93,10 +95,13 @@ func (s *Service) saveNewScrappedSensor(sensor AirqualitySensorScriptScrapped) {
 }
 
 func (s *Service) getWorstAirqualitySensors() {
-	respChan := make(chan AirqualitySensor, len(districts.Dictionary))
+	districts := s.ctx.Value("districts").([]models.District)
 
-	for _, district := range districts.Dictionary {
-		findWorstSensorInDistrict(respChan, district)
+	respChan := make(chan AirqualitySensor, len(districts))
+
+	for _, district := range districts {
+		allSensorsInDistrict := s.repo.GetSensorsByDistrictId(district.Id)
+		findWorstSensorInDistrict(respChan, allSensorsInDistrict)
 	}
 
 	close(respChan)

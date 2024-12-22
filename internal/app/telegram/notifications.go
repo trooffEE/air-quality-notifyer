@@ -19,7 +19,7 @@ func (t *tgBot) notifyUsersAboutSensors(sensors []sensor.AirqualitySensor) {
 			loc, _ := time.LoadLocation("Asia/Novosibirsk")
 			sDate := t.In(loc)
 			message := fmt.Sprintf("<b>В районе - %s</b> 🏠\n\nЗа прошедший час - для времени %s 🕛 \n\nЗафиксировано значительное ухудшение качества воздуха - уровень опасности \"%s\"\n\n<b>AQI(PM10): %.2f  - %s\nAQI(PM2.5): %.2f - %s</b>\n\nПодробнее (отматать 1 час назад): %s",
-				s.GetFormatedDistrictName(), sDate.Format("02.01.2006 15:04"), s.DangerLevel,
+				s.District, sDate.Format("02.01.2006 15:04"), s.DangerLevel,
 				s.AQIPM10, s.AQIPM10Analysis,
 				s.AQIPM25, s.AQIPM25Analysis, s.SourceLink,
 			)

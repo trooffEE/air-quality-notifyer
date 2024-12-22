@@ -1,7 +1,7 @@
 package sensor
 
 import (
-	"air-quality-notifyer/internal/districts"
+	"air-quality-notifyer/internal/db/models"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -9,22 +9,21 @@ import (
 	"sync"
 )
 
-func findWorstSensorInDistrict(resChan chan AirqualitySensor, district districts.DictionaryWithSensors) {
+func findWorstSensorInDistrict(resChan chan AirqualitySensor, sensors []models.AirqualitySensor) {
 	var syncSensorList SyncAirqualitySensorList
-	syncSensorList.wg.Add(len(district.SensorIds))
+	syncSensorList.wg.Add(len(sensors))
 
-	for _, id := range district.SensorIds {
-		fetchSensorById(&syncSensorList, id)
+	for _, sensor := range sensors {
+		fetchSensorById(&syncSensorList, sensor.ApiId, sensor.District.Name)
 	}
 	syncSensorList.wg.Wait()
 
 	worstAirqualitySensor := syncSensorList.findWorstAirqualitySensor()
-	worstAirqualitySensor.withDistrict(district.Name)
 
 	resChan <- worstAirqualitySensor
 }
 
-func fetchSensorById(syncSensorList *SyncAirqualitySensorList, id int) {
+func fetchSensorById(syncSensorList *SyncAirqualitySensorList, id int64, districtName string) {
 	defer syncSensorList.wg.Done()
 
 	res, err := http.Post(
@@ -48,6 +47,7 @@ func fetchSensorById(syncSensorList *SyncAirqualitySensorList, id int) {
 		latestUpdatedSensor := fetchedSensorsList[len(fetchedSensorsList)-1]
 
 		latestUpdatedSensor.withApiData(id)
+		latestUpdatedSensor.withDistrict(districtName)
 
 		syncSensorList.addSensor(latestUpdatedSensor)
 	}

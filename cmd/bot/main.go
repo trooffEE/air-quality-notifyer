@@ -19,13 +19,15 @@ func main() {
 	defer stop()
 
 	database := db.NewDB()
-	userRepository := repository.NewUserRepository(database)
 	districtRepository := repository.NewDistrictRepository(database)
+	userRepository := repository.NewUserRepository(database)
 	sensorRepository := repository.NewSensorRepository(database)
+
+	ctx = context.WithValue(ctx, "districts", districtRepository.GetAllDistricts())
 
 	userService := user.NewUserService(userRepository)
 	districtService := districts.NewDistrictService(districtRepository)
-	sensorService := sensor.NewSensorService(sensorRepository, districtService)
+	sensorService := sensor.NewSensorService(ctx, sensorRepository, districtService)
 
 	services := telegram.BotServices{
 		UserService:   userService,
@@ -33,7 +35,6 @@ func main() {
 	}
 	bot := telegram.InitTelegramBot(services)
 	bot.ListenForUpdates()
-
 	sensorService.FetchSensorsEveryHour()
 	sensorService.InvalidateSensorsEveryday()
 

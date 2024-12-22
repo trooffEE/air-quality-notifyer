@@ -7,4 +7,8 @@ type AirqualitySensor struct {
 	Address    string  `db:"address"`
 	Lat        float64 `db:"lat"`
 	Lon        float64 `db:"lon"`
+	District   struct {
+		Id   int64  `db:"id"`
+		Name string `db:"name"`
+	}
 }

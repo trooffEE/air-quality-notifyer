@@ -20,6 +20,7 @@ type SensorRepositoryType interface {
 	GetSensorByApiId(id int64) (*models.AirqualitySensor, error)
 	SaveSensor(sensor models.AirqualitySensor) error
 	EvictSensor(id int64) error
+	GetSensorsByDistrictId(id int64) []models.AirqualitySensor
 }
 
 func (r *SensorRepository) GetSensorByApiId(id int64) (*models.AirqualitySensor, error) {
@@ -64,4 +65,26 @@ func (r *SensorRepository) EvictSensor(sensorApiId int64) error {
 	}
 
 	return nil
+}
+
+func (r *SensorRepository) GetSensorsByDistrictId(id int64) []models.AirqualitySensor {
+	var sensors []models.AirqualitySensor
+	err := r.db.Select(&sensors, `
+		SELECT
+		    s.id AS id,
+			s.api_id AS api_id,
+			s.district_id AS district_id,
+			s.address AS address,
+			s.lat AS lat,
+			s.lon AS lon,
+			d.name AS "district.name"
+		FROM sensors AS s
+		LEFT JOIN districts d on d.id = s.district_id
+		WHERE district_id = $1
+    `, id)
+	if err != nil {
+		return nil
+	}
+
+	return sensors
 }
