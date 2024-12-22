@@ -16,12 +16,13 @@ func NewSensorRepository(db *sqlx.DB) *SensorRepository {
 }
 
 type SensorRepositoryType interface {
-	FindSensorByApiId(id int64) (*models.AirqualitySensor, error)
 	GetAllApiIds() (*[]int64, error)
+	GetSensorByApiId(id int64) (*models.AirqualitySensor, error)
 	SaveSensor(sensor models.AirqualitySensor) error
+	EvictSensor(id int64) error
 }
 
-func (r *SensorRepository) FindSensorByApiId(id int64) (*models.AirqualitySensor, error) {
+func (r *SensorRepository) GetSensorByApiId(id int64) (*models.AirqualitySensor, error) {
 	var sensor models.AirqualitySensor
 	err := r.db.Get(&sensor, "SELECT * FROM sensors WHERE api_id = $1", id)
 	if err != nil {
@@ -54,4 +55,13 @@ func (r *SensorRepository) GetAllApiIds() (*[]int64, error) {
 	}
 
 	return &ids, nil
+}
+
+func (r *SensorRepository) EvictSensor(sensorApiId int64) error {
+	_, err := r.db.Exec("DELETE FROM sensors WHERE api_id = $1", sensorApiId)
+	if err != nil {
+		return exceptions.ErrInternalDBError
+	}
+
+	return nil
 }

@@ -1,9 +1,12 @@
 package sensor
 
 import (
+	"air-quality-notifyer/internal/db/models"
 	repo "air-quality-notifyer/internal/db/repository"
 	"air-quality-notifyer/internal/districts"
 	districts2 "air-quality-notifyer/internal/service/districts"
+	"database/sql"
+	"errors"
 	"fmt"
 	"github.com/robfig/cron/v3"
 	"log"
@@ -55,11 +58,37 @@ func (s *Service) InvalidateSensorsEveryday() {
 }
 
 func (s *Service) startInvalidation() {
-	aliveSensors := scrapSensorData()
+	scrappedSensors := scrapSensorData()
 
-	for _, sensor := range aliveSensors {
-		id := s.districts.GetDistrictByCoords(sensor.Lat, sensor.Lon)
-		s.invalidateSensor(sensor, id)
+	for _, sensor := range scrappedSensors {
+		_, err := s.repo.GetSensorByApiId(sensor.Id)
+		if errors.Is(err, sql.ErrNoRows) {
+			s.saveNewScrappedSensor(sensor)
+		} else if err != nil {
+			fmt.Printf("Failed to get api_ids of sensors from database: %v\n", err)
+		}
+	}
+
+	s.invalidateSensors(scrappedSensors)
+}
+
+func (s *Service) saveNewScrappedSensor(sensor AirqualitySensorScriptScrapped) {
+	districtId := s.districts.GetDistrictByCoords(sensor.Lat, sensor.Lon)
+	// TODO Не работаем с датчиками вне районов города
+	if districtId == -1 {
+		return
+	}
+
+	dbModel := models.AirqualitySensor{
+		DistrictId: districtId,
+		ApiId:      sensor.Id,
+		Address:    sensor.Address,
+		Lat:        sensor.Lat,
+		Lon:        sensor.Lon,
+	}
+	err := s.repo.SaveSensor(dbModel)
+	if err != nil {
+		fmt.Printf("Failed to save new scrapped sensor: %v\n", err)
 	}
 }
 

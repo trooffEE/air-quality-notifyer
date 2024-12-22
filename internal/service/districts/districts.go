@@ -2,7 +2,6 @@ package districts
 
 import (
 	repo "air-quality-notifyer/internal/db/repository"
-	"fmt"
 )
 
 type Service struct {
@@ -16,9 +15,6 @@ func NewDistrictService(ur repo.DistrictRepositoryType) *Service {
 }
 
 func (s *Service) GetDistrictByCoords(x, y float64) int64 {
-	id, err := s.repo.GetAssociatedDistrictIdByCoords(x, y)
-	if err != nil {
-		fmt.Println(err)
-	}
+	id := s.repo.GetAssociatedDistrictIdByCoords(x, y)
 	return id
 }

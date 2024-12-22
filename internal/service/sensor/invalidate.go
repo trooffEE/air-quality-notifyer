@@ -1,35 +1,28 @@
 package sensor
 
 import (
-	"air-quality-notifyer/internal/db/models"
-	"database/sql"
-	"errors"
 	"fmt"
+	"slices"
 )
 
-func (s *Service) invalidateSensor(incomingSensor AirqualitySensorScriptScrapped, districtId int64) {
-	savedSensor, err := s.repo.FindSensorByApiId(incomingSensor.Id)
-	if errors.Is(err, sql.ErrNoRows) {
-		dbModel := models.AirqualitySensor{
-			ApiId:      incomingSensor.Id,
-			DistrictId: districtId,
-			Address:    incomingSensor.Address,
-			Lat:        incomingSensor.Lat,
-			Lon:        incomingSensor.Lon,
-		}
-		err = s.repo.SaveSensor(dbModel)
-		if err != nil {
-			fmt.Printf("Failed to save air quality sensor: %v\n", err)
-		}
-	}
-
+func (s *Service) invalidateSensors(aliveSensors []AirqualitySensorScriptScrapped) {
+	currentlySavedSensorsIds, err := s.repo.GetAllApiIds()
 	if err != nil {
-		fmt.Println(err)
+		fmt.Printf("Failed to get all air quality sensor: %+v\n", err)
+		return
 	}
 
-	//TODO
-	//ids, err := s.repo.GetAllApiIds()
-	//if err != nil {
-	//	fmt.Println(err)
-	//}
+	var aliveIds []int64
+	for _, sensor := range aliveSensors {
+		aliveIds = append(aliveIds, sensor.Id)
+	}
+
+	for _, id := range *currentlySavedSensorsIds {
+		if !slices.Contains(aliveIds, id) {
+			err := s.repo.EvictSensor(id)
+			if err != nil {
+				fmt.Printf("Failed to evict sensor: %+v\n", err)
+			}
+		}
+	}
 }
