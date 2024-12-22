@@ -30,7 +30,6 @@ func NewSensorService(ctx context.Context, repository repo.SensorRepositoryType,
 
 func (s *Service) ListenChangesInSensors(handler func([]AirqualitySensor)) {
 	for update := range s.worstAirqualitySensorsChannel {
-		fmt.Println(update)
 		handler(update)
 	}
 }
@@ -98,7 +97,7 @@ func (s *Service) getWorstAirqualitySensors() {
 	ctxDistricts := s.ctx.Value("districts").([]models.District)
 
 	respChan := make(chan AirqualitySensor, len(ctxDistricts))
-	
+
 	for _, district := range ctxDistricts {
 		allSensorsInDistrict := s.repo.GetSensorsByDistrictId(district.Id)
 		findWorstSensorInDistrict(respChan, allSensorsInDistrict)
