@@ -3,7 +3,7 @@ package sensor
 import (
 	"air-quality-notifyer/internal/db/models"
 	repo "air-quality-notifyer/internal/db/repository"
-	districts2 "air-quality-notifyer/internal/service/districts"
+	"air-quality-notifyer/internal/service/districts"
 	"context"
 	"database/sql"
 	"errors"
@@ -14,12 +14,12 @@ import (
 
 type Service struct {
 	worstAirqualitySensorsChannel chan []AirqualitySensor
-	districts                     *districts2.Service
+	districts                     *districts.Service
 	repo                          repo.SensorRepositoryType
 	ctx                           context.Context
 }
 
-func NewSensorService(ctx context.Context, repository repo.SensorRepositoryType, districtService *districts2.Service) *Service {
+func NewSensorService(ctx context.Context, repository repo.SensorRepositoryType, districtService *districts.Service) *Service {
 	return &Service{
 		repo:                          repository,
 		districts:                     districtService,
@@ -95,11 +95,11 @@ func (s *Service) saveNewScrappedSensor(sensor AirqualitySensorScriptScrapped) {
 }
 
 func (s *Service) getWorstAirqualitySensors() {
-	districts := s.ctx.Value("districts").([]models.District)
+	ctxDistricts := s.ctx.Value("districts").([]models.District)
 
-	respChan := make(chan AirqualitySensor, len(districts))
-
-	for _, district := range districts {
+	respChan := make(chan AirqualitySensor, len(ctxDistricts))
+	
+	for _, district := range ctxDistricts {
 		allSensorsInDistrict := s.repo.GetSensorsByDistrictId(district.Id)
 		findWorstSensorInDistrict(respChan, allSensorsInDistrict)
 	}
