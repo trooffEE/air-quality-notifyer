@@ -40,7 +40,7 @@ func (r *SensorRepository) SaveSensor(sensor models.AirqualitySensor) error {
 	`, sensor)
 
 	if err != nil {
-		log.Printf("%w\n", err)
+		log.Printf("%+v\n", err)
 		return err
 	}
 

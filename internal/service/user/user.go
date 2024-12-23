@@ -40,7 +40,7 @@ func (ur *Service) Register(user User) {
 	err := ur.repo.Register(dto)
 
 	if err != nil {
-		fmt.Println(err)
+		fmt.Printf("Failed to register new user %+v \n", err)
 	}
 }
 

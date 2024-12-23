@@ -33,7 +33,7 @@ func (r *UserRepository) FindById(id int64) (*models.User, error) {
 	}
 
 	if err != nil {
-		log.Printf("%w\n", err)
+		log.Printf("%+v\n", err)
 		return nil, exceptions.ErrInternalDBError
 	}
 
@@ -44,7 +44,7 @@ func (r *UserRepository) Register(user models.User) error {
 	_, err := r.db.NamedExec(`INSERT INTO users (username, telegram_id) VALUES (:username, :telegram_id)`, user)
 
 	if err != nil {
-		log.Printf("%w\n", err)
+		log.Printf("%+v\n", err)
 		return err
 	}
 
