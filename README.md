@@ -30,7 +30,7 @@
 > Вокруг нас много неравнодушных людей готовых внести свой вклад в общее благо, но узнать друг о друге бывает сложно. Создавая горизонтальные связи между участниками, проект позволит нам добиваться большего - вместе мы сила.
 ---
 ### Technical Road map
-- [ ] Silent Message 
+- [X] ~~Silent Message~~ 
 - [ ] Test Coverage 80%+
 - [ ] Ability to get from bot current airquality state in district 
-- [ ] Ability to get notification only for specific districts user intersted in
+- [ ] Ability to get notification only for specific districts user interested in

@@ -18,13 +18,29 @@ func prepareDangerousLevelMessage(s s.AqiSensor) string {
 		log.Printf("Error parsing date %#v", err)
 		return ""
 	}
-	loc, _ := time.LoadLocation("Asia/Novosibirsk")
-	date := t.In(loc).Format("02.01.2006 15:04")
 
-	return fmt.Sprintf("<b>В районе - %s</b> 🏠\n\nЗа прошедший час - для времени %s 🕛 \n\nЗафиксировано значительное ухудшение качества воздуха - уровень опасности \"%s\"\n\n<b>AQI(PM10): %d\nAQI(PM2.5): %d</b>\n\nПодробнее: %s",
+	loc, err := time.LoadLocation("Asia/Novosibirsk")
+	if err != nil {
+		log.Printf("Error loading timezone %#v", err)
+		return ""
+	}
+
+	date := t.In(loc).Format("02.01.2006 15:04")
+	return fmt.Sprintf(
+		"<b>В районе - %s</b> 🏠\n\nЗа прошедший час - для времени %s 🕛 \n\nЗафиксировано значительное ухудшение качества воздуха - уровень опасности \"%s\"\n\n<b>AQI(PM10): %d\nAQI(PM2.5): %d</b>\n\nПодробнее: %s",
 		s.District, date, pollutionLevel.Name,
 		s.Aqi10, s.Aqi25, s.SourceLink,
 	)
+}
+
+func getTimezoneHourTime() int {
+	loc, err := time.LoadLocation("Asia/Novosibirsk")
+	if err != nil {
+		log.Printf("Error loading timezone %#v", err)
+		return -1
+	}
+
+	return time.Now().In(loc).Hour()
 }
 
 func (t *tgBot) notifyUsersAboutSensors(sensors []s.AqiSensor) {
@@ -36,10 +52,15 @@ func (t *tgBot) notifyUsersAboutSensors(sensors []s.AqiSensor) {
 		}
 	}
 
+	hour := getTimezoneHourTime()
+	isSilentMessage := false
+	if hour < 8 && hour >= 0 {
+		isSilentMessage = true
+	}
 	userIds := *t.services.UserService.GetUsersIds()
 	for _, id := range userIds {
 		for _, message := range messages {
-			err := t.Commander.DefaultSend(id, message)
+			err := t.Commander.DefaultSend(id, message, isSilentMessage)
 			if err != nil && err.Code == 403 {
 				t.services.UserService.DeleteUser(id)
 				break
