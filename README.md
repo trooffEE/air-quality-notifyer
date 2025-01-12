@@ -11,6 +11,8 @@
 
 Отличный сервис, мотивация создания которого совпадает с мотивацией создания этого скромного проекта
 
+---
+
 ### Мотивация (https://airkemerovo.ru/content/about):
 
 #### Следить за воздухом
@@ -26,6 +28,9 @@
 
 #### Узнать друг друга 
 > Вокруг нас много неравнодушных людей готовых внести свой вклад в общее благо, но узнать друг о друге бывает сложно. Создавая горизонтальные связи между участниками, проект позволит нам добиваться большего - вместе мы сила.
-
-
-
+---
+### Technical Road map
+- [ ] Silent Message 
+- [ ] Test Coverage 80%+
+- [ ] Ability to get from bot current airquality state in district 
+- [ ] Ability to get notification only for specific districts user intersted in
