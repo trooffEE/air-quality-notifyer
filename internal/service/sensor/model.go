@@ -69,22 +69,18 @@ func (s *AqiSensor) IsDangerousLevelDetected() bool {
 }
 
 func (s *AqiSensor) GetExtendedPollutionLevel() *PollutionLevel {
-	if s.Level == good {
+	switch s.Level {
+	case good:
 		return &PollutionLevelsMap.Good
-	}
-	if s.Level == moderate {
+	case moderate:
 		return &PollutionLevelsMap.Moderate
-	}
-	if s.Level == unhealthySensitive {
+	case unhealthySensitive:
 		return &PollutionLevelsMap.UnhealthySensitive
-	}
-	if s.Level == unhealthy {
+	case unhealthy:
 		return &PollutionLevelsMap.Unhealthy
-	}
-	if s.Level == unhealthyModerate {
+	case unhealthyModerate:
 		return &PollutionLevelsMap.UnhealthyModerate
-	}
-	if s.Level == hazardous {
+	case hazardous:
 		return &PollutionLevelsMap.Hazardous
 	}
 
