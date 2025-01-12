@@ -9,7 +9,7 @@ import (
 	"strings"
 )
 
-type AirqualitySensorScriptScrapped struct {
+type AqiSensorScriptScrapped struct {
 	Id      int64   `json:"id"`
 	Address string  `json:"address"`
 	Lat     float64 `json:"lat"`
@@ -18,7 +18,7 @@ type AirqualitySensorScriptScrapped struct {
 
 var setSensorsStringStart, setSensorsStringEnd = "setSensors('", "');"
 
-func scrapSensorData() []AirqualitySensorScriptScrapped {
+func scrapSensorData() []AqiSensorScriptScrapped {
 	res, err := http.Get("https://airkemerovo.ru")
 	if err != nil {
 		log.Fatal(err)
@@ -43,7 +43,7 @@ func scrapSensorData() []AirqualitySensorScriptScrapped {
 	reader := strings.NewReader(strings.TrimSpace(scriptContents))
 	scanner := bufio.NewScanner(reader)
 
-	var sensors []AirqualitySensorScriptScrapped
+	var sensors []AqiSensorScriptScrapped
 	for scanner.Scan() {
 		scriptLine := scanner.Text()
 

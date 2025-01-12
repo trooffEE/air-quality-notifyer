@@ -73,7 +73,7 @@ func (s *Service) startInvalidation() {
 	s.invalidateSensors(scrappedSensors)
 }
 
-func (s *Service) saveNewScrappedSensor(sensor AirqualitySensorScriptScrapped) {
+func (s *Service) saveNewScrappedSensor(sensor AqiSensorScriptScrapped) {
 	districtId := s.districts.GetDistrictByCoords(sensor.Lat, sensor.Lon)
 	// TODO Не работаем с датчиками вне районов города
 	if districtId == -1 {
