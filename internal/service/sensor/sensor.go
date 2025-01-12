@@ -13,7 +13,7 @@ import (
 )
 
 type Service struct {
-	worstAirqualitySensorsChannel chan []AirqualitySensor
+	worstAirqualitySensorsChannel chan []AqiSensor
 	districts                     *districts.Service
 	repo                          repo.SensorRepositoryType
 	ctx                           context.Context
@@ -23,12 +23,12 @@ func NewSensorService(ctx context.Context, repository repo.SensorRepositoryType,
 	return &Service{
 		repo:                          repository,
 		districts:                     districtService,
-		worstAirqualitySensorsChannel: make(chan []AirqualitySensor),
+		worstAirqualitySensorsChannel: make(chan []AqiSensor),
 		ctx:                           ctx,
 	}
 }
 
-func (s *Service) ListenChangesInSensors(handler func([]AirqualitySensor)) {
+func (s *Service) ListenChangesInSensors(handler func([]AqiSensor)) {
 	for update := range s.worstAirqualitySensorsChannel {
 		handler(update)
 	}
@@ -96,7 +96,7 @@ func (s *Service) saveNewScrappedSensor(sensor AirqualitySensorScriptScrapped) {
 func (s *Service) getWorstAirqualitySensors() {
 	ctxDistricts := s.ctx.Value("districts").([]models.District)
 
-	respChan := make(chan AirqualitySensor, len(ctxDistricts))
+	respChan := make(chan AqiSensor, len(ctxDistricts))
 
 	for _, district := range ctxDistricts {
 		allSensorsInDistrict := s.repo.GetSensorsByDistrictId(district.Id)
@@ -105,7 +105,7 @@ func (s *Service) getWorstAirqualitySensors() {
 
 	close(respChan)
 
-	var sensors []AirqualitySensor
+	var sensors []AqiSensor
 	for resp := range respChan {
 		sensors = append(sensors, resp)
 	}

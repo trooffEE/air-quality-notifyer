@@ -12,34 +12,29 @@ import (
 type SyncAirqualitySensorList struct {
 	mu   sync.Mutex
 	wg   sync.WaitGroup
-	list []AirqualitySensor
+	list []AqiSensor
 }
 
-func (s *SyncAirqualitySensorList) addSensor(sensor AirqualitySensor) {
+func (s *SyncAirqualitySensorList) addSensor(sensor AqiSensor) {
 	s.mu.Lock()
 	s.list = append(s.list, sensor)
 	s.mu.Unlock()
 }
 
-func (s *SyncAirqualitySensorList) findWorstAirqualitySensor() AirqualitySensor {
-	var worstAQISensor AirqualitySensor
-	var currentWorstAQI float64
+func (s *SyncAirqualitySensorList) findWorstAirqualitySensor() AqiSensor {
+	var worstAQISensor AqiSensor
+	var currentWorstAQI int
 	for _, value := range s.list {
-		if currentWorstAQI < value.AQIPM10 || currentWorstAQI < value.AQIPM25 {
+		if currentWorstAQI < value.Aqi {
+			currentWorstAQI = value.Aqi
 			worstAQISensor = value
-		}
-
-		if currentWorstAQI < value.AQIPM25 {
-			currentWorstAQI = value.AQIPM25
-		} else if currentWorstAQI < value.AQIPM10 {
-			currentWorstAQI = value.AQIPM10
 		}
 	}
 
 	return worstAQISensor
 }
 
-func findWorstSensorInDistrict(resChan chan AirqualitySensor, sensors []models.AirqualitySensor) {
+func findWorstSensorInDistrict(resChan chan AqiSensor, sensors []models.AirqualitySensor) {
 	var syncSensorList SyncAirqualitySensorList
 	syncSensorList.wg.Add(len(sensors))
 
@@ -56,29 +51,27 @@ func findWorstSensorInDistrict(resChan chan AirqualitySensor, sensors []models.A
 func fetchSensorById(syncSensorList *SyncAirqualitySensorList, id int64, districtName string) {
 	defer syncSensorList.wg.Done()
 
-	res, err := http.Post(
-		fmt.Sprintf("https://airkemerovo.ru/api/sensor/archive/%d/1", id),
-		"application/json",
-		nil,
-	)
+	res, err := http.Get(fmt.Sprintf("https://airkemerovo.ru/api/sensor/current/%d?client_secret=guest", id))
 	if err != nil {
 		log.Printf("Error in API call for sensor ID %d: %+v", id, err)
 		return
 	}
 	defer res.Body.Close()
 
-	var fetchedSensorsList []AirqualitySensor
-	err = json.NewDecoder(res.Body).Decode(&fetchedSensorsList)
+	var aqiSensorsResponse AqiSensorResponse
+	err = json.NewDecoder(res.Body).Decode(&aqiSensorsResponse)
 	if err != nil {
 		log.Println("Something went wrong on decoding JSON from API step")
 	}
 
-	if len(fetchedSensorsList) > 0 {
-		latestUpdatedSensor := fetchedSensorsList[len(fetchedSensorsList)-1]
+	archivedSensors := aqiSensorsResponse.Archive
 
-		latestUpdatedSensor.withApiData(id)
-		latestUpdatedSensor.withDistrict(districtName)
+	if len(archivedSensors) > 0 {
+		latestDataFromSensor := archivedSensors[0]
 
-		syncSensorList.addSensor(latestUpdatedSensor)
+		latestDataFromSensor.withDistrict(districtName)
+		latestDataFromSensor.withApiData(id)
+
+		syncSensorList.addSensor(latestDataFromSensor)
 	}
 }
