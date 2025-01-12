@@ -5,8 +5,8 @@ go 1.23
 toolchain go1.23.1
 
 require (
+	github.com/OvyFlash/telegram-bot-api v0.0.0-20241219171906-3f2ca0c14ada
 	github.com/PuerkitoBio/goquery v1.10.0
-	github.com/go-telegram-bot-api/telegram-bot-api/v5 v5.5.1
 	github.com/jmoiron/sqlx v1.4.0
 	github.com/joho/godotenv v1.5.1
 	github.com/lib/pq v1.10.9
