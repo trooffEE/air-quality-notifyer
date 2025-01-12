@@ -8,6 +8,11 @@ import (
 )
 
 func prepareDangerousLevelMessage(s s.AqiSensor) string {
+	pollutionLevel := s.GetExtendedPollutionLevel()
+	if pollutionLevel == nil {
+		return ""
+	}
+
 	t, err := time.Parse("2006-01-02 15", s.Date)
 	if err != nil {
 		log.Printf("Error parsing date %#v", err)
@@ -15,7 +20,6 @@ func prepareDangerousLevelMessage(s s.AqiSensor) string {
 	}
 	loc, _ := time.LoadLocation("Asia/Novosibirsk")
 	date := t.In(loc).Format("02.01.2006 15:04")
-	pollutionLevel := s.GetExtendedPollutionLevel()
 
 	return fmt.Sprintf("<b>В районе - %s</b> 🏠\n\nЗа прошедший час - для времени %s 🕛 \n\nЗафиксировано значительное ухудшение качества воздуха - уровень опасности \"%s\"\n\n<b>AQI(PM10): %d\nAQI(PM2.5): %d</b>\n\nПодробнее: %s",
 		s.District, date, pollutionLevel.Name,
