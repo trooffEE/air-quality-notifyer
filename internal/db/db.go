@@ -4,13 +4,12 @@ import (
 	"air-quality-notifyer/internal/config"
 	"errors"
 	"fmt"
+	"github.com/golang-migrate/migrate/v4"
+	_ "github.com/golang-migrate/migrate/v4/database/postgres"
+	_ "github.com/golang-migrate/migrate/v4/source/file"
 	"github.com/jmoiron/sqlx"
 	"log"
 	"os"
-)
-
-var (
-	ErrConnectionFailed = errors.New("connection failed")
 )
 
 type Config struct {
@@ -24,13 +23,27 @@ func NewDB(args ...func(*Config)) *sqlx.DB {
 	cfg := NewConfig(args)
 
 	connString := fmt.Sprintf(
-		"host=%s user=%s dbname=%s password=%s sslmode=disable",
-		cfg.host, cfg.user, cfg.dbname, cfg.password,
+		"postgres://%s:%s@%s/%s?sslmode=disable",
+		cfg.user, cfg.password, cfg.host, cfg.dbname,
 	)
 	db, err := sqlx.Connect("postgres", connString)
 	if err != nil {
-		log.Println("Establish failed")
+		log.Fatalln("Failed to establish DB connection")
 	}
+
+	m, err := migrate.New(
+		"file://internal/db/migrations",
+		connString,
+	)
+	if err != nil {
+		log.Fatalf("Failed to create migrate instance: %v", err)
+	}
+
+	if err := m.Up(); err != nil && !errors.Is(err, migrate.ErrNoChange) {
+		log.Fatalf("Failed to run migrations: %v", err)
+	}
+
+	log.Println("🏆 Migrations applied successfully!")
 
 	return db
 }

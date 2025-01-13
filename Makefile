@@ -27,10 +27,4 @@ migration-down: create-dump
 	migrate -path ./data/migrations -database "postgresql://${DB_USER}:${DB_PASSWORD}@localhost:5432/${DB_NAME}?sslmode=disable" -verbose \
 	down
 
-_migration-up:
-	migrate -path ./data/migrations -database "postgresql://${DB_USER}:${DB_PASSWORD}@localhost:5432/${DB_NAME}?sslmode=disable" -verbose \
-	up
-
-migration-up: _migration-up apply-dump
-
-.PHONY: build run migration-up migration-down apply-dump create-migration generate-html-coverage
+.PHONY: build run migration-down apply-dump create-migration generate-html-coverage
