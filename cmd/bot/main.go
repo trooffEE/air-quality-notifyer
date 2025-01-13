@@ -4,7 +4,8 @@ import (
 	"air-quality-notifyer/internal/app/telegram"
 	"air-quality-notifyer/internal/db"
 	"air-quality-notifyer/internal/db/repository"
-	"air-quality-notifyer/internal/sensor"
+	"air-quality-notifyer/internal/service/districts"
+	"air-quality-notifyer/internal/service/sensor"
 	"air-quality-notifyer/internal/service/user"
 	"context"
 	_ "database/sql"
@@ -18,13 +19,24 @@ func main() {
 	defer stop()
 
 	database := db.NewDB()
-	psqlRepo := repository.NewUserRepository(database)
-	usrService := user.NewUserService(psqlRepo)
+	districtRepository := repository.NewDistrictRepository(database)
+	userRepository := repository.NewUserRepository(database)
+	sensorRepository := repository.NewSensorRepository(database)
 
-	services := telegram.BotServices{UserService: usrService}
+	ctx = context.WithValue(ctx, "districts", districtRepository.GetAllDistricts())
+
+	userService := user.NewUserService(userRepository)
+	districtService := districts.NewDistrictService(districtRepository)
+	sensorService := sensor.NewSensorService(ctx, sensorRepository, districtService)
+
+	services := telegram.BotServices{
+		UserService:   userService,
+		SensorService: sensorService,
+	}
 	bot := telegram.InitTelegramBot(services)
 	bot.ListenForUpdates()
-	sensor.GetSensorsDataOnceIn("0 * * * *")
+	sensorService.FetchSensorsEveryHour()
+	sensorService.InvalidateSensorsEveryday()
 
 	<-ctx.Done()
 }

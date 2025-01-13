@@ -4,7 +4,7 @@ import (
 	"air-quality-notifyer/internal/config"
 	"air-quality-notifyer/internal/service/user"
 	"fmt"
-	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
+	tgbotapi "github.com/OvyFlash/telegram-bot-api"
 	"log"
 	"strconv"
 	"strings"

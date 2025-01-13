@@ -3,10 +3,10 @@ package telegram
 import (
 	"air-quality-notifyer/internal/app/commands"
 	"air-quality-notifyer/internal/config"
-	"air-quality-notifyer/internal/sensor"
+	"air-quality-notifyer/internal/service/sensor"
 	"air-quality-notifyer/internal/service/user"
 	"fmt"
-	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
+	tgbotapi "github.com/OvyFlash/telegram-bot-api"
 	"log"
 	"net/http"
 )
@@ -19,7 +19,8 @@ type tgBot struct {
 }
 
 type BotServices struct {
-	UserService *user.Service
+	UserService   *user.Service
+	SensorService *sensor.Service
 }
 
 func InitTelegramBot(services BotServices) *tgBot {
@@ -29,6 +30,7 @@ func InitTelegramBot(services BotServices) *tgBot {
 		log.Panic(err)
 	}
 
+	//TODO wait for a routine?
 	go http.ListenAndServe(fmt.Sprintf(":%s", config.Cfg.WebhookPort), nil)
 
 	if config.Cfg.Development {
@@ -74,7 +76,7 @@ func InitTelegramBot(services BotServices) *tgBot {
 }
 
 func (t *tgBot) ListenForUpdates() {
-	go sensor.ListenChangesInSensors(t.notifyUsersAboutSensors)
+	go t.services.SensorService.ListenChangesInSensors(t.notifyUsersAboutSensors)
 	go t.handleUpdates()
 }
 
