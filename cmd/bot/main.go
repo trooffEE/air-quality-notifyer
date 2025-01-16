@@ -4,11 +4,13 @@ import (
 	"air-quality-notifyer/internal/app/telegram"
 	"air-quality-notifyer/internal/db"
 	"air-quality-notifyer/internal/db/repository"
+	"air-quality-notifyer/internal/lib"
 	"air-quality-notifyer/internal/service/districts"
 	"air-quality-notifyer/internal/service/sensor"
 	"air-quality-notifyer/internal/service/user"
 	"context"
 	_ "database/sql"
+	"errors"
 	_ "github.com/lib/pq"
 	"os"
 	"os/signal"
@@ -17,6 +19,8 @@ import (
 func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer stop()
+
+	lib.LogError("TestScope", "how to make it work %d", errors.New("OMG I BROKE SOMETHING"), 1123)
 
 	database := db.NewDB()
 	districtRepository := repository.NewDistrictRepository(database)

@@ -3,11 +3,11 @@ package sensor
 import (
 	"air-quality-notifyer/internal/db/models"
 	repo "air-quality-notifyer/internal/db/repository"
+	"air-quality-notifyer/internal/lib"
 	"air-quality-notifyer/internal/service/districts"
 	"context"
 	"database/sql"
 	"errors"
-	"fmt"
 	"github.com/robfig/cron/v3"
 	"log"
 )
@@ -66,7 +66,7 @@ func (s *Service) startInvalidation() {
 		if errors.Is(err, sql.ErrNoRows) {
 			s.saveNewScrappedSensor(sensor)
 		} else if err != nil {
-			fmt.Printf("Failed to get api_ids of sensors from database: %v\n", err)
+			lib.LogError("startInvalidation", "failed to get api_ids of sensors from database", err)
 		}
 	}
 
@@ -89,7 +89,7 @@ func (s *Service) saveNewScrappedSensor(sensor AqiSensorScriptScrapped) {
 	}
 	err := s.repo.SaveSensor(dbModel)
 	if err != nil {
-		fmt.Printf("Failed to save new scrapped sensor: %v\n", err)
+		lib.LogError("saveNewScrappedSensor", "failed to save sensor %+v", err, dbModel)
 	}
 }
 

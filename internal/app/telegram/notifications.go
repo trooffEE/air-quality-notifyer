@@ -57,7 +57,7 @@ func (t *tgBot) notifyUsersAboutSensors(sensors []s.AqiSensor) {
 	if hour < 8 && hour >= 0 {
 		isSilentMessage = true
 	}
-	userIds := *t.services.UserService.GetUsersIds()
+	userIds := t.services.UserService.GetUsersIds()
 	for _, id := range userIds {
 		for _, message := range messages {
 			err := t.Commander.DefaultSend(id, message, isSilentMessage)

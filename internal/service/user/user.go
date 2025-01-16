@@ -4,8 +4,8 @@ import (
 	"air-quality-notifyer/internal/db/exceptions"
 	"air-quality-notifyer/internal/db/models"
 	repo "air-quality-notifyer/internal/db/repository"
+	"air-quality-notifyer/internal/lib"
 	"errors"
-	"fmt"
 )
 
 type Service struct {
@@ -20,12 +20,12 @@ func NewUserService(ur repo.UserRepositoryInterface) *Service {
 
 func (ur *Service) IsNewUser(id int64) bool {
 	_, err := ur.repo.FindById(id)
-	if errors.Is(exceptions.UserNotFound, err) {
-		return true
-	}
 
 	if err != nil {
-		fmt.Println(err)
+		if errors.Is(exceptions.UserNotFound, err) {
+			return true
+		}
+		lib.LogError("IsNewUser", "repository error", err)
 	}
 
 	return false
@@ -40,7 +40,7 @@ func (ur *Service) Register(user User) {
 	err := ur.repo.Register(dto)
 
 	if err != nil {
-		fmt.Printf("Failed to register new user %+v \n", err)
+		lib.LogError("Register", "failed to register new user", err)
 	}
 }
 
@@ -48,7 +48,7 @@ func (ur *Service) GetUsersIds() []int64 {
 	ids, err := ur.repo.GetAllIds()
 
 	if err != nil {
-		fmt.Println(err)
+		lib.LogError("GetUsersIds", "failed to get users ids", err)
 	}
 
 	return ids
@@ -58,7 +58,7 @@ func (ur *Service) GetUsersNames() []string {
 	names, err := ur.repo.GetAllNames()
 
 	if err != nil {
-		fmt.Println(err)
+		lib.LogError("GetUsersNames", "failed to get users names", err)
 	}
 
 	return names
@@ -68,6 +68,6 @@ func (ur *Service) DeleteUser(id int64) {
 	err := ur.repo.DeleteUserById(id)
 
 	if err != nil {
-		fmt.Println(err)
+		lib.LogError("DeleteUser", "failed to delete user %d", err, id)
 	}
 }

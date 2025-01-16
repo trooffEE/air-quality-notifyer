@@ -1,14 +1,14 @@
 package sensor
 
 import (
-	"fmt"
+	"air-quality-notifyer/internal/lib"
 	"slices"
 )
 
 func (s *Service) invalidateSensors(aliveSensors []AqiSensorScriptScrapped) {
 	currentlySavedSensorsIds, err := s.repo.GetAllApiIds()
 	if err != nil {
-		fmt.Printf("Failed to get all air quality sensor: %+v\n", err)
+		lib.LogError("invalidateSensors", "failed to get airquality sensors from db", err)
 		return
 	}
 
@@ -21,7 +21,7 @@ func (s *Service) invalidateSensors(aliveSensors []AqiSensorScriptScrapped) {
 		if !slices.Contains(aliveIds, id) {
 			err := s.repo.EvictSensor(id)
 			if err != nil {
-				fmt.Printf("Failed to evict sensor: %+v\n", err)
+				lib.LogError("invalidateSensors", "failed to evict sensor from db", err)
 			}
 		}
 	}

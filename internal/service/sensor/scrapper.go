@@ -1,6 +1,7 @@
 package sensor
 
 import (
+	"air-quality-notifyer/internal/lib"
 	"bufio"
 	"encoding/json"
 	"github.com/PuerkitoBio/goquery"
@@ -25,7 +26,8 @@ func scrapSensorData() []AqiSensorScriptScrapped {
 	}
 	defer res.Body.Close()
 	if res.StatusCode != 200 {
-		log.Fatalf("status code error: %d %s", res.StatusCode, res.Status)
+		lib.LogMessage("scrapSensorData", "failed to grasp new sensors, airkemerovo page responded with %d", res.StatusCode)
+		return []AqiSensorScriptScrapped{}
 	}
 
 	doc, err := goquery.NewDocumentFromReader(res.Body)
@@ -54,7 +56,7 @@ func scrapSensorData() []AqiSensorScriptScrapped {
 			jsonString := scriptLine[startJsonIndex:endJsonIndex]
 			err := json.Unmarshal([]byte(jsonString), &sensors)
 			if err != nil {
-				log.Println(err)
+				lib.LogError("scrapSensorData", "failed to unmarshal json string ", err)
 			}
 		}
 	}

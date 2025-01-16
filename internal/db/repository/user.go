@@ -51,7 +51,7 @@ func (r *UserRepository) Register(user models.User) error {
 	return nil
 }
 
-func (r *UserRepository) GetAllIds() (*[]int64, error) {
+func (r *UserRepository) GetAllIds() ([]int64, error) {
 	var ids []int64
 	err := r.db.Select(&ids, "SELECT telegram_id FROM users")
 
@@ -59,7 +59,7 @@ func (r *UserRepository) GetAllIds() (*[]int64, error) {
 		return nil, exceptions.ErrInternalDBError
 	}
 
-	return &ids, nil
+	return ids, nil
 }
 
 func (r *UserRepository) GetAllNames() ([]string, error) {
