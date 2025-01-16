@@ -17,7 +17,7 @@ func (s *Service) invalidateSensors(aliveSensors []AqiSensorScriptScrapped) {
 		aliveIds = append(aliveIds, sensor.Id)
 	}
 
-	for _, id := range *currentlySavedSensorsIds {
+	for _, id := range currentlySavedSensorsIds {
 		if !slices.Contains(aliveIds, id) {
 			err := s.repo.EvictSensor(id)
 			if err != nil {

@@ -21,7 +21,7 @@ func (c *Commander) ShowUsers(message *tgbotapi.Message, service *user.Service) 
 		return
 	}
 
-	names := *service.GetUsersNames()
+	names := service.GetUsersNames()
 
 	if len(names) == 0 {
 		return
@@ -31,8 +31,8 @@ func (c *Commander) ShowUsers(message *tgbotapi.Message, service *user.Service) 
 		names[index] = "@" + name
 	}
 
-	test := fmt.Sprintf("Bot Users: %d 🙌\n\n%s", len(names), strings.Join(names, ", \n"))
-	msg := tgbotapi.NewMessage(chatId, test)
+	msgString := fmt.Sprintf("Bot Users: %d 🙌\n\n%s", len(names), strings.Join(names, ", \n"))
+	msg := tgbotapi.NewMessage(chatId, msgString)
 	msg.ParseMode = tgbotapi.ModeHTML
 	_, err = c.bot.Send(msg)
 

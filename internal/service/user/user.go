@@ -44,7 +44,7 @@ func (ur *Service) Register(user User) {
 	}
 }
 
-func (ur *Service) GetUsersIds() *[]int64 {
+func (ur *Service) GetUsersIds() []int64 {
 	ids, err := ur.repo.GetAllIds()
 
 	if err != nil {
@@ -54,7 +54,7 @@ func (ur *Service) GetUsersIds() *[]int64 {
 	return ids
 }
 
-func (ur *Service) GetUsersNames() *[]string {
+func (ur *Service) GetUsersNames() []string {
 	names, err := ur.repo.GetAllNames()
 
 	if err != nil {
