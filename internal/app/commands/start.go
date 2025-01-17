@@ -1,10 +1,9 @@
 package commands
 
 import (
+	"air-quality-notifyer/internal/lib"
 	"air-quality-notifyer/internal/service/user"
-	"fmt"
 	tgbotapi "github.com/OvyFlash/telegram-bot-api"
-	"log"
 	"strconv"
 )
 
@@ -27,6 +26,6 @@ func (c *Commander) greetNewUser(chatId int64) {
 	msg.ParseMode = tgbotapi.ModeHTML
 	_, err := c.bot.Send(msg)
 	if err != nil {
-		log.Print(fmt.Sprintf("Error appeared upon sending message to user %d with message %s, %#v", chatId, text, err))
+		lib.LogError("greetNewUser", "failed to send message to chatId %d", err, chatId)
 	}
 }

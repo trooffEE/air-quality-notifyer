@@ -3,6 +3,7 @@ package telegram
 import (
 	"air-quality-notifyer/internal/app/commands"
 	"air-quality-notifyer/internal/config"
+	"air-quality-notifyer/internal/lib"
 	"air-quality-notifyer/internal/service/sensor"
 	"air-quality-notifyer/internal/service/user"
 	"fmt"
@@ -23,17 +24,17 @@ type BotServices struct {
 	SensorService *sensor.Service
 }
 
-func InitTelegramBot(services BotServices) *tgBot {
-	bot, err := tgbotapi.NewBotAPI(config.Cfg.TelegramToken)
-	commander := commands.NewCommander(bot)
+func InitTelegramBot(services BotServices, cfg config.ApplicationConfig) *tgBot {
+	bot, err := tgbotapi.NewBotAPI(cfg.TelegramToken)
+	commander := commands.NewCommander(bot, cfg)
 	if err != nil {
 		log.Panic(err)
 	}
 
 	//TODO wait for a routine?
-	go http.ListenAndServe(fmt.Sprintf(":%s", config.Cfg.WebhookPort), nil)
+	go http.ListenAndServe(fmt.Sprintf(":%s", cfg.WebhookPort), nil)
 
-	if config.Cfg.Development {
+	if cfg.Development {
 		bot.Debug = true
 
 		updateConfig := tgbotapi.NewUpdate(0)
@@ -47,7 +48,7 @@ func InitTelegramBot(services BotServices) *tgBot {
 		}
 	}
 
-	wh, err := tgbotapi.NewWebhook(fmt.Sprintf("https://%s/webhook%s", config.Cfg.WebhookHost, bot.Token))
+	wh, err := tgbotapi.NewWebhook(fmt.Sprintf("https://%s/webhook%s", cfg.WebhookHost, bot.Token))
 	if err != nil {
 		log.Panic(err)
 	}
@@ -58,14 +59,14 @@ func InitTelegramBot(services BotServices) *tgBot {
 
 	info, err := bot.GetWebhookInfo()
 	if err != nil {
-		log.Println(err)
+		log.Panic(err)
 	}
 
 	if info.LastErrorDate != 0 {
-		log.Printf("Telegram callback failed: %s", info.LastErrorMessage)
+		lib.LogError("InitTelegramBot", "failed to init get info about webhook", err)
 	}
 
-	updates := bot.ListenForWebhook("/webhook" + bot.Token)
+	updates := bot.ListenForWebhook(fmt.Sprintf("/webhook%s", bot.Token))
 
 	return &tgBot{
 		bot:       bot,

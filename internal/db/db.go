@@ -19,12 +19,12 @@ type Config struct {
 	password string
 }
 
-func NewDB(args ...func(*Config)) *sqlx.DB {
-	cfg := NewConfig(args)
+func NewDB(cfg config.ApplicationConfig) *sqlx.DB {
+	dbConfig := NewConfig(cfg)
 
 	connString := fmt.Sprintf(
 		"postgres://%s:%s@%s/%s?sslmode=disable",
-		cfg.user, cfg.password, cfg.host, cfg.dbname,
+		dbConfig.user, dbConfig.password, dbConfig.host, dbConfig.dbname,
 	)
 	db, err := sqlx.Connect("postgres", connString)
 	if err != nil {
@@ -48,7 +48,7 @@ func NewDB(args ...func(*Config)) *sqlx.DB {
 	return db
 }
 
-func NewConfig(args []func(*Config)) *Config {
+func NewConfig(cfg config.ApplicationConfig) *Config {
 	dbConfig := Config{
 		host:     "airquality-db-container",
 		user:     os.Getenv("DB_USER"),
@@ -56,12 +56,8 @@ func NewConfig(args []func(*Config)) *Config {
 		password: os.Getenv("DB_PASSWORD"),
 	}
 
-	if config.Cfg.Development {
+	if cfg.Development {
 		dbConfig.host = "localhost"
-	}
-
-	for _, fn := range args {
-		fn(&dbConfig)
 	}
 
 	return &dbConfig

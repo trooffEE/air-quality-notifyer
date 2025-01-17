@@ -14,7 +14,7 @@ type ApplicationConfig struct {
 	AdminTelegramId string
 }
 
-func initConfig() ApplicationConfig {
+func NewApplicationConfig() ApplicationConfig {
 	err := godotenv.Load()
 	if err != nil {
 		log.Fatal("Error loading .env file")
@@ -30,5 +30,3 @@ func initConfig() ApplicationConfig {
 
 	return config
 }
-
-var Cfg = initConfig()
