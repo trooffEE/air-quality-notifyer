@@ -1,10 +1,8 @@
 package repository
 
 import (
-	"air-quality-notifyer/internal/db/exceptions"
 	"air-quality-notifyer/internal/db/models"
 	"github.com/jmoiron/sqlx"
-	"log"
 )
 
 type SensorRepository struct {
@@ -16,11 +14,11 @@ func NewSensorRepository(db *sqlx.DB) *SensorRepository {
 }
 
 type SensorRepositoryType interface {
-	GetAllApiIds() (*[]int64, error)
+	GetAllApiIds() ([]int64, error)
 	GetSensorByApiId(id int64) (*models.AirqualitySensor, error)
 	SaveSensor(sensor models.AirqualitySensor) error
 	EvictSensor(id int64) error
-	GetSensorsByDistrictId(id int64) []models.AirqualitySensor
+	GetSensorsByDistrictId(id int64) ([]models.AirqualitySensor, error)
 }
 
 func (r *SensorRepository) GetSensorByApiId(id int64) (*models.AirqualitySensor, error) {
@@ -40,34 +38,33 @@ func (r *SensorRepository) SaveSensor(sensor models.AirqualitySensor) error {
 	`, sensor)
 
 	if err != nil {
-		log.Printf("%+v\n", err)
 		return err
 	}
 
 	return nil
 }
 
-func (r *SensorRepository) GetAllApiIds() (*[]int64, error) {
+func (r *SensorRepository) GetAllApiIds() ([]int64, error) {
 	var ids []int64
 	err := r.db.Select(&ids, "SELECT api_id FROM sensors")
 
 	if err != nil {
-		return nil, exceptions.ErrInternalDBError
+		return nil, err
 	}
 
-	return &ids, nil
+	return ids, nil
 }
 
 func (r *SensorRepository) EvictSensor(sensorApiId int64) error {
 	_, err := r.db.Exec("DELETE FROM sensors WHERE api_id = $1", sensorApiId)
 	if err != nil {
-		return exceptions.ErrInternalDBError
+		return err
 	}
 
 	return nil
 }
 
-func (r *SensorRepository) GetSensorsByDistrictId(id int64) []models.AirqualitySensor {
+func (r *SensorRepository) GetSensorsByDistrictId(id int64) ([]models.AirqualitySensor, error) {
 	var sensors []models.AirqualitySensor
 	err := r.db.Select(&sensors, `
 		SELECT
@@ -83,8 +80,8 @@ func (r *SensorRepository) GetSensorsByDistrictId(id int64) []models.AirqualityS
 		WHERE district_id = $1
     `, id)
 	if err != nil {
-		return nil
+		return nil, err
 	}
 
-	return sensors
+	return sensors, nil
 }

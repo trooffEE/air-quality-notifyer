@@ -1,19 +1,23 @@
 package repository
 
 import (
-	"air-quality-notifyer/internal/db/exceptions"
 	"air-quality-notifyer/internal/db/models"
 	"database/sql"
 	"errors"
+	"fmt"
 	"github.com/jmoiron/sqlx"
 	"log"
+)
+
+var (
+	UserNotFound = errors.New("User not found")
 )
 
 type UserRepositoryInterface interface {
 	FindById(id int64) (*models.User, error)
 	Register(user models.User) error
-	GetAllIds() (*[]int64, error)
-	GetAllNames() (*[]string, error)
+	GetAllIds() ([]int64, error)
+	GetAllNames() ([]string, error)
 	DeleteUserById(id int64) error
 }
 
@@ -28,13 +32,13 @@ func NewUserRepository(db *sqlx.DB) *UserRepository {
 func (r *UserRepository) FindById(id int64) (*models.User, error) {
 	var user models.User
 	err := r.db.Get(&user, "SELECT * FROM users WHERE telegram_id = $1", id)
-	if errors.Is(err, sql.ErrNoRows) {
-		return nil, exceptions.UserNotFound
-	}
 
 	if err != nil {
-		log.Printf("%+v\n", err)
-		return nil, exceptions.ErrInternalDBError
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, fmt.Errorf("no user found for id %w", UserNotFound)
+		}
+
+		return nil, err
 	}
 
 	return &user, nil
@@ -51,26 +55,26 @@ func (r *UserRepository) Register(user models.User) error {
 	return nil
 }
 
-func (r *UserRepository) GetAllIds() (*[]int64, error) {
+func (r *UserRepository) GetAllIds() ([]int64, error) {
 	var ids []int64
 	err := r.db.Select(&ids, "SELECT telegram_id FROM users")
 
 	if err != nil {
-		return nil, exceptions.ErrInternalDBError
+		return nil, err
 	}
 
-	return &ids, nil
+	return ids, nil
 }
 
-func (r *UserRepository) GetAllNames() (*[]string, error) {
+func (r *UserRepository) GetAllNames() ([]string, error) {
 	var names []string
 	err := r.db.Select(&names, "SELECT username FROM users")
 
 	if err != nil {
-		return nil, exceptions.ErrInternalDBError
+		return nil, err
 	}
 
-	return &names, nil
+	return names, nil
 }
 
 func (r *UserRepository) DeleteUserById(id int64) error {

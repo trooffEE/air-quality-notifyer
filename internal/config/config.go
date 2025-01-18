@@ -8,13 +8,13 @@ import (
 
 type ApplicationConfig struct {
 	TelegramToken   string
-	WebhookPort     string
+	HttpServerPort  string
 	WebhookHost     string
 	Development     bool
 	AdminTelegramId string
 }
 
-func initConfig() ApplicationConfig {
+func NewApplicationConfig() ApplicationConfig {
 	err := godotenv.Load()
 	if err != nil {
 		log.Fatal("Error loading .env file")
@@ -23,12 +23,10 @@ func initConfig() ApplicationConfig {
 	var config = ApplicationConfig{
 		TelegramToken:   os.Getenv("TELEGRAM_SECRET"),
 		WebhookHost:     os.Getenv("WEBHOOK_HOST"),
-		WebhookPort:     os.Getenv("WEBHOOK_PORT"),
+		HttpServerPort:  os.Getenv("WEBHOOK_PORT"), // TODO rename env
 		AdminTelegramId: os.Getenv("ADMIN_TELEGRAM_ID"),
 		Development:     os.Getenv("DEVELOPMENT") == "true",
 	}
 
 	return config
 }
-
-var Cfg = initConfig()

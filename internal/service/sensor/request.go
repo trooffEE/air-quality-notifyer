@@ -2,9 +2,9 @@ package sensor
 
 import (
 	"air-quality-notifyer/internal/db/models"
+	"air-quality-notifyer/internal/lib"
 	"encoding/json"
 	"fmt"
-	"log"
 	"net/http"
 	"sync"
 )
@@ -52,16 +52,17 @@ func fetchSensorById(syncSensorList *SyncAirqualitySensorList, id int64, distric
 	defer syncSensorList.wg.Done()
 
 	res, err := http.Get(fmt.Sprintf("https://airkemerovo.ru/api/sensor/current/%d?client_secret=guest", id))
+	defer res.Body.Close()
 	if err != nil {
-		log.Printf("Error in API call for sensor ID %d: %+v", id, err)
+		lib.LogError("fetchSensorById", "failed to fetch sensor with id of %d", err, id)
 		return
 	}
-	defer res.Body.Close()
 
 	var aqiSensorsResponse AqiSensorResponse
 	err = json.NewDecoder(res.Body).Decode(&aqiSensorsResponse)
 	if err != nil {
-		log.Println("Something went wrong on decoding JSON from API step")
+		lib.LogError("fetchSensorById", "failed to decode response with status code %d", err, res.StatusCode)
+		return
 	}
 
 	archivedSensors := aqiSensorsResponse.Archive

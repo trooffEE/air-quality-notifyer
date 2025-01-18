@@ -62,10 +62,7 @@ var PollutionLevelsMap = PollutionLevels{
 }
 
 func (s *AqiSensor) IsDangerousLevelDetected() bool {
-	if s.Level == good || s.Level == moderate || s.Level == "" {
-		return false
-	}
-	return true
+	return !(s.Level == good || s.Level == moderate || s.Level == "")
 }
 
 func (s *AqiSensor) GetExtendedPollutionLevel() *PollutionLevel {
