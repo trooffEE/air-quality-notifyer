@@ -8,16 +8,18 @@ import (
 	"log"
 	"net/http"
 	"strings"
+	"time"
 )
 
 type AqiSensorScriptScrapped struct {
-	Id      int64   `json:"id"`
-	Address string  `json:"address"`
-	Lat     float64 `json:"lat"`
-	Lon     float64 `json:"lon"`
+	Id        int64   `json:"sensor_id"`
+	Address   string  `json:"address"`
+	Lat       float64 `json:"lat"`
+	Lon       float64 `json:"lon"`
+	CreatedAt string  `json:"created_at"`
 }
 
-var setSensorsStringStart, setSensorsStringEnd = "setSensors('", "');"
+var setSensorsStringStart, setSensorsStringEnd = "setLastData('", "');"
 
 func scrapSensorData() []AqiSensorScriptScrapped {
 	res, err := http.Get("https://airkemerovo.ru")
@@ -62,4 +64,23 @@ func scrapSensorData() []AqiSensorScriptScrapped {
 	}
 
 	return sensors
+}
+
+func filterDeadSensors(sensors []AqiSensorScriptScrapped, allowedDiffInHours int) []AqiSensorScriptScrapped {
+	aliveSensors := make([]AqiSensorScriptScrapped, len(sensors))
+	layout := "2006-01-02T15:04:05.999999999Z"
+	for _, sensor := range sensors {
+		sensorTime, err := time.Parse(layout, sensor.CreatedAt)
+
+		if err != nil {
+			lib.LogError("filterDeadSensors", "failed to parse time from sensor.CreatedAt", err)
+		}
+
+		diffInHours := sensorTime.Sub(time.Now().UTC()).Hours()
+		if diffInHours > float64(-1*allowedDiffInHours) {
+			aliveSensors = append(aliveSensors, sensor)
+		}
+	}
+
+	return aliveSensors
 }

@@ -8,8 +8,14 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
 	"github.com/robfig/cron/v3"
 	"log"
+	"time"
+)
+
+var (
+	AliveSensorTimeDiff = 4
 )
 
 type Service struct {
@@ -17,6 +23,7 @@ type Service struct {
 	districts                     *districts.Service
 	repo                          repo.SensorRepositoryType
 	ctx                           context.Context
+	syncCron                      chan interface{}
 }
 
 func NewSensorService(ctx context.Context, repository repo.SensorRepositoryType, districtService *districts.Service) *Service {
@@ -25,6 +32,7 @@ func NewSensorService(ctx context.Context, repository repo.SensorRepositoryType,
 		districts:                     districtService,
 		worstAirqualitySensorsChannel: make(chan []AqiSensor),
 		ctx:                           ctx,
+		syncCron:                      make(chan interface{}),
 	}
 }
 
@@ -34,11 +42,31 @@ func (s *Service) ListenChangesInSensors(handler func([]AqiSensor)) {
 	}
 }
 
+func (s *Service) InvalidateSensorsPeriodically() {
+	cronCreator := cron.New()
+	cronString := fmt.Sprintf(fmt.Sprintf("0 */%d * * *", AliveSensorTimeDiff))
+
+	_, err := cronCreator.AddFunc(cronString, func() {
+		s.startInvalidation(AliveSensorTimeDiff)
+		s.syncCron <- 0
+	})
+	if err != nil {
+		log.Panic(err)
+	}
+
+	cronCreator.Start()
+}
+
 func (s *Service) FetchSensorsEveryHour() {
 	cronCreator := cron.New()
-	cronString := "0 * * * *"
+	cronString := "* * * * *"
 
-	_, err := cronCreator.AddFunc(cronString, s.getWorstAirqualitySensors)
+	_, err := cronCreator.AddFunc(cronString, func() {
+		if time.Now().UTC().Hour()%AliveSensorTimeDiff == 0 {
+			<-s.syncCron
+		}
+		s.getWorstAirqualitySensors()
+	})
 	if err != nil {
 		log.Panic(err)
 	}
@@ -46,22 +74,12 @@ func (s *Service) FetchSensorsEveryHour() {
 	cronCreator.Start()
 }
 
-func (s *Service) InvalidateSensorsEveryday() {
-	cronCreator := cron.New()
-	cronString := "0 0 * * *"
-
-	_, err := cronCreator.AddFunc(cronString, s.startInvalidation)
-	if err != nil {
-		log.Panic(err)
-	}
-
-	cronCreator.Start()
-}
-
-func (s *Service) startInvalidation() {
+func (s *Service) startInvalidation(allowedHourDiff int) {
 	scrappedSensors := scrapSensorData()
 
-	for _, sensor := range scrappedSensors {
+	aliveSensors := filterDeadSensors(scrappedSensors, allowedHourDiff)
+
+	for _, sensor := range aliveSensors {
 		_, err := s.repo.GetSensorByApiId(sensor.Id)
 
 		if err != nil {
@@ -73,7 +91,7 @@ func (s *Service) startInvalidation() {
 		}
 	}
 
-	s.invalidateSensors(scrappedSensors)
+	s.invalidateSensors(aliveSensors)
 }
 
 func (s *Service) saveNewScrappedSensor(sensor AqiSensorScriptScrapped) {

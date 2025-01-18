@@ -51,7 +51,7 @@ func main() {
 	go bot.ListenTelegramUpdates()
 
 	sensorService.FetchSensorsEveryHour()
-	sensorService.InvalidateSensorsEveryday()
+	sensorService.InvalidateSensorsPeriodically()
 
 	<-ctx.Done()
 	log.Println("starting application shutdown...")
