@@ -59,7 +59,7 @@ func (s *Service) InvalidateSensorsPeriodically() {
 
 func (s *Service) FetchSensorsEveryHour() {
 	cronCreator := cron.New()
-	cronString := "* * * * *"
+	cronString := "0 * * * *"
 
 	_, err := cronCreator.AddFunc(cronString, func() {
 		if time.Now().UTC().Hour()%AliveSensorTimeDiff == 0 {
