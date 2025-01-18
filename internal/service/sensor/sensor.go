@@ -44,7 +44,7 @@ func (s *Service) ListenChangesInSensors(handler func([]AqiSensor)) {
 
 func (s *Service) InvalidateSensorsPeriodically() {
 	cronCreator := cron.New()
-	cronString := fmt.Sprintf(fmt.Sprintf("0 */%d * * *", AliveSensorTimeDiff))
+	cronString := fmt.Sprintf("0 */%d * * *", AliveSensorTimeDiff)
 
 	_, err := cronCreator.AddFunc(cronString, func() {
 		s.startInvalidation(AliveSensorTimeDiff)
