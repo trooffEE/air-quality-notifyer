@@ -63,9 +63,12 @@ func (s *Service) startInvalidation() {
 
 	for _, sensor := range scrappedSensors {
 		_, err := s.repo.GetSensorByApiId(sensor.Id)
-		if errors.Is(err, sql.ErrNoRows) {
-			s.saveNewScrappedSensor(sensor)
-		} else if err != nil {
+
+		if err != nil {
+			if errors.Is(err, sql.ErrNoRows) {
+				s.saveNewScrappedSensor(sensor)
+				continue
+			}
 			lib.LogError("startInvalidation", "failed to get api_ids of sensors from database", err)
 		}
 	}
@@ -99,7 +102,12 @@ func (s *Service) getWorstAirqualitySensors() {
 	respChan := make(chan AqiSensor, len(ctxDistricts))
 
 	for _, district := range ctxDistricts {
-		allSensorsInDistrict := s.repo.GetSensorsByDistrictId(district.Id)
+		allSensorsInDistrict, err := s.repo.GetSensorsByDistrictId(district.Id)
+		if err != nil {
+			lib.LogError("getWorstAirqualitySensors", "failed to get sensors by districtId=%d", err, district.Id)
+			continue
+		}
+
 		findWorstSensorInDistrict(respChan, allSensorsInDistrict)
 	}
 

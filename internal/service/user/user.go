@@ -1,7 +1,6 @@
 package user
 
 import (
-	"air-quality-notifyer/internal/db/exceptions"
 	"air-quality-notifyer/internal/db/models"
 	repo "air-quality-notifyer/internal/db/repository"
 	"air-quality-notifyer/internal/lib"
@@ -22,7 +21,7 @@ func (ur *Service) IsNewUser(id int64) bool {
 	_, err := ur.repo.FindById(id)
 
 	if err != nil {
-		if errors.Is(exceptions.UserNotFound, err) {
+		if errors.Is(repo.UserNotFound, err) {
 			return true
 		}
 		lib.LogError("IsNewUser", "repository error", err)

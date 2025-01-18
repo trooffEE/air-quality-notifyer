@@ -9,7 +9,6 @@ import (
 	"fmt"
 	tgbotapi "github.com/OvyFlash/telegram-bot-api"
 	"log"
-	"net/http"
 )
 
 type tgBot struct {
@@ -30,9 +29,6 @@ func InitTelegramBot(services BotServices, cfg config.ApplicationConfig) *tgBot 
 	if err != nil {
 		log.Panic(err)
 	}
-
-	//TODO wait for a routine?
-	go http.ListenAndServe(fmt.Sprintf(":%s", cfg.WebhookPort), nil)
 
 	if cfg.Development {
 		bot.Debug = true
@@ -76,12 +72,11 @@ func InitTelegramBot(services BotServices, cfg config.ApplicationConfig) *tgBot 
 	}
 }
 
-func (t *tgBot) ListenForUpdates() {
-	go t.services.SensorService.ListenChangesInSensors(t.notifyUsersAboutSensors)
-	go t.handleUpdates()
+func (t *tgBot) ListenChangesInSensors() {
+	t.services.SensorService.ListenChangesInSensors(t.notifyUsersAboutSensors)
 }
 
-func (t *tgBot) handleUpdates() {
+func (t *tgBot) ListenTelegramUpdates() {
 	for update := range t.updates {
 		if update.Message == nil {
 			continue
