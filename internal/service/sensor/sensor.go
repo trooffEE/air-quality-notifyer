@@ -91,7 +91,7 @@ func (s *Service) startInvalidation(allowedHourDiff int) {
 		}
 	}
 
-	s.InvalidateSensors(aliveSensors)
+	s.invalidateSensors(aliveSensors)
 }
 
 func (s *Service) saveNewScrappedSensor(sensor AqiSensorScriptScrapped) {

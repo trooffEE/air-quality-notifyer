@@ -5,7 +5,7 @@ import (
 	"slices"
 )
 
-func (s *Service) InvalidateSensors(aliveSensors []AqiSensorScriptScrapped) {
+func (s *Service) invalidateSensors(aliveSensors []AqiSensorScriptScrapped) {
 	currentlySavedSensorsIds, err := s.repo.GetAllApiIds()
 	if err != nil {
 		lib.LogError("invalidateSensors", "failed to get airquality sensors from db", err)

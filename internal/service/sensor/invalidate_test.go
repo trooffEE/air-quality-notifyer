@@ -29,6 +29,7 @@ func (m *MockRepo) GetSensorsByDistrictId(id int64) ([]models.AirqualitySensor, 
 }
 
 func TestInvalidateSensors(t *testing.T) {
+	t.Parallel()
 	mockRepo := new(MockRepo)
 
 	currentlySavedSensors := []int64{1, 2, 3, 4, 5}
@@ -43,7 +44,7 @@ func TestInvalidateSensors(t *testing.T) {
 		{Id: 2},
 		{Id: 3},
 	}
-	service.InvalidateSensors(aliveSensors)
+	service.invalidateSensors(aliveSensors)
 
 	mockRepo.AssertCalled(t, "GetAllApiIds")
 	mockRepo.AssertCalled(t, "EvictSensor", int64(4))
@@ -54,12 +55,13 @@ func TestInvalidateSensors(t *testing.T) {
 }
 
 func TestInvalidateSensors_ErrorGetSensorByApiId(t *testing.T) {
+	t.Parallel()
 	mockRepo := new(MockRepo)
 	service := &Service{repo: mockRepo}
 
 	mockRepo.On("GetAllApiIds").Return([]int64{}, errors.New("something went wrong"))
 
-	service.InvalidateSensors([]AqiSensorScriptScrapped{{Id: int64(1)}})
+	service.invalidateSensors([]AqiSensorScriptScrapped{{Id: int64(1)}})
 
 	mockRepo.AssertCalled(t, "GetAllApiIds")
 	mockRepo.AssertExpectations(t)
@@ -67,6 +69,7 @@ func TestInvalidateSensors_ErrorGetSensorByApiId(t *testing.T) {
 }
 
 func TestInvalidateSensors_ErrorEvictSensor(t *testing.T) {
+	t.Parallel()
 	mockRepo := new(MockRepo)
 	service := &Service{repo: mockRepo}
 
@@ -80,7 +83,7 @@ func TestInvalidateSensors_ErrorEvictSensor(t *testing.T) {
 		{Id: 2},
 		{Id: 3},
 	}
-	service.InvalidateSensors(aliveSensors)
+	service.invalidateSensors(aliveSensors)
 
 	mockRepo.AssertCalled(t, "GetAllApiIds")
 	mockRepo.AssertCalled(t, "EvictSensor", int64(4))

@@ -9,6 +9,10 @@ import (
 	"sync"
 )
 
+var (
+	endpoint = "https://airkemerovo.ru/api/sensor/current/%d?client_secret=guest"
+)
+
 type SyncAirqualitySensorList struct {
 	mu   sync.Mutex
 	wg   sync.WaitGroup
@@ -21,7 +25,7 @@ func (s *SyncAirqualitySensorList) addSensor(sensor AqiSensor) {
 	s.mu.Unlock()
 }
 
-func (s *SyncAirqualitySensorList) findWorstAirqualitySensor() AqiSensor {
+func (s *SyncAirqualitySensorList) findWorstSensor() AqiSensor {
 	var worstAQISensor AqiSensor
 	var currentWorstAQI int
 	for _, value := range s.list {
@@ -39,33 +43,37 @@ func findWorstSensorInDistrict(resChan chan AqiSensor, sensors []models.Airquali
 	syncSensorList.wg.Add(len(sensors))
 
 	for _, sensor := range sensors {
-		fetchSensorById(&syncSensorList, sensor.ApiId, sensor.District.Name)
+		getLastUpdatedSensor(&syncSensorList, sensor.ApiId, sensor.District.Name)
 	}
 	syncSensorList.wg.Wait()
 
-	worstAirqualitySensor := syncSensorList.findWorstAirqualitySensor()
+	worstAirqualitySensor := syncSensorList.findWorstSensor()
 
 	resChan <- worstAirqualitySensor
 }
 
-func fetchSensorById(syncSensorList *SyncAirqualitySensorList, id int64, districtName string) {
-	defer syncSensorList.wg.Done()
-
-	res, err := http.Get(fmt.Sprintf("https://airkemerovo.ru/api/sensor/current/%d?client_secret=guest", id))
-	defer res.Body.Close()
+func fetchSensorById(id int64) *AqiSensorResponse {
+	res, err := http.Get(fmt.Sprintf(endpoint, id))
 	if err != nil {
 		lib.LogError("fetchSensorById", "failed to fetch sensor with id of %d", err, id)
-		return
+		return nil
 	}
+	defer res.Body.Close()
 
 	var aqiSensorsResponse AqiSensorResponse
 	err = json.NewDecoder(res.Body).Decode(&aqiSensorsResponse)
 	if err != nil {
 		lib.LogError("fetchSensorById", "failed to decode response with status code %d", err, res.StatusCode)
-		return
+		return nil
 	}
+	return &aqiSensorsResponse
+}
 
-	archivedSensors := aqiSensorsResponse.Archive
+func getLastUpdatedSensor(syncSensorList *SyncAirqualitySensorList, id int64, districtName string) {
+	defer syncSensorList.wg.Done()
+
+	response := fetchSensorById(id)
+	archivedSensors := response.Archive
 
 	if len(archivedSensors) > 0 {
 		latestDataFromSensor := archivedSensors[0]
