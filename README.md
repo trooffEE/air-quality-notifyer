@@ -45,7 +45,6 @@
 Обязательные для разработки технологии:
 1. golang 1.23 (https://go.dev/doc/install) 
 2. make
-3. pre-commit (https://pre-commit.com/#installation)
 
 Для начала запустите `install-hooks.sh`, чтобы выставить все хуки проекта, связанные с git.
 Для развертки проекта необходимо создать папку /data в корне проекта, /tmp.
