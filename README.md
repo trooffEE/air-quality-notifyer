@@ -34,7 +34,8 @@
 1. remove address field from sensor
 
 ### Technical Road map
-- [X] ~~Silent Message~~ 
+- [X] ~~Silent Message~~
+- [ ] Use median instead of worst AQI sensor in district
 - [ ] Test Coverage 80%+
 - [ ] Ability to get from bot current airquality state in district 
 - [ ] Ability to get notification only for specific districts user interested in
