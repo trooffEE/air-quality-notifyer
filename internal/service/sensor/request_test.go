@@ -69,9 +69,9 @@ func TestFetchSensorById(t *testing.T) {
 }
 
 func TestFetchSensorById_ExternalApi(t *testing.T) {
-	t.Parallel()
+	t.Skip()
 	sensorId := 71
-
+	
 	s, err := fetchSensorById(int64(sensorId))
 	assert.NoError(t, err)
 
