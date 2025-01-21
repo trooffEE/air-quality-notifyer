@@ -52,11 +52,11 @@ func findWorstSensorInDistrict(resChan chan AqiSensor, sensors []models.Airquali
 	resChan <- worstAirqualitySensor
 }
 
-func fetchSensorById(id int64) *AqiSensorResponse {
+func fetchSensorById(id int64) (AqiSensorResponse, error) {
 	res, err := http.Get(fmt.Sprintf(endpoint, id))
 	if err != nil {
 		lib.LogError("fetchSensorById", "failed to fetch sensor with id of %d", err, id)
-		return nil
+		return AqiSensorResponse{}, nil
 	}
 	defer res.Body.Close()
 
@@ -64,15 +64,19 @@ func fetchSensorById(id int64) *AqiSensorResponse {
 	err = json.NewDecoder(res.Body).Decode(&aqiSensorsResponse)
 	if err != nil {
 		lib.LogError("fetchSensorById", "failed to decode response with status code %d", err, res.StatusCode)
-		return nil
+		return AqiSensorResponse{}, nil
 	}
-	return &aqiSensorsResponse
+	return aqiSensorsResponse, nil
 }
 
 func getLastUpdatedSensor(syncSensorList *SyncAirqualitySensorList, id int64, districtName string) {
 	defer syncSensorList.wg.Done()
 
-	response := fetchSensorById(id)
+	response, err := fetchSensorById(id)
+	if err != nil {
+		lib.LogError("getLastUpdatedSensor", "failed to fetch sensor with id of %d", err, id)
+		return
+	}
 	archivedSensors := response.Archive
 
 	if len(archivedSensors) > 0 {
