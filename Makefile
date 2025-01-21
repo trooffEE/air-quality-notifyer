@@ -1,6 +1,9 @@
 include .env
 
 # THIS FILE IS ONLY SUITABLE FOR LOCAL DEVELOPMENT - WIP
+test:
+	go test ./internal/...
+
 build:
 	go build -o main ./cmd/bot/main.go
 
