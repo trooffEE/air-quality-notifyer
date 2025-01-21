@@ -18,4 +18,4 @@ jobs:
         go-version: '1.22.1'
 
     - name: Test
-      run: make test
+      run: go test -v ./internal/...
