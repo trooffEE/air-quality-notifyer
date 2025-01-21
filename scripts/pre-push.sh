@@ -1,3 +1,3 @@
 #!/bin/sh
 
-sudo go test ./...
+sudo go test ./... -v
