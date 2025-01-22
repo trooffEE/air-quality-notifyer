@@ -29,10 +29,35 @@
 #### Узнать друг друга 
 > Вокруг нас много неравнодушных людей готовых внести свой вклад в общее благо, но узнать друг о друге бывает сложно. Создавая горизонтальные связи между участниками, проект позволит нам добиваться большего - вместе мы сила.
 ---
+
 ### Technical dept
 1. remove address field from sensor
+
 ### Technical Road map
-- [X] ~~Silent Message~~ 
+- [X] ~~Silent Message~~
+- [ ] Use median instead of worst AQI sensor in district
 - [ ] Test Coverage 80%+
 - [ ] Ability to get from bot current airquality state in district 
 - [ ] Ability to get notification only for specific districts user interested in
+
+## Работа с проектом
+Здесь и далее примеры развертки для Linux
+
+Обязательные для разработки технологии:
+1. golang 1.23 (https://go.dev/doc/install) 
+2. make
+
+Для начала запустите `install-hooks.sh`, чтобы выставить все хуки проекта, связанные с git.
+Для развертки проекта необходимо создать папку /data в корне проекта, /tmp.
+Выставить руками env переменные в .env файл (см .env.example)
+База:
+Далее необходимо поднять контейнер с базой данных. 
+```sh
+docker compose up airquality_db --build -d
+```
+После выше указанной команды введите `docker ps` должен содержать выше поднятый контейнер.
+
+Приложение:
+```sh
+docker compose up airquality_app --build -d
+```
