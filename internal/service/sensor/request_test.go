@@ -27,10 +27,11 @@ func TestSyncAirqualitySensorList_sortAqi(t *testing.T) {
 	sensorsList.addSensor(AqiSensor{Aqi: 99})
 	sensorsList.addSensor(AqiSensor{Aqi: 1})
 	sensorsList.addSensor(AqiSensor{Aqi: 33})
+	sensorsList.addSensor(AqiSensor{Aqi: 33})
 	sensorsList.addSensor(AqiSensor{Aqi: 66})
 
-	expectedResult := []AqiSensor{{Aqi: 1}, {Aqi: 33}, {Aqi: 66}, {Aqi: 99}}
-
+	expectedResult := []AqiSensor{{Aqi: 1}, {Aqi: 33}, {Aqi: 33}, {Aqi: 66}, {Aqi: 99}}
+	
 	assert.NotEqual(t, sensorsList.list, expectedResult)
 	sensorsList.sortAqi()
 	assert.Equal(t, sensorsList.list, expectedResult)
