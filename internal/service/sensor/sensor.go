@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"github.com/robfig/cron/v3"
 	"log"
+	"sync"
 	"time"
 )
 
@@ -19,25 +20,25 @@ var (
 )
 
 type Service struct {
-	worstAirqualitySensorsChannel chan []AqiSensor
-	districts                     *districts.Service
-	repo                          repo.SensorRepositoryType
-	ctx                           context.Context
-	syncCron                      chan interface{}
+	trustedSensorAqiChannel chan []AqiSensor
+	districts               *districts.Service
+	repo                    repo.SensorRepositoryType
+	ctx                     context.Context
+	syncCron                chan interface{}
 }
 
 func NewSensorService(ctx context.Context, repository repo.SensorRepositoryType, districtService *districts.Service) *Service {
 	return &Service{
-		repo:                          repository,
-		districts:                     districtService,
-		worstAirqualitySensorsChannel: make(chan []AqiSensor),
-		ctx:                           ctx,
-		syncCron:                      make(chan interface{}),
+		repo:                    repository,
+		districts:               districtService,
+		trustedSensorAqiChannel: make(chan []AqiSensor),
+		ctx:                     ctx,
+		syncCron:                make(chan interface{}),
 	}
 }
 
 func (s *Service) ListenChangesInSensors(handler func([]AqiSensor)) {
-	for update := range s.worstAirqualitySensorsChannel {
+	for update := range s.trustedSensorAqiChannel {
 		handler(update)
 	}
 }
@@ -57,7 +58,7 @@ func (s *Service) InvalidateSensorsPeriodically() {
 	cronCreator.Start()
 }
 
-func (s *Service) FetchSensorsEveryHour() {
+func (s *Service) GetTrustedSensorsEveryHour() {
 	cronCreator := cron.New()
 	cronString := "0 * * * *"
 
@@ -65,7 +66,7 @@ func (s *Service) FetchSensorsEveryHour() {
 		if time.Now().UTC().Hour()%AliveSensorTimeDiff == 0 {
 			<-s.syncCron
 		}
-		s.getWorstAirqualitySensors()
+		s.getTrustedAirqualitySensors()
 	})
 	if err != nil {
 		log.Panic(err)
@@ -114,21 +115,24 @@ func (s *Service) saveNewScrappedSensor(sensor AqiSensorScriptScrapped) {
 	}
 }
 
-func (s *Service) getWorstAirqualitySensors() {
+func (s *Service) getTrustedAirqualitySensors() {
 	ctxDistricts := s.ctx.Value("districts").([]models.District)
 
 	respChan := make(chan AqiSensor, len(ctxDistricts))
-
+	wg := sync.WaitGroup{}
+	wg.Add(len(ctxDistricts))
 	for _, district := range ctxDistricts {
-		allSensorsInDistrict, err := s.repo.GetSensorsByDistrictId(district.Id)
+		sensorsInDistrict, err := s.repo.GetSensorsByDistrictId(district.Id)
 		if err != nil {
 			lib.LogError("getWorstAirqualitySensors", "failed to get sensors by districtId=%d", err, district.Id)
 			continue
 		}
-
-		findWorstSensorInDistrict(respChan, allSensorsInDistrict)
+		go func() {
+			defer wg.Done()
+			findTrustedSensor(respChan, sensorsInDistrict)
+		}()
 	}
-
+	wg.Wait()
 	close(respChan)
 
 	var sensors []AqiSensor
@@ -136,5 +140,5 @@ func (s *Service) getWorstAirqualitySensors() {
 		sensors = append(sensors, resp)
 	}
 
-	s.worstAirqualitySensorsChannel <- sensors
+	s.trustedSensorAqiChannel <- sensors
 }

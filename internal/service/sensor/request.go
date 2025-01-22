@@ -48,12 +48,11 @@ func (s *SyncAirqualitySensorList) getTrustedAqiSensor() *AqiSensor {
 	return &s.list[int(trustedIndex)]
 }
 
-func findWorstSensorInDistrict(resChan chan AqiSensor, sensors []models.AirqualitySensor) {
+func findTrustedSensor(resChan chan AqiSensor, sensors []models.AirqualitySensor) {
 	var syncSensorList SyncAirqualitySensorList
 	syncSensorList.wg.Add(len(sensors))
-
 	for _, sensor := range sensors {
-		getLastUpdatedSensor(&syncSensorList, sensor.ApiId, sensor.District.Name)
+		go getLastUpdatedSensor(&syncSensorList, sensor.ApiId, sensor.District.Name)
 	}
 	syncSensorList.wg.Wait()
 
