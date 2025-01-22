@@ -2,7 +2,6 @@ package sensor
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"github.com/stretchr/testify/assert"
 	"net/http"
@@ -10,7 +9,7 @@ import (
 	"testing"
 )
 
-func TestAddSensor(t *testing.T) {
+func TestSyncAirqualitySensorList_addSensor(t *testing.T) {
 	t.Parallel()
 	sensorsList := SyncAirqualitySensorList{}
 
@@ -18,10 +17,34 @@ func TestAddSensor(t *testing.T) {
 	sensorsList.addSensor(AqiSensor{Id: 2})
 	sensorsList.addSensor(AqiSensor{Id: 3})
 
-	assert.Equal(t, len(sensorsList.list), 3)
+	assert.Equal(t, sensorsList.list, []AqiSensor{{Id: 1}, {Id: 2}, {Id: 3}})
 }
 
-func TestFindWorstSensor(t *testing.T) {
+func TestSyncAirqualitySensorList_sortAqi(t *testing.T) {
+	t.Parallel()
+	sensorsList := SyncAirqualitySensorList{}
+
+	sensorsList.addSensor(AqiSensor{Aqi: 99})
+	sensorsList.addSensor(AqiSensor{Aqi: 1})
+	sensorsList.addSensor(AqiSensor{Aqi: 33})
+	sensorsList.addSensor(AqiSensor{Aqi: 66})
+
+	expectedResult := []AqiSensor{{Aqi: 1}, {Aqi: 33}, {Aqi: 66}, {Aqi: 99}}
+
+	assert.NotEqual(t, sensorsList.list, expectedResult)
+	sensorsList.sortAqi()
+	assert.Equal(t, sensorsList.list, expectedResult)
+}
+
+func TestSyncAirqualitySensorList_getTrustedAqiSensor_empty(t *testing.T) {
+	t.Parallel()
+	sensorsList := SyncAirqualitySensorList{}
+
+	trustedSensor := sensorsList.getTrustedAqiSensor()
+	assert.Nil(t, trustedSensor)
+}
+
+func TestSyncAirqualitySensorList_getTrustedAqiSensor_odd(t *testing.T) {
 	t.Parallel()
 	sensorsList := SyncAirqualitySensorList{}
 
@@ -29,18 +52,35 @@ func TestFindWorstSensor(t *testing.T) {
 	sensorsList.addSensor(AqiSensor{Aqi: 100})
 	sensorsList.addSensor(AqiSensor{Aqi: 50})
 
-	worstSensor := sensorsList.findWorstSensor()
-	assert.Equal(t, worstSensor, AqiSensor{Aqi: 100})
+	trustedSensor := sensorsList.getTrustedAqiSensor()
+	assert.NotNil(t, trustedSensor)
+	assert.Equal(t, *trustedSensor, AqiSensor{Aqi: 50})
 }
 
-//type MockHTTPClient struct {
-//	mock.Mock
-//}
-//
-//func (m *MockHTTPClient) Get(url string) (*http.Response, error) {
-//	args := m.Called(url)
-//	return args.Get(0).(*http.Response), args.Error(1)
-//}
+func TestSyncAirqualitySensorList_getTrustedAqiSensor_even(t *testing.T) {
+	t.Parallel()
+	sensorsList := SyncAirqualitySensorList{}
+
+	sensorsList.addSensor(AqiSensor{Aqi: 10})
+	sensorsList.addSensor(AqiSensor{Aqi: 100})
+	sensorsList.addSensor(AqiSensor{Aqi: 50})
+	sensorsList.addSensor(AqiSensor{Aqi: 33})
+
+	trustedSensor := sensorsList.getTrustedAqiSensor()
+	assert.NotNil(t, trustedSensor)
+	assert.Equal(t, *trustedSensor, AqiSensor{Aqi: 50})
+}
+
+func TestSyncAirqualitySensorList_getTrustedAqiSensor_one(t *testing.T) {
+	t.Parallel()
+	sensorsList := SyncAirqualitySensorList{}
+
+	sensorsList.addSensor(AqiSensor{Aqi: 10})
+
+	trustedSensor := sensorsList.getTrustedAqiSensor()
+	assert.NotNil(t, trustedSensor)
+	assert.Equal(t, *trustedSensor, AqiSensor{Aqi: 10})
+}
 
 func TestFetchSensorById(t *testing.T) {
 	t.Parallel()
@@ -67,24 +107,3 @@ func TestFetchSensorById(t *testing.T) {
 	json.Unmarshal([]byte(expectedResponse), &lazyExpectedParsedResult)
 	assert.Equal(t, sensorResponse, lazyExpectedParsedResult)
 }
-
-func TestFetchSensorById_ExternalApi(t *testing.T) {
-	t.Skip()
-	sensorId := 71
-	
-	s, err := fetchSensorById(int64(sensorId))
-	assert.NoError(t, err)
-
-	var test interface{} = s
-	if _, ok := test.(AqiSensorResponse); !ok {
-		assert.Error(t, errors.New("invalid response type"))
-	} else {
-		assert.NotNil(t, test)
-	}
-}
-
-//
-//func TestGetLastUpdatedSensor(t *testing.T) {
-//	t.Parallel()
-//
-//}
