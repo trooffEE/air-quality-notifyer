@@ -6,7 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/jmoiron/sqlx"
-	"log"
+	"go.uber.org/zap"
 )
 
 var (
@@ -48,7 +48,7 @@ func (r *UserRepository) Register(user models.User) error {
 	_, err := r.db.NamedExec(`INSERT INTO users (username, telegram_id) VALUES (:username, :telegram_id)`, user)
 
 	if err != nil {
-		log.Printf("%+v\n", err)
+		zap.L().Error("Failed to insert user", zap.Error(err))
 		return err
 	}
 

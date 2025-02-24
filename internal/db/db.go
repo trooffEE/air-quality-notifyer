@@ -8,7 +8,7 @@ import (
 	_ "github.com/golang-migrate/migrate/v4/database/postgres"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
 	"github.com/jmoiron/sqlx"
-	"log"
+	"go.uber.org/zap"
 	"os"
 )
 
@@ -28,7 +28,7 @@ func NewDB(cfg config.ApplicationConfig) *sqlx.DB {
 	)
 	db, err := sqlx.Connect("postgres", connString)
 	if err != nil {
-		log.Fatalln("Failed to establish DB connection")
+		zap.L().Fatal("Failed to establish db connection", zap.Error(err))
 	}
 
 	m, err := migrate.New(
@@ -36,14 +36,14 @@ func NewDB(cfg config.ApplicationConfig) *sqlx.DB {
 		connString,
 	)
 	if err != nil {
-		log.Fatalf("Failed to create migrate instance: %v", err)
+		zap.L().Fatal("Failed to create migrate instance", zap.Error(err))
 	}
 
 	if err := m.Up(); err != nil && !errors.Is(err, migrate.ErrNoChange) {
-		log.Fatalf("Failed to run migrations: %v", err)
+		zap.L().Fatal("Failed to run migrations", zap.Error(err))
 	}
 
-	log.Println("🏆 Migrations applied successfully!")
+	zap.L().Info("🏆 Migrations applied successfully!")
 
 	return db
 }

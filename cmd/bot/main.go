@@ -11,9 +11,8 @@ import (
 	"air-quality-notifyer/internal/service/user"
 	"context"
 	_ "database/sql"
-	"fmt"
 	_ "github.com/lib/pq"
-	"log"
+	"go.uber.org/zap"
 	"os/signal"
 	"syscall"
 )
@@ -22,6 +21,9 @@ func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
 
+	logger, _ := zap.NewDevelopment()
+	defer logger.Sync()
+	zap.ReplaceGlobals(logger)
 	cfg := config.NewApplicationConfig()
 	database := db.NewDB(cfg)
 	districtRepository := repository.NewDistrictRepository(database)
@@ -30,7 +32,7 @@ func main() {
 
 	districtsList, err := districtRepository.GetAllDistricts()
 	if err != nil {
-		log.Panicln(fmt.Errorf("panic on getting districts list: %w", err))
+		zap.L().Panic("Failed to get all districts", zap.Error(err))
 	}
 	ctx = context.WithValue(ctx, "districts", districtsList)
 
@@ -50,11 +52,11 @@ func main() {
 	go bot.ListenChangesInSensors()
 	go bot.ListenTelegramUpdates()
 
-	sensorService.FetchSensorsEveryHour()
+	sensorService.GetTrustedSensorsEveryHour()
 	sensorService.InvalidateSensorsPeriodically()
 
 	<-ctx.Done()
-	log.Println("starting application shutdown...")
+	zap.L().Info("starting application shutdown...")
 	httpShutdown()
-	log.Println("http server is down")
+	zap.L().Info("http server is down")
 }

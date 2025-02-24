@@ -5,7 +5,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log"
+	"go.uber.org/zap"
 	"net/http"
 	"sync"
 	"time"
@@ -22,16 +22,16 @@ func InitHttpServer(cfg config.ApplicationConfig) func() {
 	go func() {
 		defer wg.Done()
 		if err := server.ListenAndServe(); err != nil && !errors.Is(http.ErrServerClosed, err) {
-			log.Fatalf("http server failed to start on port: %s %v\n", cfg.HttpServerPort, err)
+			zap.L().Fatal("http server failed to start on port", zap.String("port", cfg.HttpServerPort), zap.Error(err))
 		}
 	}()
-	log.Println(fmt.Sprintf("🏆 http server started on port %s", cfg.HttpServerPort))
+	zap.L().Info("🏆 http server started on port", zap.String("port", cfg.HttpServerPort))
 
 	return func() {
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
 		if err := server.Shutdown(ctx); err != nil {
-			log.Fatalf("http server shutdown failed: %v", err)
+			zap.L().Fatal("http server failed to shutdown", zap.Error(err))
 		}
 		wg.Wait()
 	}

@@ -1,9 +1,9 @@
 package commands
 
 import (
-	"air-quality-notifyer/internal/lib"
 	"air-quality-notifyer/internal/service/user"
 	tgbotapi "github.com/OvyFlash/telegram-bot-api"
+	"go.uber.org/zap"
 	"strconv"
 )
 
@@ -26,6 +26,6 @@ func (c *Commander) greetNewUser(chatId int64) {
 	msg.ParseMode = tgbotapi.ModeHTML
 	_, err := c.bot.Send(msg)
 	if err != nil {
-		lib.LogError("greetNewUser", "failed to send message to chatId %d", err, chatId)
+		zap.L().Error("failed to send message to chatId", zap.Int64("chatId", chatId), zap.Error(err))
 	}
 }

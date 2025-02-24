@@ -1,8 +1,8 @@
 package commands
 
 import (
-	"air-quality-notifyer/internal/lib"
 	tgbotapi "github.com/OvyFlash/telegram-bot-api"
+	"go.uber.org/zap"
 )
 
 func (c *Commander) Help(chatID int64) {
@@ -11,6 +11,6 @@ func (c *Commander) Help(chatID int64) {
 	_, err := c.bot.Send(msg)
 
 	if err != nil {
-		lib.LogError("Help", "failed to send message", err)
+		zap.L().Error("Error sending help message", zap.Error(err))
 	}
 }

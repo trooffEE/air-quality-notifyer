@@ -3,12 +3,11 @@ package telegram
 import (
 	"air-quality-notifyer/internal/app/commands"
 	"air-quality-notifyer/internal/config"
-	"air-quality-notifyer/internal/lib"
 	"air-quality-notifyer/internal/service/sensor"
 	"air-quality-notifyer/internal/service/user"
 	"fmt"
 	tgbotapi "github.com/OvyFlash/telegram-bot-api"
-	"log"
+	"go.uber.org/zap"
 )
 
 type tgBot struct {
@@ -25,11 +24,12 @@ type BotServices struct {
 
 func InitTelegramBot(services BotServices, cfg config.ApplicationConfig) *tgBot {
 	bot, err := tgbotapi.NewBotAPI(cfg.TelegramToken)
-	commander := commands.NewCommander(bot, cfg)
 	if err != nil {
-		log.Panic(err)
+		zap.L().Error("Filed to create new bot api", zap.Error(err))
+		panic(err)
 	}
 
+	commander := commands.NewCommander(bot, cfg)
 	if cfg.Development {
 		bot.Debug = true
 
@@ -46,20 +46,20 @@ func InitTelegramBot(services BotServices, cfg config.ApplicationConfig) *tgBot 
 
 	wh, err := tgbotapi.NewWebhook(fmt.Sprintf("https://%s/webhook%s", cfg.WebhookHost, bot.Token))
 	if err != nil {
-		log.Panic(err)
+		zap.L().Panic("Filed to create new webhook", zap.Error(err))
 	}
 	_, err = bot.Request(wh)
 	if err != nil {
-		log.Panic(err)
+		panic(err)
 	}
 
 	info, err := bot.GetWebhookInfo()
 	if err != nil {
-		log.Panic(err)
+		zap.L().Panic("Failed to get webhook info", zap.Error(err))
 	}
 
 	if info.LastErrorDate != 0 {
-		lib.LogError("InitTelegramBot", "failed to init get info about webhook", err)
+		zap.L().Error("failed to init get info about webhook", zap.Error(err))
 	}
 
 	updates := bot.ListenForWebhook(fmt.Sprintf("/webhook%s", bot.Token))
