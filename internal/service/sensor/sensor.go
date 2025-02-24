@@ -3,14 +3,13 @@ package sensor
 import (
 	"air-quality-notifyer/internal/db/models"
 	repo "air-quality-notifyer/internal/db/repository"
-	"air-quality-notifyer/internal/lib"
 	"air-quality-notifyer/internal/service/districts"
 	"context"
 	"database/sql"
 	"errors"
 	"fmt"
 	"github.com/robfig/cron/v3"
-	"log"
+	"go.uber.org/zap"
 	"sync"
 	"time"
 )
@@ -52,7 +51,7 @@ func (s *Service) InvalidateSensorsPeriodically() {
 		s.syncCron <- 0
 	})
 	if err != nil {
-		log.Panic(err)
+		panic(err)
 	}
 
 	cronCreator.Start()
@@ -69,7 +68,7 @@ func (s *Service) GetTrustedSensorsEveryHour() {
 		s.getTrustedAirqualitySensors()
 	})
 	if err != nil {
-		log.Panic(err)
+		panic(err)
 	}
 
 	cronCreator.Start()
@@ -88,7 +87,7 @@ func (s *Service) startInvalidation(allowedHourDiff int) {
 				s.saveNewScrappedSensor(sensor)
 				continue
 			}
-			lib.LogError("startInvalidation", "failed to get api_ids of sensors from database", err)
+			zap.L().Error("failed to get api_ids of sensors from database", zap.Error(err))
 		}
 	}
 
@@ -111,7 +110,7 @@ func (s *Service) saveNewScrappedSensor(sensor AqiSensorScriptScrapped) {
 	}
 	err := s.repo.SaveSensor(dbModel)
 	if err != nil {
-		lib.LogError("saveNewScrappedSensor", "failed to save sensor %+v", err, dbModel)
+		zap.L().Error("failed to save sensor", zap.Error(err), zap.Any("dbModel", dbModel))
 	}
 }
 
@@ -124,7 +123,7 @@ func (s *Service) getTrustedAirqualitySensors() {
 	for _, district := range ctxDistricts {
 		sensorsInDistrict, err := s.repo.GetSensorsByDistrictId(district.Id)
 		if err != nil {
-			lib.LogError("getWorstAirqualitySensors", "failed to get sensors by districtId=%d", err, district.Id)
+			zap.L().Error("failed to get sensors by districtId", zap.Error(err), zap.Int64("districtId", district.Id))
 			continue
 		}
 		go func() {

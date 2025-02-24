@@ -1,9 +1,9 @@
 package telegram
 
 import (
-	"air-quality-notifyer/internal/lib"
 	s "air-quality-notifyer/internal/service/sensor"
 	"fmt"
+	"go.uber.org/zap"
 	"time"
 )
 
@@ -15,13 +15,13 @@ func prepareDangerousLevelMessage(s s.AqiSensor) string {
 
 	t, err := time.Parse("2006-01-02 15", s.Date)
 	if err != nil {
-		lib.LogError("prepareDangerousLevelMessage", "failed to parse time", err)
+		zap.L().Error("failed to parse time", zap.Error(err))
 		return ""
 	}
 
 	loc, err := time.LoadLocation("Asia/Novosibirsk")
 	if err != nil {
-		lib.LogError("prepareDangerousLevelMessage", "failed to load timezone", err)
+		zap.L().Error("failed to load timezone", zap.Error(err))
 		return ""
 	}
 
@@ -36,7 +36,7 @@ func prepareDangerousLevelMessage(s s.AqiSensor) string {
 func getTimezoneHourTime() int {
 	loc, err := time.LoadLocation("Asia/Novosibirsk")
 	if err != nil {
-		lib.LogError("getTimezoneHourTime", "failed to load timezone", err)
+		zap.L().Error("failed to load timezone", zap.Error(err))
 		return -1
 	}
 

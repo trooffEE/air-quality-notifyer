@@ -1,11 +1,10 @@
 package sensor
 
 import (
-	"air-quality-notifyer/internal/lib"
 	"bufio"
 	"encoding/json"
 	"github.com/PuerkitoBio/goquery"
-	"log"
+	"go.uber.org/zap"
 	"net/http"
 	"strings"
 	"time"
@@ -24,17 +23,17 @@ var setSensorsStringStart, setSensorsStringEnd = "setLastData('", "');"
 func scrapSensorData() []AqiSensorScriptScrapped {
 	res, err := http.Get("https://airkemerovo.ru")
 	if err != nil {
-		log.Fatal(err)
+		zap.L().Fatal("Failed to access airkemerovo.ru")
 	}
 	defer res.Body.Close()
 	if res.StatusCode != 200 {
-		lib.LogMessage("scrapSensorData", "failed to grasp new sensors, airkemerovo page responded with %d", res.StatusCode)
+		zap.L().Info("failed to grasp new sensors, airkemerovo page responded with ", zap.Int("status", res.StatusCode))
 		return []AqiSensorScriptScrapped{}
 	}
 
 	doc, err := goquery.NewDocumentFromReader(res.Body)
 	if err != nil {
-		log.Fatal(err)
+		zap.L().Fatal("Failed to parse airkemerovo.ru", zap.Error(err))
 	}
 
 	var scriptContents string
@@ -58,7 +57,7 @@ func scrapSensorData() []AqiSensorScriptScrapped {
 			jsonString := scriptLine[startJsonIndex:endJsonIndex]
 			err := json.Unmarshal([]byte(jsonString), &sensors)
 			if err != nil {
-				lib.LogError("scrapSensorData", "failed to unmarshal json string ", err)
+				zap.L().Error("failed to unmarshal json string", zap.Error(err))
 			}
 		}
 	}
@@ -73,7 +72,7 @@ func filterDeadSensors(sensors []AqiSensorScriptScrapped, allowedDiffInHours int
 		sensorTime, err := time.Parse(layout, sensor.CreatedAt)
 
 		if err != nil {
-			lib.LogError("filterDeadSensors", "failed to parse time from sensor.CreatedAt", err)
+			zap.L().Error("failed to parse time from sensor.CreatedAt", zap.Error(err), zap.Any("sensor", sensor))
 		}
 
 		diffInHours := sensorTime.Sub(time.Now().UTC()).Hours()

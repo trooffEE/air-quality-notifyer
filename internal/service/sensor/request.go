@@ -2,9 +2,9 @@ package sensor
 
 import (
 	"air-quality-notifyer/internal/db/models"
-	"air-quality-notifyer/internal/lib"
 	"encoding/json"
 	"fmt"
+	"go.uber.org/zap"
 	"math"
 	"net/http"
 	"slices"
@@ -67,7 +67,7 @@ func findTrustedSensor(resChan chan AqiSensor, sensors []models.AirqualitySensor
 func fetchSensorById(id int64) (AqiSensorResponse, error) {
 	res, err := http.Get(fmt.Sprintf(endpoint, id))
 	if err != nil {
-		lib.LogError("fetchSensorById", "failed to fetch sensor with id of %d", err, id)
+		zap.L().Error("failed to fetch sensor", zap.Error(err), zap.Int64("sensorId", id))
 		return AqiSensorResponse{}, nil
 	}
 	defer res.Body.Close()
@@ -75,7 +75,7 @@ func fetchSensorById(id int64) (AqiSensorResponse, error) {
 	var aqiSensorsResponse AqiSensorResponse
 	err = json.NewDecoder(res.Body).Decode(&aqiSensorsResponse)
 	if err != nil {
-		lib.LogError("fetchSensorById", "failed to decode response with status code %d", err, res.StatusCode)
+		zap.L().Error("failed to decode response with status code", zap.Error(err), zap.Int("statusCode", res.StatusCode))
 		return AqiSensorResponse{}, nil
 	}
 	return aqiSensorsResponse, nil
@@ -86,7 +86,7 @@ func getLastUpdatedSensor(syncSensorList *SyncAirqualitySensorList, id int64, di
 
 	response, err := fetchSensorById(id)
 	if err != nil {
-		lib.LogError("getLastUpdatedSensor", "failed to fetch sensor with id of %d", err, id)
+		zap.L().Error("failed to fetch sensor by id", zap.Error(err), zap.Int64("sensorId", id))
 		return
 	}
 	archivedSensors := response.Archive
