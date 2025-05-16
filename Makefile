@@ -13,7 +13,7 @@ run:
 create-migration:
 	@bash -c 'read -p "Please provide migration name: " name && \
 	echo $$name && \
-	migrate create -ext sql -dir ./data/migrations/ -seq $$name'
+	migrate create -ext sql -dir ./internal/db/migrations/ -seq $$name'
 
 create-dump:
 	DB_USER=${DB_USER} DB_NAME=${DB_NAME} sh ./scripts/db/create_dump.sh

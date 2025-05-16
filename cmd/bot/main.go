@@ -25,7 +25,7 @@ func main() {
 	defer logger.Sync()
 	zap.ReplaceGlobals(logger)
 	cfg := config.NewApplicationConfig()
-	database := db.NewDB(cfg)
+	database := db.NewDB()
 	districtRepository := repository.NewDistrictRepository(database)
 	userRepository := repository.NewUserRepository(database)
 	sensorRepository := repository.NewSensorRepository(database)

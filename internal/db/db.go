@@ -1,7 +1,6 @@
 package db
 
 import (
-	"air-quality-notifyer/internal/config"
 	"errors"
 	"fmt"
 	"github.com/golang-migrate/migrate/v4"
@@ -19,9 +18,8 @@ type Config struct {
 	password string
 }
 
-func NewDB(cfg config.ApplicationConfig) *sqlx.DB {
-	dbConfig := NewConfig(cfg)
-
+func NewDB() *sqlx.DB {
+	dbConfig := NewConfig()
 	connString := fmt.Sprintf(
 		"postgres://%s:%s@%s/%s?sslmode=disable",
 		dbConfig.user, dbConfig.password, dbConfig.host, dbConfig.dbname,
@@ -48,16 +46,12 @@ func NewDB(cfg config.ApplicationConfig) *sqlx.DB {
 	return db
 }
 
-func NewConfig(cfg config.ApplicationConfig) *Config {
+func NewConfig() *Config {
 	dbConfig := Config{
 		host:     "airquality-db-container",
 		user:     os.Getenv("DB_USER"),
 		dbname:   os.Getenv("DB_NAME"),
 		password: os.Getenv("DB_PASSWORD"),
-	}
-
-	if cfg.Development {
-		dbConfig.host = "localhost"
 	}
 
 	return &dbConfig
