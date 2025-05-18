@@ -35,7 +35,7 @@
 
 ### Technical Road map
 - [X] ~~Silent Message~~
-- [ ] Use median instead of worst AQI sensor in district
+- [X] ~~Use median instead of worst AQI sensor in district~~
 - [ ] Test Coverage 80%+
 - [ ] Ability to get from bot current airquality state in district 
 - [ ] Ability to get notification only for specific districts user interested in
@@ -44,7 +44,7 @@
 Здесь и далее примеры развертки для Linux
 
 Обязательные для разработки технологии:
-1. golang 1.23 (https://go.dev/doc/install) 
+1. golang 1.24.3 (https://go.dev/doc/install) 
 2. make
 
 Для начала запустите `install-hooks.sh`, чтобы выставить все хуки проекта, связанные с git.
