@@ -33,8 +33,8 @@ func (r *SensorRepository) GetSensorByApiId(id int64) (*models.AirqualitySensor,
 
 func (r *SensorRepository) SaveSensor(sensor models.AirqualitySensor) error {
 	_, err := r.db.NamedExec(`
-		INSERT INTO sensors (api_id, district_id, address, lat, lon)
-		VALUES (:api_id, :district_id, :address, :lat, :lon)
+		INSERT INTO sensors (api_id, district_id, address, lat, lon, created_at)
+		VALUES (:api_id, :district_id, :address, :lat, :lon, :created_at)
 	`, sensor)
 
 	if err != nil {
