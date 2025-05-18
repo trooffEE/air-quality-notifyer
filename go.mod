@@ -1,8 +1,6 @@
 module air-quality-notifyer
 
-go 1.23
-
-toolchain go1.23.1
+go 1.24.3
 
 require (
 	github.com/OvyFlash/telegram-bot-api v0.0.0-20241219171906-3f2ca0c14ada
