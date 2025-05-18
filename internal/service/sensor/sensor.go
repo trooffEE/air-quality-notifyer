@@ -109,6 +109,7 @@ func (s *Service) saveNewScrappedSensor(sensor AqiSensorScriptScrapped) {
 		Address:    sensor.Address,
 		Lat:        sensor.Lat,
 		Lon:        sensor.Lon,
+		CreatedAt:  sensor.CreatedAt,
 	}
 	err := s.repo.SaveSensor(dbModel)
 	if err != nil {
