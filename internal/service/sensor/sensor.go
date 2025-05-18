@@ -76,8 +76,10 @@ func (s *Service) GetTrustedSensorsEveryHour() {
 
 func (s *Service) startInvalidation(allowedHourDiff int) {
 	scrappedSensors := scrapSensorData()
+	zap.L().Log(zap.InfoLevel, "scrapped sensors", zap.Any("sensors", scrappedSensors), zap.Time("timestamp", time.Now()))
 
 	aliveSensors := filterDeadSensors(scrappedSensors, allowedHourDiff)
+	zap.L().Log(zap.InfoLevel, "alive sensors", zap.Any("sensors", scrappedSensors), zap.Time("timestamp", time.Now()))
 
 	for _, sensor := range aliveSensors {
 		_, err := s.repo.GetSensorByApiId(sensor.Id)

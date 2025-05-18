@@ -64,23 +64,6 @@ func findTrustedSensor(resChan chan AqiSensor, sensors []models.AirqualitySensor
 	resChan <- *trustedAqlSensor
 }
 
-func fetchSensorById(id int64) (AqiSensorResponse, error) {
-	res, err := http.Get(fmt.Sprintf(endpoint, id))
-	if err != nil {
-		zap.L().Error("failed to fetch sensor", zap.Error(err), zap.Int64("sensorId", id))
-		return AqiSensorResponse{}, nil
-	}
-	defer res.Body.Close()
-
-	var aqiSensorsResponse AqiSensorResponse
-	err = json.NewDecoder(res.Body).Decode(&aqiSensorsResponse)
-	if err != nil {
-		zap.L().Error("failed to decode response with status code", zap.Error(err), zap.Int("statusCode", res.StatusCode))
-		return AqiSensorResponse{}, nil
-	}
-	return aqiSensorsResponse, nil
-}
-
 func getLastUpdatedSensor(syncSensorList *SyncAirqualitySensorList, id int64, districtName string) {
 	defer syncSensorList.wg.Done()
 
@@ -99,4 +82,21 @@ func getLastUpdatedSensor(syncSensorList *SyncAirqualitySensorList, id int64, di
 
 		syncSensorList.addSensor(latestDataFromSensor)
 	}
+}
+
+func fetchSensorById(id int64) (AqiSensorResponse, error) {
+	res, err := http.Get(fmt.Sprintf(endpoint, id))
+	if err != nil {
+		zap.L().Error("failed to fetch sensor", zap.Error(err), zap.Int64("sensorId", id))
+		return AqiSensorResponse{}, nil
+	}
+	defer res.Body.Close()
+
+	var aqiSensorsResponse AqiSensorResponse
+	err = json.NewDecoder(res.Body).Decode(&aqiSensorsResponse)
+	if err != nil {
+		zap.L().Error("failed to decode response with status code", zap.Error(err), zap.Int("statusCode", res.StatusCode))
+		return AqiSensorResponse{}, nil
+	}
+	return aqiSensorsResponse, nil
 }
