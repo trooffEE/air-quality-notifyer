@@ -93,9 +93,14 @@ func (t *tgBot) ListenTelegramUpdates() {
 		)
 		_, err := t.bot.Request(cfg)
 		if err != nil {
-			zap.L().Error("Commands error", zap.Error(err))
+			zap.L().Error("commands request error", zap.Error(err))
 			continue
 		}
+		zap.L().Info(
+			"client message",
+			zap.String("msg", update.Message.Text),
+			zap.String("username", update.Message.From.UserName),
+		)
 
 		switch update.Message.Command() {
 		case "users":
