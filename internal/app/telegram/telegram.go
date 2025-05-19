@@ -81,14 +81,31 @@ func (t *tgBot) ListenTelegramUpdates() {
 		if update.Message == nil {
 			continue
 		}
+		cfg := tgbotapi.NewSetMyCommands(
+			tgbotapi.BotCommand{
+				Command:     "start",
+				Description: "Перезапустить бота",
+			},
+			tgbotapi.BotCommand{
+				Command:     "faq",
+				Description: "Ответы на частые вопросы",
+			},
+		)
+		_, err := t.bot.Request(cfg)
+		if err != nil {
+			zap.L().Error("Commands error", zap.Error(err))
+			continue
+		}
 
 		switch update.Message.Command() {
 		case "users":
 			t.Commander.ShowUsers(update.Message, t.services.UserService)
-		case "help":
-			t.Commander.Help(update.Message.Chat.ID)
+		case "faq":
+			t.Commander.FAQ(update.Message)
 		case "start":
 			t.Commander.Start(update.Message, t.services.UserService)
+		case "ping":
+			t.Commander.Pong(update.Message)
 		}
 	}
 }

@@ -9,22 +9,24 @@ import (
 
 func (c *Commander) Start(message *tgbotapi.Message, service *user.Service) {
 	chatId, username := message.Chat.ID, message.Chat.UserName
+	c.greetNewUser(chatId)
 
-	if service.IsNewUser(chatId) {
-		c.greetNewUser(chatId)
-
-		service.Register(user.User{
-			Id:       strconv.Itoa(int(chatId)),
-			Username: username,
-		})
+	if !service.IsNewUser(chatId) {
+		return
 	}
+
+	service.Register(user.User{
+		Id:       strconv.Itoa(int(chatId)),
+		Username: username,
+	})
 }
 
 func (c *Commander) greetNewUser(chatId int64) {
-	text := "Приветствую. Данный бот оповещает о плохом качестве воздуха по районам в городе Кемерово.\n\nПросьба настроить уведомления, чтобы бот не беспокоил ночью! 🍵"
-	msg := tgbotapi.NewMessage(chatId, text)
-	msg.ParseMode = tgbotapi.ModeHTML
-	_, err := c.bot.Send(msg)
+	err := c.DefaultSend(
+		chatId,
+		"Данный бот оповещает о плохом качестве воздуха в городе Кемерово.\n\nПросьба настроить уведомления, чтобы бот не беспокоил ночью! 🍵",
+		false,
+	)
 	if err != nil {
 		zap.L().Error("failed to send message to chatId", zap.Int64("chatId", chatId), zap.Error(err))
 	}
