@@ -76,16 +76,24 @@ func (t *tgBot) ListenChangesInSensors() {
 	t.services.SensorService.ListenChangesInSensors(t.notifyUsersAboutSensors)
 }
 
+/*
+*
+
+	tgbotapi.BotCommand{
+				Command:     "configure",
+				Description: "⚙️ Настроить бота",
+			},
+			tgbotapi.BotCommand{
+				Command:     "faq",
+				Description: "❓ Ответы на вопросы",
+			},
+			tgbotapi.BotCommand{
+				Command:     "operating_mode",
+				Description: "❓ Режимы работы",
+			},
+*/
 func (t *tgBot) ListenTelegramUpdates() {
 	cfg := tgbotapi.NewSetMyCommands(
-		tgbotapi.BotCommand{
-			Command:     "faq",
-			Description: "❓ Ответы на вопросы",
-		},
-		tgbotapi.BotCommand{
-			Command:     "operating_mode",
-			Description: "⚙️ Режимы работы",
-		},
 		tgbotapi.BotCommand{
 			Command:     "start",
 			Description: "🌀 Перезапустить бота",
@@ -116,6 +124,8 @@ func (t *tgBot) ListenTelegramUpdates() {
 			t.Commander.OperatingMode(update.Message)
 		case "start":
 			t.Commander.Start(update.Message, t.services.UserService)
+		case "configure":
+			t.Commander.Configure(update.Message)
 		case "ping":
 			t.Commander.Pong(update.Message)
 		}

@@ -22,12 +22,9 @@ func (c *Commander) Start(message *tgbotapi.Message, service *user.Service) {
 }
 
 func (c *Commander) greetNewUser(chatId int64) {
-	err := c.DefaultSend(
-		chatId,
-		"Данный бот оповещает о плохом качестве воздуха в городе Кемерово.\n\nПросьба настроить уведомления, чтобы бот не беспокоил ночью! 🍵",
-		false,
-	)
+	msg := tgbotapi.NewMessage(chatId, "Данный бот оповещает о плохом качестве воздуха в городе Кемерово.\n\nПросьба настроить уведомления, чтобы бот не беспокоил ночью! 🍵")
+	err := c.Send(SendPayload{Msg: msg})
 	if err != nil {
-		zap.L().Error("failed to send message to chatId", zap.Int64("chatId", chatId), zap.Error(err))
+		zap.L().Error("Error sending faq message", zap.Error(err))
 	}
 }

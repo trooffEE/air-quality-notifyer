@@ -1,8 +1,10 @@
 package telegram
 
 import (
+	"air-quality-notifyer/internal/app/commands"
 	s "air-quality-notifyer/internal/service/sensor"
 	"fmt"
+	tgbotapi "github.com/OvyFlash/telegram-bot-api"
 	"go.uber.org/zap"
 	"time"
 )
@@ -60,7 +62,8 @@ func (t *tgBot) notifyUsersAboutSensors(sensors []s.AqiSensor) {
 	userIds := t.services.UserService.GetUsersIds()
 	for _, id := range userIds {
 		for _, message := range messages {
-			err := t.Commander.DefaultSend(id, message, isSilentMessage)
+			msg := tgbotapi.NewMessage(id, message)
+			err := t.Commander.Send(commands.SendPayload{Msg: msg, DisableNotification: isSilentMessage})
 			if err != nil && err.Code == 403 {
 				t.services.UserService.DeleteUser(id)
 				break

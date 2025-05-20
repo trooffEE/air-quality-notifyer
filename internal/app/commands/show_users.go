@@ -30,12 +30,10 @@ func (c *Commander) ShowUsers(message *tgbotapi.Message, service *user.Service) 
 		names[index] = "@" + name
 	}
 
-	msgString := fmt.Sprintf("Bot Users: %d 🙌\n\n%s", len(names), strings.Join(names, ", \n"))
-	msg := tgbotapi.NewMessage(chatId, msgString)
-	msg.ParseMode = tgbotapi.ModeHTML
-	_, err = c.bot.Send(msg)
+	msg := tgbotapi.NewMessage(chatId, fmt.Sprintf("Bot Users: %d 🙌\n\n%s", len(names), strings.Join(names, ", \n")))
+	err = c.Send(SendPayload{Msg: msg})
 
 	if err != nil {
-		zap.L().Error("failed to send message", zap.Error(err))
+		zap.L().Error("Error sending show_users", zap.Error(err))
 	}
 }

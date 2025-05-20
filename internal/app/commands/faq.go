@@ -23,10 +23,9 @@ func (c *Commander) FAQ(message *tgbotapi.Message) {
 			"Если не нашли ответ на свой вопрос, то welcome - @adorable_internet_friend",
 	),
 	)
-	msg.ParseMode = tgbotapi.ModeHTML
-	_, err := c.bot.Send(msg)
+	err := c.Send(SendPayload{Msg: msg})
 
 	if err != nil {
-		zap.L().Error("Error sending help message", zap.Error(err))
+		zap.L().Error("Error sending faq message", zap.Error(err))
 	}
 }

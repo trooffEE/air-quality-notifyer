@@ -19,10 +19,9 @@ func (c *Commander) OperatingMode(message *tgbotapi.Message) {
 			"Режим работы, в котором бот отслеживает и отправляет оповещения от <strong>выбранных вами датчиков</strong>. Данный функционал слудет использовать, если вы хотите выбрать датчики самостоятельно, за которыми хотите наблюдать 🍃\n\n",
 	),
 	)
-	msg.ParseMode = tgbotapi.ModeHTML
-	_, err := c.bot.Send(msg)
+	err := c.Send(SendPayload{Msg: msg})
 
 	if err != nil {
-		zap.L().Error("Error sending help message", zap.Error(err))
+		zap.L().Error("Error sending operating_mode message", zap.Error(err))
 	}
 }
