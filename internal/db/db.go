@@ -22,8 +22,8 @@ func NewDB() *sqlx.DB {
 	dbConfig := NewConfig()
 	//127.0.0.1:5432
 	connString := fmt.Sprintf(
-		"postgres://%s:%s@%s/%s?sslmode=disable",
-		dbConfig.user, dbConfig.password, dbConfig.host, dbConfig.dbname,
+		"postgres://%s:%s@127.0.0.1:5432/%s?sslmode=disable",
+		dbConfig.user, dbConfig.password, dbConfig.dbname,
 	)
 	db, err := sqlx.Connect("postgres", connString)
 	if err != nil {

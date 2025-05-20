@@ -8,7 +8,8 @@ import (
 
 func (c *Commander) FAQ(message *tgbotapi.Message) {
 	msg := tgbotapi.NewMessage(message.Chat.ID, fmt.Sprintf(
-		"<i>- Связан ли данный бот с https://airkemerovo.ru ?</i>\n"+
+		"⚙️<strong>Ответы на вопросы</strong>\n\n"+
+			"<i>- Связан ли данный бот с https://airkemerovo.ru ?</i>\n"+
 			"Данный проект берет информацию именно с этого сервиса, используя публичный API, однако разработчик бота <strong>никак не связан</strong> с https://airkemerovo.ru\n\n"+
 			"<i>- Бесплатно ли использование?</i>\n"+
 			"Да, проект доступен для использования всем желающим, кто хочет следить за состоянием воздуху и получать уведомления об этом\n\n"+
