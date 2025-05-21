@@ -1,4 +1,4 @@
-package commands
+package commander
 
 import (
 	tgbotapi "github.com/OvyFlash/telegram-bot-api"

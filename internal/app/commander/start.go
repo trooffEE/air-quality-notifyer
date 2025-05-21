@@ -1,4 +1,4 @@
-package commands
+package commander
 
 import (
 	"air-quality-notifyer/internal/service/user"

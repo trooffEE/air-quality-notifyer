@@ -1,4 +1,4 @@
-package commands
+package commander
 
 import (
 	tgbotapi "github.com/OvyFlash/telegram-bot-api"
@@ -11,7 +11,7 @@ func (c *Commander) Pong(message *tgbotapi.Message) {
 
 	msg.ReplyParameters.MessageID = message.MessageID
 	err := c.Send(SendPayload{Msg: msg})
-	
+
 	if err != nil {
 		zap.L().Error("Error sending pong message", zap.Error(err))
 	}

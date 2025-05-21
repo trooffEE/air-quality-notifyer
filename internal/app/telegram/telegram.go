@@ -1,7 +1,7 @@
 package telegram
 
 import (
-	"air-quality-notifyer/internal/app/commands"
+	"air-quality-notifyer/internal/app/commander"
 	"air-quality-notifyer/internal/app/keypads"
 	"air-quality-notifyer/internal/app/menu"
 	"air-quality-notifyer/internal/config"
@@ -16,7 +16,7 @@ type tgBot struct {
 	bot       *tgbotapi.BotAPI
 	updates   tgbotapi.UpdatesChannel
 	services  BotServices
-	Commander *commands.Commander
+	Commander *commander.Commander
 }
 
 type BotServices struct {
@@ -31,7 +31,7 @@ func InitTelegramBot(services BotServices, cfg config.ApplicationConfig) *tgBot 
 		panic(err)
 	}
 
-	commander := commands.NewCommander(bot, cfg)
+	commander := commander.NewCommander(bot, cfg)
 	if cfg.Development {
 		bot.Debug = true
 
@@ -86,7 +86,7 @@ func (t *tgBot) ListenTelegramUpdates() {
 		},
 	)
 	if _, err := t.bot.Request(cfg); err != nil {
-		zap.L().Error("commands request error", zap.Error(err))
+		zap.L().Error("commander request error", zap.Error(err))
 	}
 
 	for update := range t.updates {
