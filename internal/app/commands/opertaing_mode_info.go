@@ -6,7 +6,7 @@ import (
 	"go.uber.org/zap"
 )
 
-func (c *Commander) OperatingMode(message *tgbotapi.Message) {
+func (c *Commander) OperatingModeInfo(message *tgbotapi.Message) {
 	msg := tgbotapi.NewMessage(message.Chat.ID, fmt.Sprintf(
 		"⚙️ <strong>Режимы работы</strong> ⚙️\n\n"+
 			"🏙 <i>Город</i> 🏙\n\n"+

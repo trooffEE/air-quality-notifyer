@@ -2,6 +2,7 @@ package telegram
 
 import (
 	"air-quality-notifyer/internal/app/commands"
+	"air-quality-notifyer/internal/app/menu"
 	"air-quality-notifyer/internal/config"
 	"air-quality-notifyer/internal/service/sensor"
 	"air-quality-notifyer/internal/service/user"
@@ -76,22 +77,6 @@ func (t *tgBot) ListenChangesInSensors() {
 	t.services.SensorService.ListenChangesInSensors(t.notifyUsersAboutSensors)
 }
 
-/*
-*
-
-	tgbotapi.BotCommand{
-				Command:     "configure",
-				Description: "⚙️ Настроить бота",
-			},
-			tgbotapi.BotCommand{
-				Command:     "faq",
-				Description: "❓ Ответы на вопросы",
-			},
-			tgbotapi.BotCommand{
-				Command:     "operating_mode",
-				Description: "❓ Режимы работы",
-			},
-*/
 func (t *tgBot) ListenTelegramUpdates() {
 	cfg := tgbotapi.NewSetMyCommands(
 		tgbotapi.BotCommand{
@@ -115,19 +100,23 @@ func (t *tgBot) ListenTelegramUpdates() {
 			zap.String("username", update.Message.From.UserName),
 		)
 
-		switch update.Message.Command() {
+		switch update.Message.Text {
+		case "/start":
+			t.Commander.Start(update.Message, t.services.UserService)
 		case "users":
 			t.Commander.ShowUsers(update.Message, t.services.UserService)
-		case "faq":
+		case menu.FAQ:
 			t.Commander.FAQ(update.Message)
-		case "operating_mode":
-			t.Commander.OperatingMode(update.Message)
-		case "start":
-			t.Commander.Start(update.Message, t.services.UserService)
-		case "configure":
-			t.Commander.Configure(update.Message)
+		case menu.OperationModeInfo:
+			t.Commander.OperatingModeInfo(update.Message)
+		case menu.Setup:
+			t.Commander.Setup(update.Message)
 		case "ping":
 			t.Commander.Pong(update.Message)
+		}
+
+		if menu.IsMenuButton(update.Message.Text) {
+			t.Commander.Delete(update.Message)
 		}
 	}
 }
