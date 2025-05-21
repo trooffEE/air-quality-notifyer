@@ -104,8 +104,6 @@ func (t *tgBot) ListenTelegramUpdates() {
 				t.Commander.ShowUsers(update.Message, t.services.UserService)
 			case menu.FAQ:
 				t.Commander.FAQ(update.Message)
-			case menu.OperationModeInfo:
-				t.Commander.OperatingModeInfo(update.Message)
 			case menu.Setup:
 				t.Commander.Setup(update.Message)
 			case "ping":
@@ -127,6 +125,8 @@ func (t *tgBot) ListenTelegramUpdates() {
 			switch update.CallbackQuery.Data {
 			case keypads.BackData:
 				t.Commander.Back(update.CallbackQuery)
+			case keypads.OperationModeFAQData:
+				t.Commander.OperatingModeInfo(update.CallbackQuery)
 			}
 		}
 	}

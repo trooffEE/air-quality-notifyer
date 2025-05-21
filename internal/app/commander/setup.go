@@ -13,8 +13,6 @@ func (c *Commander) Setup(message *tgbotapi.Message) {
 			"Здесь вы можете настроить нужный функционал бота",
 	)
 
-	tgbotapi.NewInlineKeyboardButtonData(keypads.OperationModeText, keypads.OperationModeData)
-	tgbotapi.NewInlineKeyboardButtonData(keypads.SensorsText, keypads.SensorsData)
 	markup := tgbotapi.NewInlineKeyboardMarkup(
 		tgbotapi.NewInlineKeyboardRow(
 			tgbotapi.NewInlineKeyboardButtonData(keypads.OperationModeText, keypads.OperationModeData),
