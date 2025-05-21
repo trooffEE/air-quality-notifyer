@@ -1,18 +1,31 @@
 package commands
 
 import (
+	"air-quality-notifyer/internal/app/keypads"
 	tgbotapi "github.com/OvyFlash/telegram-bot-api"
 	"go.uber.org/zap"
 )
 
 func (c *Commander) Setup(message *tgbotapi.Message) {
-	loc := tgbotapi.NewKeyboardButtonLocation("Предоставить доступ к геолокации")
-	keyboard := tgbotapi.NewReplyKeyboard([]tgbotapi.KeyboardButton{loc})
+	msg := tgbotapi.NewMessage(
+		message.Chat.ID,
+		"⚙️ <strong>Настройки</strong>\n"+
+			"Здесь вы можете настроить нужный функционал бота",
+	)
 
-	msg := tgbotapi.NewMessage(message.Chat.ID, "Пожалуйста предоставьте доступ до геолокации, чтобы мы могли сформировать список датчиков, за которыми мы будем следить")
+	tgbotapi.NewInlineKeyboardButtonData(keypads.OperationModeText, keypads.OperationModeData)
+	tgbotapi.NewInlineKeyboardButtonData(keypads.SensorsText, keypads.SensorsData)
+	markup := tgbotapi.NewInlineKeyboardMarkup(
+		tgbotapi.NewInlineKeyboardRow(
+			tgbotapi.NewInlineKeyboardButtonData(keypads.OperationModeText, keypads.OperationModeData),
+			tgbotapi.NewInlineKeyboardButtonData(keypads.SensorsText, keypads.SensorsData),
+		),
+		tgbotapi.NewInlineKeyboardRow(
+			tgbotapi.NewInlineKeyboardButtonData(keypads.BackText, keypads.BackData),
+		),
+	)
+	err := c.Send(SendPayload{Msg: msg, ReplyMarkup: markup})
 
-	err := c.Send(SendPayload{Msg: msg, ReplyMarkup: keyboard})
-	
 	if err != nil {
 		zap.L().Error("Error sending configure message", zap.Error(err))
 	}

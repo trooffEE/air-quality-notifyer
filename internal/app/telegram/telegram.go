@@ -2,6 +2,7 @@ package telegram
 
 import (
 	"air-quality-notifyer/internal/app/commands"
+	"air-quality-notifyer/internal/app/keypads"
 	"air-quality-notifyer/internal/app/menu"
 	"air-quality-notifyer/internal/config"
 	"air-quality-notifyer/internal/service/sensor"
@@ -84,39 +85,49 @@ func (t *tgBot) ListenTelegramUpdates() {
 			Description: "🌀 Перезапустить бота",
 		},
 	)
-	_, err := t.bot.Request(cfg)
+	if _, err := t.bot.Request(cfg); err != nil {
+		zap.L().Error("commands request error", zap.Error(err))
+	}
 
 	for update := range t.updates {
-		if update.Message == nil {
-			continue
-		}
-		if err != nil {
-			zap.L().Error("commands request error", zap.Error(err))
-			continue
-		}
-		zap.L().Info(
-			"client message",
-			zap.String("msg", update.Message.Text),
-			zap.String("username", update.Message.From.UserName),
-		)
+		if update.Message != nil {
+			zap.L().Info(
+				"client message",
+				zap.String("msg", update.Message.Text),
+				zap.String("username", update.Message.From.UserName),
+			)
 
-		switch update.Message.Text {
-		case "/start":
-			t.Commander.Start(update.Message, t.services.UserService)
-		case "users":
-			t.Commander.ShowUsers(update.Message, t.services.UserService)
-		case menu.FAQ:
-			t.Commander.FAQ(update.Message)
-		case menu.OperationModeInfo:
-			t.Commander.OperatingModeInfo(update.Message)
-		case menu.Setup:
-			t.Commander.Setup(update.Message)
-		case "ping":
-			t.Commander.Pong(update.Message)
+			switch update.Message.Text {
+			case "/start":
+				t.Commander.Start(update.Message, t.services.UserService)
+			case "users":
+				t.Commander.ShowUsers(update.Message, t.services.UserService)
+			case menu.FAQ:
+				t.Commander.FAQ(update.Message)
+			case menu.OperationModeInfo:
+				t.Commander.OperatingModeInfo(update.Message)
+			case menu.Setup:
+				t.Commander.Setup(update.Message)
+			case "ping":
+				t.Commander.Pong(update.Message)
+			}
+
+			if menu.IsMenuButton(update.Message.Text) {
+				t.Commander.Delete(update.Message)
+			}
 		}
 
-		if menu.IsMenuButton(update.Message.Text) {
-			t.Commander.Delete(update.Message)
+		if update.CallbackQuery != nil {
+			callback := tgbotapi.NewCallback(update.CallbackQuery.ID, "")
+			if _, err := t.bot.Request(callback); err != nil {
+				zap.L().Error("Error receiving response from callback with id", zap.Error(err), zap.String("id", update.CallbackQuery.ID))
+				continue
+			}
+
+			switch update.CallbackQuery.Data {
+			case keypads.BackData:
+				t.Commander.Back(update.CallbackQuery)
+			}
 		}
 	}
 }

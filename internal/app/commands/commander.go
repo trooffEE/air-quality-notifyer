@@ -40,7 +40,7 @@ func (c *Commander) Send(payload SendPayload) *tgbotapi.Error {
 	if payload.ReplyMarkup != nil {
 		payload.Msg.ReplyMarkup = payload.ReplyMarkup
 	} else {
-		payload.Msg.ReplyMarkup = menu.NewReplyTelegramMenu()
+		payload.Msg.ReplyMarkup = menu.NewTelegramMainMenu()
 	}
 
 	_, err := c.bot.Send(payload.Msg)

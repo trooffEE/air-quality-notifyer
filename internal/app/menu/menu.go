@@ -12,7 +12,7 @@ func IsMenuButton(button string) bool {
 	return button == FAQ || button == OperationModeInfo || button == Setup
 }
 
-func NewReplyTelegramMenu() tgbotapi.ReplyKeyboardMarkup {
+func NewTelegramMainMenu() tgbotapi.ReplyKeyboardMarkup {
 	return tgbotapi.NewOneTimeReplyKeyboard(
 		tgbotapi.NewKeyboardButtonRow(
 			tgbotapi.NewKeyboardButton(Setup),
