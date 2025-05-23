@@ -1,0 +1,1 @@
+UPDATE users SET operating_mode = 0 WHERE operating_mode IS NULL;
