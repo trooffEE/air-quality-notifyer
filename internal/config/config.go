@@ -15,8 +15,7 @@ type ApplicationConfig struct {
 }
 
 func NewApplicationConfig() ApplicationConfig {
-	err := godotenv.Load()
-	if err != nil {
+	if err := godotenv.Load(); err != nil {
 		zap.L().Fatal("Error loading .env file")
 	}
 

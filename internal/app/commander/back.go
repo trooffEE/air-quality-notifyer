@@ -7,9 +7,8 @@ import (
 
 func (c *Commander) Back(callback *tgbotapi.CallbackQuery) {
 	msg := tgbotapi.NewMessage(callback.Message.Chat.ID, "Вы вернулись в меню ⬇️")
-	err := c.Send(SendPayload{Msg: msg})
 
-	if err != nil {
+	if err := c.Send(SendPayload{Msg: msg}); err != nil {
 		zap.L().Error("Error sending back message", zap.Error(err))
 	}
 }

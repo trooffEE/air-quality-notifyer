@@ -93,8 +93,7 @@ func fetchSensorById(id int64) (AqiSensorResponse, error) {
 	defer res.Body.Close()
 
 	var aqiSensorsResponse AqiSensorResponse
-	err = json.NewDecoder(res.Body).Decode(&aqiSensorsResponse)
-	if err != nil {
+	if err = json.NewDecoder(res.Body).Decode(&aqiSensorsResponse); err != nil {
 		zap.L().Error("failed to decode response with status code", zap.Error(err), zap.Int("statusCode", res.StatusCode))
 		return AqiSensorResponse{}, nil
 	}

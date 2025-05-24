@@ -55,8 +55,8 @@ func scrapSensorData() []AqiSensorScriptScrapped {
 			endJsonIndex := strings.Index(scriptLine, setSensorsStringEnd)
 
 			jsonString := scriptLine[startJsonIndex:endJsonIndex]
-			err := json.Unmarshal([]byte(jsonString), &sensors)
-			if err != nil {
+
+			if err := json.Unmarshal([]byte(jsonString), &sensors); err != nil {
 				zap.L().Error("failed to unmarshal json string", zap.Error(err))
 			}
 		}

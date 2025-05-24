@@ -10,9 +10,8 @@ func (c *Commander) Pong(message *tgbotapi.Message) {
 	msg.ParseMode = tgbotapi.ModeHTML
 
 	msg.ReplyParameters.MessageID = message.MessageID
-	err := c.Send(SendPayload{Msg: msg})
 
-	if err != nil {
+	if err := c.Send(SendPayload{Msg: msg}); err != nil {
 		zap.L().Error("Error sending pong message", zap.Error(err))
 	}
 }

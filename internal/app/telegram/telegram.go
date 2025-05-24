@@ -31,7 +31,7 @@ func InitTelegramBot(services BotServices, cfg config.ApplicationConfig) *tgBot 
 		panic(err)
 	}
 
-	commander := commander.NewCommander(bot, cfg)
+	cmder := commander.NewCommander(bot, cfg)
 	if cfg.Development {
 		bot.Debug = true
 
@@ -42,7 +42,7 @@ func InitTelegramBot(services BotServices, cfg config.ApplicationConfig) *tgBot 
 			bot:       bot,
 			updates:   bot.GetUpdatesChan(updateConfig),
 			services:  services,
-			Commander: commander,
+			Commander: cmder,
 		}
 	}
 
@@ -70,7 +70,7 @@ func InitTelegramBot(services BotServices, cfg config.ApplicationConfig) *tgBot 
 		bot:       bot,
 		updates:   updates,
 		services:  services,
-		Commander: commander,
+		Commander: cmder,
 	}
 }
 

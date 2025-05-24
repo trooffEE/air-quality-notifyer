@@ -9,7 +9,7 @@ import (
 )
 
 type Commander struct {
-	bot *tgbotapi.BotAPI //TOOD think about common interface so that Telegram, WhatsApp, VK can be used
+	bot *tgbotapi.BotAPI
 	cfg config.ApplicationConfig
 }
 

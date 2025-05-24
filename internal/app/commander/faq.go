@@ -34,9 +34,8 @@ func (c *Commander) FAQ(message *tgbotapi.Message) {
 			tgbotapi.NewInlineKeyboardButtonData(keypads.BackText, keypads.BackData),
 		),
 	)
-	err := c.Send(SendPayload{Msg: msg, ReplyMarkup: markup})
 
-	if err != nil {
+	if err := c.Send(SendPayload{Msg: msg, ReplyMarkup: markup}); err != nil {
 		zap.L().Error("Error sending faq message", zap.Error(err))
 	}
 }
