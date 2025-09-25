@@ -30,16 +30,11 @@
 > Вокруг нас много неравнодушных людей готовых внести свой вклад в общее благо, но узнать друг о друге бывает сложно. Создавая горизонтальные связи между участниками, проект позволит нам добиваться большего - вместе мы сила.
 ---
 
-### Technical dept
-1. [!] Sensor invalidation should happen in Redis with TTL 4 hours - in other words move sensors to Redis. Crucial point
-2. remove address field from sensor
-
-### Technical Road map
-- [X] ~~Silent Message~~
-- [X] ~~Use median instead of worst AQI sensor in district~~
-- [ ] Test Coverage 80%+
-- [ ] Ability to get from bot current airquality state in district 
-- [ ] Ability to get notification only for specific districts user interested in
+### Особенности функционала проекта
+1. Приложение инвалидирует датчики каждые 4 часа на актуальность.
+2. Приложение проверяет воздух по городу каждый час.
+3. Датчики при ежечасной проверке в случае плохого AQI - всегда отдают инфу за **строго** прошлый час.<br>
+   _Пример: для человека в 22:00 - датчик пришлет информацию за 21:00 - 21:59. Это сознательно решение, чтобы не вводить заблуждение человека. О состояние воздуха за определенный час мы можем судить только, когда полностью данный час пройдет._
 
 ## Работа с проектом
 Здесь и далее примеры развертки для Linux
@@ -51,7 +46,8 @@
 Для начала запустите `install-hooks.sh`, чтобы выставить все хуки проекта, связанные с git.
 Для развертки проекта необходимо создать папку /data в корне проекта, /tmp.
 Выставить руками env переменные в .env файл (см .env.example)
-База:
+
+Database:
 Далее необходимо поднять контейнер с базой данных. 
 ```sh
 docker compose up airquality_db --build -d
@@ -62,3 +58,7 @@ docker compose up airquality_db --build -d
 ```sh
 docker compose up airquality_app --build -d
 ```
+
+### Технический долг/roadmap
+1. Инвалидацию сенсоров перенести в REDIS с TTL - 4 часа
+2. Убрать address поле из Sensor (учесть выше описанный пункт)
