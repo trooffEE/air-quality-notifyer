@@ -4,7 +4,7 @@ import (
 	"air-quality-notifyer/internal/db/models"
 	"database/sql"
 	"errors"
-	"fmt"
+
 	"github.com/jmoiron/sqlx"
 	"go.uber.org/zap"
 )
@@ -35,7 +35,7 @@ func (r *UserRepository) FindById(id int64) (*models.User, error) {
 
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return nil, fmt.Errorf("no user found for id %w", UserNotFound)
+			return nil, UserNotFound
 		}
 
 		return nil, err
