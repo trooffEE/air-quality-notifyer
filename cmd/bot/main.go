@@ -11,10 +11,11 @@ import (
 	"air-quality-notifyer/internal/service/user"
 	"context"
 	_ "database/sql"
-	_ "github.com/lib/pq"
-	"go.uber.org/zap"
 	"os/signal"
 	"syscall"
+
+	_ "github.com/lib/pq"
+	"go.uber.org/zap"
 )
 
 func main() {

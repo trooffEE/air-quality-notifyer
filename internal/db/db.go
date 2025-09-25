@@ -3,12 +3,13 @@ package db
 import (
 	"errors"
 	"fmt"
+	"os"
+
 	"github.com/golang-migrate/migrate/v4"
 	_ "github.com/golang-migrate/migrate/v4/database/postgres"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
 	"github.com/jmoiron/sqlx"
 	"go.uber.org/zap"
-	"os"
 )
 
 type Config struct {
@@ -19,11 +20,10 @@ type Config struct {
 }
 
 func NewDB() *sqlx.DB {
-	dbConfig := NewConfig()
-	//127.0.0.1:5432
+	config := NewConfig()
 	connString := fmt.Sprintf(
-		"postgres://%s:%s@127.0.0.1:5432/%s?sslmode=disable",
-		dbConfig.user, dbConfig.password, dbConfig.dbname,
+		"postgres://%s:%s@%s/%s?sslmode=disable",
+		config.user, config.password, config.host, config.dbname,
 	)
 	db, err := sqlx.Connect("postgres", connString)
 	if err != nil {
@@ -49,7 +49,7 @@ func NewDB() *sqlx.DB {
 
 func NewConfig() *Config {
 	dbConfig := Config{
-		host:     "airquality-db-container",
+		host:     os.Getenv("DB_HOST"),
 		user:     os.Getenv("DB_USER"),
 		dbname:   os.Getenv("DB_NAME"),
 		password: os.Getenv("DB_PASSWORD"),

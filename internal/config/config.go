@@ -1,9 +1,10 @@
 package config
 
 import (
+	"os"
+
 	"github.com/joho/godotenv"
 	"go.uber.org/zap"
-	"os"
 )
 
 type ApplicationConfig struct {
@@ -22,9 +23,9 @@ func NewApplicationConfig() ApplicationConfig {
 	var config = ApplicationConfig{
 		TelegramToken:   os.Getenv("TELEGRAM_SECRET"),
 		WebhookHost:     os.Getenv("WEBHOOK_HOST"),
-		HttpServerPort:  os.Getenv("WEBHOOK_PORT"), // TODO rename env
+		HttpServerPort:  os.Getenv("WEBHOOK_PORT"),
 		AdminTelegramId: os.Getenv("ADMIN_TELEGRAM_ID"),
-		Development:     os.Getenv("DEVELOPMENT") == "true",
+		Development:     os.Getenv("DEVELOPMENT") == "1",
 	}
 
 	return config
