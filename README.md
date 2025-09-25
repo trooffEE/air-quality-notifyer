@@ -31,7 +31,8 @@
 ---
 
 ### Technical dept
-1. remove address field from sensor
+1. [!] Sensor invalidation should happen in Redis with TTL 4 hours - in other words move sensors to Redis. Crucial point
+2. remove address field from sensor
 
 ### Technical Road map
 - [X] ~~Silent Message~~

@@ -5,7 +5,5 @@ COPY go.mod go.sum ./
 RUN go mod download
 COPY . .
 
-RUN chmod +x ./scripts/startup.sh
-RUN chmod +x ./scripts/shutdown.sh
-
-ENTRYPOINT ["./scripts/startup.sh"]
+RUN make build
+RUN ./main
