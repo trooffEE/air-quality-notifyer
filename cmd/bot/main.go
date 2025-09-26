@@ -3,6 +3,7 @@ package main
 import (
 	"air-quality-notifyer/internal/app/server"
 	"air-quality-notifyer/internal/app/telegram"
+	"air-quality-notifyer/internal/cache"
 	"air-quality-notifyer/internal/config"
 	"air-quality-notifyer/internal/db"
 	"air-quality-notifyer/internal/db/repository"
@@ -13,20 +14,29 @@ import (
 	_ "database/sql"
 	"os/signal"
 	"syscall"
+	"time"
 
+	"github.com/joho/godotenv"
 	_ "github.com/lib/pq"
 	"go.uber.org/zap"
 )
 
 func main() {
-	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
-	defer stop()
+	if err := godotenv.Load(); err != nil {
+		zap.L().Fatal("Error loading environment variables", zap.Error(err))
+	}
+	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer cancel()
 
-	logger, _ := zap.NewDevelopment()
-	defer logger.Sync()
-	zap.ReplaceGlobals(logger)
 	cfg := config.NewApplicationConfig()
+	initLogger(cfg)
+
 	database := db.NewDB()
+	client := cache.NewCacheClient()
+
+	//TODO Test string
+	client.Set(ctx, "test", 123, time.Hour)
+
 	districtRepository := repository.NewDistrictRepository(database)
 	userRepository := repository.NewUserRepository(database)
 	sensorRepository := repository.NewSensorRepository(database)
@@ -60,4 +70,15 @@ func main() {
 	zap.L().Info("starting application shutdown...")
 	httpShutdown()
 	zap.L().Info("http server is down")
+}
+
+func initLogger(cfg config.ApplicationConfig) {
+	var logger *zap.Logger
+	if cfg.Development {
+		logger, _ = zap.NewDevelopment()
+	} else {
+		logger, _ = zap.NewProduction()
+	}
+	defer logger.Sync()
+	zap.ReplaceGlobals(logger)
 }

@@ -15,8 +15,7 @@ services:
     networks:
       - server-network
     restart: always
-    env_file:
-      - .env
+    env_file: .env
 
   airquality_db:
     container_name: airquality-db-container
@@ -33,5 +32,22 @@ services:
       - POSTGRES_USER=${DB_USER}
       - POSTGRES_DB=${DB_NAME}
 
+  airquality_redis:
+    container_name: airquality-redis-container
+    image: redis:8.2.1
+    restart: always
+    command:
+      - /bin/sh
+      - -c
+      - redis-server --requirepass "$${REDIS_PASSWORD:?REDIS_PASSWORD variable is not set}"
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6379:6379"
+    env_file: .env
+    networks:
+      - server-network
+
 volumes:
-  airquality_db:
+  redis_data:
+      driver: local

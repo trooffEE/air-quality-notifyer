@@ -2,9 +2,6 @@ package config
 
 import (
 	"os"
-
-	"github.com/joho/godotenv"
-	"go.uber.org/zap"
 )
 
 type ApplicationConfig struct {
@@ -16,10 +13,6 @@ type ApplicationConfig struct {
 }
 
 func NewApplicationConfig() ApplicationConfig {
-	if err := godotenv.Load(); err != nil {
-		zap.L().Fatal("Error loading .env file")
-	}
-
 	var config = ApplicationConfig{
 		TelegramToken:   os.Getenv("TELEGRAM_SECRET"),
 		WebhookHost:     os.Getenv("WEBHOOK_HOST"),
