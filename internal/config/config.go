@@ -12,6 +12,7 @@ type ApplicationConfig struct {
 	AdminTelegramId string
 }
 
+// TODO move it to /internal/app directory
 func NewApplicationConfig() ApplicationConfig {
 	var config = ApplicationConfig{
 		TelegramToken:   os.Getenv("TELEGRAM_SECRET"),
