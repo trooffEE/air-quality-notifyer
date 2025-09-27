@@ -23,7 +23,11 @@ type DistrictRepositoryInterface interface {
 func (r *DistrictRepository) GetAssociatedDistrictIdByCoords(x, y float64) int64 {
 	var id int64
 	var pointGeo = fmt.Sprintf("SRID=4326;POINT(%f %f)", x, y)
-	err := r.db.Get(&id, "SELECT id as area FROM districts where st_contains(area, $1)", pointGeo)
+	err := r.db.Get(&id, `
+		SELECT id as area
+		FROM districts
+		WHERE st_contains(area, $1)
+	`, pointGeo)
 	if err != nil {
 		return -1
 	}
@@ -33,6 +37,6 @@ func (r *DistrictRepository) GetAssociatedDistrictIdByCoords(x, y float64) int64
 
 func (r *DistrictRepository) GetAllDistricts() ([]models.District, error) {
 	var districts []models.District
-	err := r.db.Select(&districts, `SELECT d.id, d.name FROM districts AS d`)
+	err := r.db.Select(&districts, "SELECT d.id, d.name FROM districts AS d")
 	return districts, err
 }

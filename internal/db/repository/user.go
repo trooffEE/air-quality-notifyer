@@ -31,7 +31,10 @@ func NewUserRepository(db *sqlx.DB) *UserRepository {
 
 func (r *UserRepository) FindById(id int64) (*models.User, error) {
 	var user models.User
-	err := r.db.Get(&user, "SELECT * FROM users WHERE telegram_id = $1", id)
+	err := r.db.Get(&user, `
+		SELECT id, username, telegram_id, operating_mode
+		FROM users WHERE telegram_id = $1
+	`, id)
 
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -45,7 +48,10 @@ func (r *UserRepository) FindById(id int64) (*models.User, error) {
 }
 
 func (r *UserRepository) Register(user models.User) error {
-	_, err := r.db.NamedExec(`INSERT INTO users (username, telegram_id) VALUES (:username, :telegram_id)`, user)
+	_, err := r.db.NamedExec(`
+		INSERT INTO users (username, telegram_id)
+		VALUES (:username, :telegram_id)
+	`, user)
 
 	if err != nil {
 		zap.L().Error("Failed to insert user", zap.Error(err))
