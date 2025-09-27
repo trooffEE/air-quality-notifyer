@@ -8,6 +8,7 @@ import (
 	"air-quality-notifyer/internal/service/sensor"
 	"air-quality-notifyer/internal/service/user"
 	"fmt"
+
 	tgbotapi "github.com/OvyFlash/telegram-bot-api"
 	"go.uber.org/zap"
 )
@@ -24,8 +25,8 @@ type BotServices struct {
 	SensorService *sensor.Service
 }
 
-func InitTelegramBot(services BotServices, cfg config.ApplicationConfig) *tgBot {
-	bot, err := tgbotapi.NewBotAPI(cfg.TelegramToken)
+func InitTelegramBot(services BotServices, cfg config.Config) *tgBot {
+	bot, err := tgbotapi.NewBotAPI(cfg.App.TelegramToken)
 	if err != nil {
 		zap.L().Error("Filed to create new bot api", zap.Error(err))
 		panic(err)
@@ -46,7 +47,7 @@ func InitTelegramBot(services BotServices, cfg config.ApplicationConfig) *tgBot 
 		}
 	}
 
-	wh, err := tgbotapi.NewWebhook(fmt.Sprintf("https://%s/webhook%s", cfg.WebhookHost, bot.Token))
+	wh, err := tgbotapi.NewWebhook(fmt.Sprintf("https://%s/webhook%s", cfg.App.WebhookHost, bot.Token))
 	if err != nil {
 		zap.L().Panic("Filed to create new webhook", zap.Error(err))
 	}

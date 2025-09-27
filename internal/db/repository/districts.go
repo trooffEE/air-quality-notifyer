@@ -3,6 +3,7 @@ package repository
 import (
 	"air-quality-notifyer/internal/db/models"
 	"fmt"
+
 	"github.com/jmoiron/sqlx"
 )
 
@@ -14,7 +15,7 @@ func NewDistrictRepository(db *sqlx.DB) *DistrictRepository {
 	return &DistrictRepository{db: db}
 }
 
-type DistrictRepositoryType interface {
+type DistrictRepositoryInterface interface {
 	GetAllDistricts() ([]models.District, error)
 	GetAssociatedDistrictIdByCoords(x, y float64) int64
 }

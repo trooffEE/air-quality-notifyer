@@ -5,15 +5,16 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"go.uber.org/zap"
 	"net/http"
 	"sync"
 	"time"
+
+	"go.uber.org/zap"
 )
 
-func InitHttpServer(cfg config.ApplicationConfig) func() {
+func InitHttpServer(ctx context.Context, cfg config.Config) func() {
 	server := &http.Server{
-		Addr:    fmt.Sprintf(":%s", cfg.HttpServerPort),
+		Addr:    fmt.Sprintf(":%s", cfg.App.HttpServerPort),
 		Handler: nil,
 	}
 
@@ -22,15 +23,15 @@ func InitHttpServer(cfg config.ApplicationConfig) func() {
 	go func() {
 		defer wg.Done()
 		if err := server.ListenAndServe(); err != nil && !errors.Is(http.ErrServerClosed, err) {
-			zap.L().Fatal("http server failed to start on port", zap.String("port", cfg.HttpServerPort), zap.Error(err))
+			zap.L().Fatal("http server failed to start on port", zap.String("port", cfg.App.HttpServerPort), zap.Error(err))
 		}
 	}()
-	zap.L().Info("🏆 http server started on port", zap.String("port", cfg.HttpServerPort))
+	zap.L().Info("🏆 http server started on port", zap.String("port", cfg.App.HttpServerPort))
 
 	return func() {
-		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		_ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 		defer cancel()
-		if err := server.Shutdown(ctx); err != nil {
+		if err := server.Shutdown(_ctx); err != nil {
 			zap.L().Fatal("http server failed to shutdown", zap.Error(err))
 		}
 		wg.Wait()

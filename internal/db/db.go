@@ -1,9 +1,9 @@
 package db
 
 import (
+	"air-quality-notifyer/internal/config"
 	"errors"
 	"fmt"
-	"os"
 
 	"github.com/golang-migrate/migrate/v4"
 	_ "github.com/golang-migrate/migrate/v4/database/postgres"
@@ -12,18 +12,10 @@ import (
 	"go.uber.org/zap"
 )
 
-type Config struct {
-	host     string
-	user     string
-	dbname   string
-	password string
-}
-
-func NewDB() *sqlx.DB {
-	config := NewConfig()
+func NewDB(cfg config.Config) *sqlx.DB {
 	connString := fmt.Sprintf(
 		"postgres://%s:%s@%s/%s?sslmode=disable",
-		config.user, config.password, config.host, config.dbname,
+		cfg.DB.User, cfg.DB.Password, cfg.DB.Host, cfg.DB.Name,
 	)
 	db, err := sqlx.Connect("postgres", connString)
 	if err != nil {
@@ -45,15 +37,4 @@ func NewDB() *sqlx.DB {
 	zap.L().Info("🏆 Migrations applied successfully!")
 
 	return db
-}
-
-func NewConfig() *Config {
-	dbConfig := Config{
-		host:     os.Getenv("DB_HOST"),
-		user:     os.Getenv("DB_USER"),
-		dbname:   os.Getenv("DB_NAME"),
-		password: os.Getenv("DB_PASSWORD"),
-	}
-
-	return &dbConfig
 }

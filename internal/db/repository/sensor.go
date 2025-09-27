@@ -2,6 +2,7 @@ package repository
 
 import (
 	"air-quality-notifyer/internal/db/models"
+
 	"github.com/jmoiron/sqlx"
 )
 
@@ -13,7 +14,7 @@ func NewSensorRepository(db *sqlx.DB) *SensorRepository {
 	return &SensorRepository{db: db}
 }
 
-type SensorRepositoryType interface {
+type SensorRepositoryInterface interface {
 	GetAllApiIds() ([]int64, error)
 	GetSensorByApiId(id int64) (*models.AirqualitySensor, error)
 	SaveSensor(sensor models.AirqualitySensor) error

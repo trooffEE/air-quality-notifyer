@@ -10,10 +10,10 @@ import (
 
 type Commander struct {
 	bot *tgbotapi.BotAPI
-	cfg config.ApplicationConfig
+	cfg config.Config
 }
 
-func NewCommander(bot *tgbotapi.BotAPI, cfg config.ApplicationConfig) *Commander {
+func NewCommander(bot *tgbotapi.BotAPI, cfg config.Config) *Commander {
 	return &Commander{
 		bot: bot,
 		cfg: cfg,

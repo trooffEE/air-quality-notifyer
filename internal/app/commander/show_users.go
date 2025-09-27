@@ -3,14 +3,15 @@ package commander
 import (
 	"air-quality-notifyer/internal/service/user"
 	"fmt"
-	tgbotapi "github.com/OvyFlash/telegram-bot-api"
-	"go.uber.org/zap"
 	"strconv"
 	"strings"
+
+	tgbotapi "github.com/OvyFlash/telegram-bot-api"
+	"go.uber.org/zap"
 )
 
 func (c *Commander) ShowUsers(message *tgbotapi.Message, service *user.Service) {
-	adminId, err := strconv.Atoi(c.cfg.AdminTelegramId)
+	adminId, err := strconv.Atoi(c.cfg.App.AdminTelegramId)
 	chatId := message.Chat.ID
 	if err != nil {
 		zap.L().Error("failed to convert admin telegram id to int", zap.Error(err))

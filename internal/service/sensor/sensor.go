@@ -4,14 +4,14 @@ import (
 	"air-quality-notifyer/internal/db/models"
 	repo "air-quality-notifyer/internal/db/repository"
 	"air-quality-notifyer/internal/service/districts"
-	"context"
 	"database/sql"
 	"errors"
 	"fmt"
-	"github.com/robfig/cron/v3"
-	"go.uber.org/zap"
 	"sync"
 	"time"
+
+	"github.com/robfig/cron/v3"
+	"go.uber.org/zap"
 )
 
 var (
@@ -21,17 +21,15 @@ var (
 type Service struct {
 	trustedSensorAqiChannel chan []AqiSensor
 	districts               *districts.Service
-	repo                    repo.SensorRepositoryType
-	ctx                     context.Context
+	repo                    repo.SensorRepositoryInterface
 	syncCron                chan interface{}
 }
 
-func NewSensorService(ctx context.Context, repository repo.SensorRepositoryType, districtService *districts.Service) *Service {
+func NewSensorService(repository repo.SensorRepositoryInterface, districtService *districts.Service) *Service {
 	return &Service{
 		repo:                    repository,
 		districts:               districtService,
 		trustedSensorAqiChannel: make(chan []AqiSensor),
-		ctx:                     ctx,
 		syncCron:                make(chan interface{}),
 	}
 }
@@ -115,12 +113,12 @@ func (s *Service) saveNewScrappedSensor(sensor AqiSensorScriptScrapped) {
 }
 
 func (s *Service) getTrustedAirqualitySensors() {
-	ctxDistricts := s.ctx.Value("districts").([]models.District)
+	districtsList := s.districts.GetAllDistricts() // think about it
 
-	respChan := make(chan AqiSensor, len(ctxDistricts))
+	respChan := make(chan AqiSensor, len(districtsList))
 	wg := sync.WaitGroup{}
-	wg.Add(len(ctxDistricts))
-	for _, district := range ctxDistricts {
+	wg.Add(len(districtsList))
+	for _, district := range districtsList {
 		sensorsInDistrict, err := s.repo.GetSensorsByDistrictId(district.Id)
 		if err != nil {
 			zap.L().Error("failed to get sensors by districtId", zap.Error(err), zap.Int64("districtId", district.Id))

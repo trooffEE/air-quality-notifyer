@@ -4,10 +4,38 @@ import (
 	"air-quality-notifyer/internal/app/commander"
 	s "air-quality-notifyer/internal/service/sensor"
 	"fmt"
+	"time"
+
 	tgbotapi "github.com/OvyFlash/telegram-bot-api"
 	"go.uber.org/zap"
-	"time"
 )
+
+func (t *tgBot) notifyUsersAboutSensors(sensors []s.AqiSensor) {
+	var messages []string
+	for _, sensor := range sensors {
+		if sensor.IsDangerousLevelDetected() {
+			msg := prepareDangerousLevelMessage(sensor)
+			messages = append(messages, msg)
+		}
+	}
+
+	hour := getTimezoneHourTime()
+	isSilentMessage := false
+	if hour < 8 && hour >= 0 {
+		isSilentMessage = true
+	}
+	userIds := t.services.UserService.GetUsersIds()
+	for _, id := range userIds {
+		for _, message := range messages {
+			msg := tgbotapi.NewMessage(id, message)
+			err := t.Commander.Send(commander.SendPayload{Msg: msg, DisableNotification: isSilentMessage})
+			if err != nil && err.Code == 403 {
+				t.services.UserService.DeleteUser(id)
+				break
+			}
+		}
+	}
+}
 
 func prepareDangerousLevelMessage(s s.AqiSensor) string {
 	pollutionLevel := s.GetExtendedPollutionLevel()
@@ -43,31 +71,4 @@ func getTimezoneHourTime() int {
 	}
 
 	return time.Now().In(loc).Hour()
-}
-
-func (t *tgBot) notifyUsersAboutSensors(sensors []s.AqiSensor) {
-	var messages []string
-	for _, sensor := range sensors {
-		if sensor.IsDangerousLevelDetected() {
-			msg := prepareDangerousLevelMessage(sensor)
-			messages = append(messages, msg)
-		}
-	}
-
-	hour := getTimezoneHourTime()
-	isSilentMessage := false
-	if hour < 8 && hour >= 0 {
-		isSilentMessage = true
-	}
-	userIds := t.services.UserService.GetUsersIds()
-	for _, id := range userIds {
-		for _, message := range messages {
-			msg := tgbotapi.NewMessage(id, message)
-			err := t.Commander.Send(commander.SendPayload{Msg: msg, DisableNotification: isSilentMessage})
-			if err != nil && err.Code == 403 {
-				t.services.UserService.DeleteUser(id)
-				break
-			}
-		}
-	}
 }
