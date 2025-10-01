@@ -103,5 +103,5 @@ func getSensorCacheKey(sensorId int64) string {
 }
 
 func getDistrictSensorsCacheKey(districtId int64) string {
-	return fmt.Sprintf("sensor:distrcit:%d", districtId)
+	return fmt.Sprintf("sensor:district:%d", districtId)
 }
