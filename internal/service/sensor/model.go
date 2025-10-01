@@ -61,11 +61,11 @@ var PollutionLevelsMap = PollutionLevels{
 	},
 }
 
-func (s *AqiSensor) IsDangerousLevelDetected() bool {
+func (s *Sensor) IsDangerousLevelDetected() bool {
 	return !(s.Level == good || s.Level == moderate || s.Level == "")
 }
 
-func (s *AqiSensor) GetExtendedPollutionLevel() *PollutionLevel {
+func (s *Sensor) GetExtendedPollutionLevel() *PollutionLevel {
 	switch s.Level {
 	case good:
 		return &PollutionLevelsMap.Good
@@ -84,7 +84,7 @@ func (s *AqiSensor) GetExtendedPollutionLevel() *PollutionLevel {
 	return nil
 }
 
-type AqiSensor struct {
+type Sensor struct {
 	Id          int64
 	Aqi         int     `json:"aqi"`
 	Aqi25       int     `json:"aqi25"`
@@ -100,7 +100,7 @@ type AqiSensor struct {
 	SourceLink  string
 }
 
-type AqiSensorResponse struct {
+type SensorResponse struct {
 	Id          int         `json:"id"`
 	CityId      int         `json:"city_id"`
 	Description interface{} `json:"description"`
@@ -111,15 +111,15 @@ type AqiSensorResponse struct {
 	Radius      int         `json:"radius"`
 	Source      interface{} `json:"source"`
 	Type        string      `json:"type"`
-	Last        AqiSensor   `json:"last"`
-	Archive     []AqiSensor `json:"archive"`
+	Last        Sensor      `json:"last"`
+	Archive     []Sensor    `json:"archive"`
 }
 
-func (s *AqiSensor) withDistrict(districtName string) {
+func (s *Sensor) withDistrict(districtName string) {
 	s.District = districtName
 }
 
-func (s *AqiSensor) withApiData(id int64) {
+func (s *Sensor) withApiData(id int64) {
 	s.Id = id
 	s.SourceLink = fmt.Sprintf("https://airkemerovo.ru/sensor/%d", id)
 }

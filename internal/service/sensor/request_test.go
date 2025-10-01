@@ -11,90 +11,6 @@ import (
 	"github.com/stretchr/testify/suite"
 )
 
-type SuiteSyncAirqualitySensorList struct {
-	suite.Suite
-}
-
-func (s *SuiteSyncAirqualitySensorList) TestAddSensor() {
-	t := s.T()
-	t.Parallel()
-	sensorsList := SyncAirqualitySensorList{}
-
-	sensorsList.addSensor(AqiSensor{Id: 1})
-	sensorsList.addSensor(AqiSensor{Id: 2})
-	sensorsList.addSensor(AqiSensor{Id: 3})
-
-	assert.Equal(t, sensorsList.list, []AqiSensor{{Id: 1}, {Id: 2}, {Id: 3}})
-}
-
-func (s *SuiteSyncAirqualitySensorList) TestSortAqi() {
-	t := s.T()
-	t.Parallel()
-	sensorsList := SyncAirqualitySensorList{}
-
-	sensorsList.addSensor(AqiSensor{Aqi: 99})
-	sensorsList.addSensor(AqiSensor{Aqi: 1})
-	sensorsList.addSensor(AqiSensor{Aqi: 33})
-	sensorsList.addSensor(AqiSensor{Aqi: 33})
-	sensorsList.addSensor(AqiSensor{Aqi: 66})
-
-	expectedResult := []AqiSensor{{Aqi: 1}, {Aqi: 33}, {Aqi: 33}, {Aqi: 66}, {Aqi: 99}}
-
-	assert.NotEqual(t, sensorsList.list, expectedResult)
-	sensorsList.sortAqi()
-	assert.Equal(t, sensorsList.list, expectedResult)
-}
-
-func (s *SuiteSyncAirqualitySensorList) TestGetTrustedAqiSensor_empty() {
-	t := s.T()
-	t.Parallel()
-	sensorsList := SyncAirqualitySensorList{}
-
-	trustedSensor := sensorsList.getTrustedAqiSensor()
-	assert.Nil(t, trustedSensor)
-}
-
-func (s *SuiteSyncAirqualitySensorList) TestGetTrustedAqiSensor_odd() {
-	t := s.T()
-	t.Parallel()
-	sensorsList := SyncAirqualitySensorList{}
-
-	sensorsList.addSensor(AqiSensor{Aqi: 10})
-	sensorsList.addSensor(AqiSensor{Aqi: 100})
-	sensorsList.addSensor(AqiSensor{Aqi: 50})
-
-	trustedSensor := sensorsList.getTrustedAqiSensor()
-	assert.NotNil(t, trustedSensor)
-	assert.Equal(t, *trustedSensor, AqiSensor{Aqi: 50})
-}
-
-func (s *SuiteSyncAirqualitySensorList) TestGetTrustedAqiSensor_even() {
-	t := s.T()
-	t.Parallel()
-	sensorsList := SyncAirqualitySensorList{}
-
-	sensorsList.addSensor(AqiSensor{Aqi: 10})
-	sensorsList.addSensor(AqiSensor{Aqi: 100})
-	sensorsList.addSensor(AqiSensor{Aqi: 50})
-	sensorsList.addSensor(AqiSensor{Aqi: 33})
-
-	trustedSensor := sensorsList.getTrustedAqiSensor()
-	assert.NotNil(t, trustedSensor)
-	assert.Equal(t, *trustedSensor, AqiSensor{Aqi: 50})
-}
-
-func (s *SuiteSyncAirqualitySensorList) TestGetTrustedAqiSensor_one() {
-	t := s.T()
-	t.Parallel()
-	sensorsList := SyncAirqualitySensorList{}
-
-	sensorsList.addSensor(AqiSensor{Aqi: 10})
-
-	trustedSensor := sensorsList.getTrustedAqiSensor()
-	assert.NotNil(t, trustedSensor)
-	assert.Equal(t, *trustedSensor, AqiSensor{Aqi: 10})
-}
-
 var (
 	mockSensorId int64 = 71
 )
@@ -128,7 +44,7 @@ func (s *SuiteExternalAPI) TestFetch() {
 	sensorResponse, err := fetchSensorById(mockSensorId)
 	assert.NoError(t, err)
 
-	var lazyExpectedParsedResult AqiSensorResponse
+	var lazyExpectedParsedResult SensorResponse
 	json.Unmarshal([]byte(s.httpResponse), &lazyExpectedParsedResult)
 	assert.Equal(t, sensorResponse, lazyExpectedParsedResult)
 }

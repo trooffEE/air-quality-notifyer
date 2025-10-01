@@ -35,7 +35,7 @@ func (s *Service) startInvalidation(allowedHourDiff int) {
 	}
 }
 
-func (s *Service) saveSensor(sensor AqiSensorScriptScrapped) {
+func (s *Service) saveSensor(sensor scriptTagScrappedSensor) {
 	district := s.sDistricts.GetDistrictByCoords(sensor.Lat, sensor.Lon)
 	// TODO Не работаем с датчиками вне районов города
 	if district == nil {

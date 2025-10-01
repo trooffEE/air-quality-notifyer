@@ -11,7 +11,7 @@ import (
 	"go.uber.org/zap"
 )
 
-type AqiSensorScriptScrapped struct {
+type scriptTagScrappedSensor struct {
 	Id        int64   `json:"sensor_id"`
 	Address   string  `json:"address"`
 	Lat       float64 `json:"lat"`
@@ -19,9 +19,9 @@ type AqiSensorScriptScrapped struct {
 	CreatedAt string  `json:"created_at"`
 }
 
-var setSensorsStringStart, setSensorsStringEnd = "setLastData('", "');"
+var setLastSensorsDataScriptStringStart, setLastSensorsDataScriptStringEnd = "setLastData('", "');"
 
-func scrapSensorData() []AqiSensorScriptScrapped {
+func scrapSensorData() []scriptTagScrappedSensor {
 	res, err := http.Get("https://airkemerovo.ru")
 	if err != nil {
 		zap.L().Fatal("Failed to access airkemerovo.ru")
@@ -29,7 +29,7 @@ func scrapSensorData() []AqiSensorScriptScrapped {
 	defer res.Body.Close()
 	if res.StatusCode != 200 {
 		zap.L().Info("failed to grasp new sensors, airkemerovo page responded with ", zap.Int("status", res.StatusCode))
-		return []AqiSensorScriptScrapped{}
+		return []scriptTagScrappedSensor{}
 	}
 
 	doc, err := goquery.NewDocumentFromReader(res.Body)
@@ -40,20 +40,20 @@ func scrapSensorData() []AqiSensorScriptScrapped {
 	var scriptContents string
 	doc.Find("script[type='application/javascript']").Each(func(i int, s *goquery.Selection) {
 		sText := s.Text()
-		if strings.Contains(sText, setSensorsStringStart) {
+		if strings.Contains(sText, setLastSensorsDataScriptStringStart) {
 			scriptContents = sText
 		}
 	})
 	reader := strings.NewReader(strings.TrimSpace(scriptContents))
 	scanner := bufio.NewScanner(reader)
 
-	var sensors []AqiSensorScriptScrapped
+	var sensors []scriptTagScrappedSensor
 	for scanner.Scan() {
 		scriptLine := scanner.Text()
 
-		if strings.Index(scriptLine, setSensorsStringStart) != -1 {
-			startJsonIndex := strings.Index(scriptLine, setSensorsStringStart) + len(setSensorsStringStart)
-			endJsonIndex := strings.Index(scriptLine, setSensorsStringEnd)
+		if strings.Index(scriptLine, setLastSensorsDataScriptStringStart) != -1 {
+			startJsonIndex := strings.Index(scriptLine, setLastSensorsDataScriptStringStart) + len(setLastSensorsDataScriptStringStart)
+			endJsonIndex := strings.Index(scriptLine, setLastSensorsDataScriptStringEnd)
 
 			jsonString := scriptLine[startJsonIndex:endJsonIndex]
 
@@ -66,8 +66,8 @@ func scrapSensorData() []AqiSensorScriptScrapped {
 	return sensors
 }
 
-func filterDeadSensors(sensors []AqiSensorScriptScrapped, allowedDiffInHours int) []AqiSensorScriptScrapped {
-	var aliveSensors []AqiSensorScriptScrapped
+func filterDeadSensors(sensors []scriptTagScrappedSensor, allowedDiffInHours int) []scriptTagScrappedSensor {
+	var aliveSensors []scriptTagScrappedSensor
 	layout := "2006-01-02T15:04:05.999999999Z"
 	for _, sensor := range sensors {
 		sensorTime, err := time.Parse(layout, sensor.CreatedAt)

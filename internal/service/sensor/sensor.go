@@ -10,7 +10,7 @@ import (
 type Service struct {
 	repo       repo.SensorRepositoryInterface
 	sDistricts *districts.Service
-	cSensors   chan []AqiSensor
+	cSensors   chan []Sensor
 	syncCron   chan interface{}
 	cache      *redis.Client
 }
@@ -23,13 +23,13 @@ func NewSensorService(
 	return &Service{
 		repo:       repo,
 		sDistricts: sDistricts,
-		cSensors:   make(chan []AqiSensor),
+		cSensors:   make(chan []Sensor),
 		syncCron:   make(chan interface{}),
 		cache:      cache,
 	}
 }
 
-func (s *Service) ListenChangesInSensors(handler func([]AqiSensor)) {
+func (s *Service) ListenChangesInSensors(handler func([]Sensor)) {
 	for update := range s.cSensors {
 		handler(update)
 	}

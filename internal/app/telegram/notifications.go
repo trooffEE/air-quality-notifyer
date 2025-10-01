@@ -10,7 +10,7 @@ import (
 	"go.uber.org/zap"
 )
 
-func (t *tgBot) notifyUsers(sensors []s.AqiSensor) {
+func (t *tgBot) notifyUsers(sensors []s.Sensor) {
 	messages := newUserMessages(sensors)
 
 	ids := t.services.UserService.GetUsersIds()
@@ -26,7 +26,7 @@ func (t *tgBot) notifyUsers(sensors []s.AqiSensor) {
 	}
 }
 
-func newUserMessages(sensors []s.AqiSensor) []string {
+func newUserMessages(sensors []s.Sensor) []string {
 	var messages []string
 	for _, sensor := range sensors {
 		if sensor.IsDangerousLevelDetected() {
@@ -37,7 +37,7 @@ func newUserMessages(sensors []s.AqiSensor) []string {
 	return messages
 }
 
-func prepareDangerousLevelMessage(s s.AqiSensor) string {
+func prepareDangerousLevelMessage(s s.Sensor) string {
 	pollutionLevel := s.GetExtendedPollutionLevel()
 	if pollutionLevel == nil {
 		return ""
