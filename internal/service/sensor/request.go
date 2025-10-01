@@ -20,10 +20,10 @@ func getLastUpdatedSensor(syncSensors *SyncSensors, id int64, districtName strin
 		zap.L().Error("failed to fetch sensor by id", zap.Error(err), zap.Int64("sensorId", id))
 		return
 	}
-	archivedSensors := response.Archive
+	sensors := response.Archive
 
-	if len(archivedSensors) > 0 {
-		latestDataFromSensor := archivedSensors[0]
+	if len(sensors) > 0 {
+		latestDataFromSensor := sensors[0]
 
 		latestDataFromSensor.withDistrict(districtName)
 		latestDataFromSensor.withApiData(id)
