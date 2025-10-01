@@ -3,11 +3,12 @@ package sensor
 import (
 	"bufio"
 	"encoding/json"
-	"github.com/PuerkitoBio/goquery"
-	"go.uber.org/zap"
 	"net/http"
 	"strings"
 	"time"
+
+	"github.com/PuerkitoBio/goquery"
+	"go.uber.org/zap"
 )
 
 type AqiSensorScriptScrapped struct {
@@ -66,7 +67,7 @@ func scrapSensorData() []AqiSensorScriptScrapped {
 }
 
 func filterDeadSensors(sensors []AqiSensorScriptScrapped, allowedDiffInHours int) []AqiSensorScriptScrapped {
-	aliveSensors := make([]AqiSensorScriptScrapped, len(sensors))
+	var aliveSensors []AqiSensorScriptScrapped
 	layout := "2006-01-02T15:04:05.999999999Z"
 	for _, sensor := range sensors {
 		sensorTime, err := time.Parse(layout, sensor.CreatedAt)

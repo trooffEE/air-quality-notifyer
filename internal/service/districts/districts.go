@@ -17,9 +17,8 @@ func NewDistrictService(ur repo.DistrictRepositoryInterface) *Service {
 	}
 }
 
-func (s *Service) GetDistrictByCoords(x, y float64) int64 {
-	id := s.repo.GetAssociatedDistrictIdByCoords(x, y)
-	return id
+func (s *Service) GetDistrictByCoords(x, y float64) *models.DistrictSensor {
+	return s.repo.GetAssociatedDistrictIdByCoords(x, y)
 }
 
 func (s *Service) GetAllDistricts() []models.District {

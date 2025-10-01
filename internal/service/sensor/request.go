@@ -4,11 +4,12 @@ import (
 	"air-quality-notifyer/internal/db/models"
 	"encoding/json"
 	"fmt"
-	"go.uber.org/zap"
 	"math"
 	"net/http"
 	"slices"
 	"sync"
+
+	"go.uber.org/zap"
 )
 
 var (
@@ -27,27 +28,6 @@ func (s *SyncAirqualitySensorList) addSensor(sensor AqiSensor) {
 	s.mu.Unlock()
 }
 
-func (s *SyncAirqualitySensorList) sortAqi() {
-	slices.SortFunc(s.list, func(a, b AqiSensor) int {
-		if a.Aqi < b.Aqi {
-			return -1
-		} else if a.Aqi > b.Aqi {
-			return 1
-		}
-		return 0
-	})
-}
-
-// "Trusted" - meaning median from what we have in district, slightly more realistic than AVG and Worst AQI value determination
-func (s *SyncAirqualitySensorList) getTrustedAqiSensor() *AqiSensor {
-	if len(s.list) == 0 {
-		return nil
-	}
-	s.sortAqi()
-	trustedIndex := math.Ceil(float64(len(s.list) / 2))
-	return &s.list[int(trustedIndex)]
-}
-
 func findTrustedSensor(resChan chan AqiSensor, sensors []models.AirqualitySensor) {
 	var syncSensorList SyncAirqualitySensorList
 	syncSensorList.wg.Add(len(sensors))
@@ -62,6 +42,27 @@ func findTrustedSensor(resChan chan AqiSensor, sensors []models.AirqualitySensor
 	}
 
 	resChan <- *trustedAqlSensor
+}
+
+// "Trusted" - meaning median from what we have in district, slightly more realistic than AVG and Worst AQI value determination
+func (s *SyncAirqualitySensorList) getTrustedAqiSensor() *AqiSensor {
+	if len(s.list) == 0 {
+		return nil
+	}
+	s.sortAqi()
+	trustedIndex := math.Ceil(float64(len(s.list) / 2))
+	return &s.list[int(trustedIndex)]
+}
+
+func (s *SyncAirqualitySensorList) sortAqi() {
+	slices.SortFunc(s.list, func(a, b AqiSensor) int {
+		if a.Aqi < b.Aqi {
+			return -1
+		} else if a.Aqi > b.Aqi {
+			return 1
+		}
+		return 0
+	})
 }
 
 func getLastUpdatedSensor(syncSensorList *SyncAirqualitySensorList, id int64, districtName string) {

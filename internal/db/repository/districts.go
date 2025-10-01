@@ -17,22 +17,22 @@ func NewDistrictRepository(db *sqlx.DB) *DistrictRepository {
 
 type DistrictRepositoryInterface interface {
 	GetAllDistricts() ([]models.District, error)
-	GetAssociatedDistrictIdByCoords(x, y float64) int64
+	GetAssociatedDistrictIdByCoords(x, y float64) *models.DistrictSensor
 }
 
-func (r *DistrictRepository) GetAssociatedDistrictIdByCoords(x, y float64) int64 {
-	var id int64
+func (r *DistrictRepository) GetAssociatedDistrictIdByCoords(x, y float64) *models.DistrictSensor {
+	var sensorDistrict models.DistrictSensor
 	var pointGeo = fmt.Sprintf("SRID=4326;POINT(%f %f)", x, y)
-	err := r.db.Get(&id, `
-		SELECT id as area
-		FROM districts
-		WHERE st_contains(area, $1)
+	err := r.db.Get(&sensorDistrict, `
+		SELECT id, name
+		FROM districts as d
+		WHERE st_contains(d.area, $1)
 	`, pointGeo)
 	if err != nil {
-		return -1
+		return nil
 	}
 
-	return id
+	return &sensorDistrict
 }
 
 func (r *DistrictRepository) GetAllDistricts() ([]models.District, error) {
