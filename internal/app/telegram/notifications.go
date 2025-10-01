@@ -10,7 +10,23 @@ import (
 	"go.uber.org/zap"
 )
 
-func (t *tgBot) notifyUsersAboutSensors(sensors []s.AqiSensor) {
+func (t *tgBot) notifyUsers(sensors []s.AqiSensor) {
+	messages := newUserMessages(sensors)
+
+	ids := t.services.UserService.GetUsersIds()
+	for _, id := range ids {
+		for _, message := range messages {
+			msg := tgbotapi.NewMessage(id, message)
+			payload := commander.Payload{Msg: msg}
+			if err := t.Commander.Send(payload); err != nil && err.Code == 403 {
+				t.services.UserService.DeleteUser(id)
+				break
+			}
+		}
+	}
+}
+
+func newUserMessages(sensors []s.AqiSensor) []string {
 	var messages []string
 	for _, sensor := range sensors {
 		if sensor.IsDangerousLevelDetected() {
@@ -18,23 +34,7 @@ func (t *tgBot) notifyUsersAboutSensors(sensors []s.AqiSensor) {
 			messages = append(messages, msg)
 		}
 	}
-
-	hour := getTimezoneHourTime()
-	isSilentMessage := false
-	if hour < 8 && hour >= 0 {
-		isSilentMessage = true
-	}
-	userIds := t.services.UserService.GetUsersIds()
-	for _, id := range userIds {
-		for _, message := range messages {
-			msg := tgbotapi.NewMessage(id, message)
-			err := t.Commander.Send(commander.SendPayload{Msg: msg, DisableNotification: isSilentMessage})
-			if err != nil && err.Code == 403 {
-				t.services.UserService.DeleteUser(id)
-				break
-			}
-		}
-	}
+	return messages
 }
 
 func prepareDangerousLevelMessage(s s.AqiSensor) string {
@@ -49,7 +49,7 @@ func prepareDangerousLevelMessage(s s.AqiSensor) string {
 		return ""
 	}
 
-	loc, err := time.LoadLocation("Asia/Novosibirsk")
+	loc, err := time.LoadLocation("Asia/Novosibirsk") // TODO not good i load it on every message + user (n^2), needs one point of Load such as in commander
 	if err != nil {
 		zap.L().Error("failed to load timezone", zap.Error(err))
 		return ""
@@ -61,14 +61,4 @@ func prepareDangerousLevelMessage(s s.AqiSensor) string {
 		s.District, date, pollutionLevel.Name,
 		s.Aqi10, s.Aqi25, s.SourceLink,
 	)
-}
-
-func getTimezoneHourTime() int {
-	loc, err := time.LoadLocation("Asia/Novosibirsk")
-	if err != nil {
-		zap.L().Error("failed to load timezone", zap.Error(err))
-		return -1
-	}
-
-	return time.Now().In(loc).Hour()
 }

@@ -18,7 +18,7 @@ func (c *Commander) OperatingModeInfo(callback *tgbotapi.CallbackQuery) {
 	),
 	)
 
-	if err := c.Send(SendPayload{Msg: msg}); err != nil {
+	if err := c.Send(Payload{Msg: msg}); err != nil {
 		zap.L().Error("Error sending operating_mode message", zap.Error(err))
 	}
 }

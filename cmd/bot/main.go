@@ -43,7 +43,7 @@ func main() {
 
 	bot := telegram.InitTelegramBot(services, cfg)
 
-	go bot.ListenChangesInSensors()
+	go bot.ListenSensorsUpdates()
 	go bot.ListenTelegramUpdates()
 
 	sensorService.GetTrustedSensorsEveryHour()

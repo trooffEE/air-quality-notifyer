@@ -23,7 +23,7 @@ func (c *Commander) Setup(message *tgbotapi.Message) {
 		),
 	)
 
-	if err := c.Send(SendPayload{Msg: msg, ReplyMarkup: markup}); err != nil {
+	if err := c.Send(Payload{Msg: msg, ReplyMarkup: markup}); err != nil {
 		zap.L().Error("Error sending configure message", zap.Error(err))
 	}
 }

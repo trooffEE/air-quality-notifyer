@@ -4,6 +4,8 @@ import (
 	"air-quality-notifyer/internal/app/menu"
 	"air-quality-notifyer/internal/config"
 	"errors"
+	"time"
+
 	tgbotapi "github.com/OvyFlash/telegram-bot-api"
 	"go.uber.org/zap"
 )
@@ -11,19 +13,21 @@ import (
 type Commander struct {
 	bot *tgbotapi.BotAPI
 	cfg config.Config
+	loc *time.Location
 }
 
 func NewCommander(bot *tgbotapi.BotAPI, cfg config.Config) *Commander {
+	loc, _ := time.LoadLocation("Asia/Novosibirsk")
 	return &Commander{
 		bot: bot,
 		cfg: cfg,
+		loc: loc,
 	}
 }
 
-type SendPayload struct {
-	Msg                 tgbotapi.MessageConfig
-	ReplyMarkup         interface{}
-	DisableNotification bool
+type Payload struct {
+	Msg         tgbotapi.MessageConfig
+	ReplyMarkup interface{}
 }
 
 func (c *Commander) Delete(message *tgbotapi.Message) {
@@ -33,9 +37,9 @@ func (c *Commander) Delete(message *tgbotapi.Message) {
 	}
 }
 
-func (c *Commander) Send(payload SendPayload) *tgbotapi.Error {
+func (c *Commander) Send(payload Payload) *tgbotapi.Error {
 	payload.Msg.ParseMode = tgbotapi.ModeHTML
-	payload.Msg.DisableNotification = payload.DisableNotification
+	payload.Msg.DisableNotification = c.isNotificationsAllowed()
 
 	if payload.ReplyMarkup != nil {
 		payload.Msg.ReplyMarkup = payload.ReplyMarkup
@@ -50,4 +54,9 @@ func (c *Commander) Send(payload SendPayload) *tgbotapi.Error {
 	}
 
 	return nil
+}
+
+func (c *Commander) isNotificationsAllowed() bool {
+	h := time.Now().In(c.loc).Hour()
+	return h < 8 && h >= 0
 }

@@ -75,8 +75,8 @@ func InitTelegramBot(services BotServices, cfg config.Config) *tgBot {
 	}
 }
 
-func (t *tgBot) ListenChangesInSensors() {
-	t.services.SensorService.ListenChangesInSensors(t.notifyUsersAboutSensors)
+func (t *tgBot) ListenSensorsUpdates() {
+	t.services.SensorService.ListenChangesInSensors(t.notifyUsers)
 }
 
 func (t *tgBot) ListenTelegramUpdates() {
