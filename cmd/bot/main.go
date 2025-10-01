@@ -3,6 +3,7 @@ package main
 import (
 	"air-quality-notifyer/internal/app/server"
 	"air-quality-notifyer/internal/app/telegram"
+	"air-quality-notifyer/internal/cache"
 	"air-quality-notifyer/internal/config"
 	"air-quality-notifyer/internal/db"
 	"air-quality-notifyer/internal/db/repository"
@@ -25,14 +26,18 @@ func main() {
 	cfg := config.NewConfig()
 	initLogger(cfg)
 
+	//DB
 	database := db.NewDB(cfg)
 	districtRepository := repository.NewDistrictRepository(database)
 	userRepository := repository.NewUserRepository(database)
 	sensorRepository := repository.NewSensorRepository(database)
 
+	//Cache
+	cacheClient := cache.NewCacheClient(cfg)
+
 	userService := user.NewUserService(userRepository)
 	districtService := districts.NewDistrictService(districtRepository)
-	sensorService := sensor.NewSensorService(sensorRepository, districtService)
+	sensorService := sensor.NewSensorService(sensorRepository, districtService, cacheClient)
 
 	httpShutdown := server.InitHttpServer(ctx, cfg)
 
