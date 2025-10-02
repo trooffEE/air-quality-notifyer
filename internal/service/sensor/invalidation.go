@@ -8,15 +8,15 @@ import (
 )
 
 var (
-	AliveSensorTimeDiff = 4
+	InvalidationPeriod = 4
 )
 
 func (s *Service) InvalidateSensorsPeriodically() {
 	cronCreator := cron.New()
-	cronString := fmt.Sprintf("0 */%d * * *", AliveSensorTimeDiff)
+	cronString := fmt.Sprintf("0 */%d * * *", InvalidationPeriod)
 
 	_, err := cronCreator.AddFunc(cronString, func() {
-		s.startInvalidation(AliveSensorTimeDiff)
+		s.startInvalidation(InvalidationPeriod)
 		s.syncCron <- 0
 	})
 	if err != nil {

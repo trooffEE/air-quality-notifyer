@@ -51,7 +51,7 @@ func main() {
 	go bot.ListenSensorsUpdates()
 	go bot.ListenTelegramUpdates()
 
-	sensorService.GetTrustedSensorsEveryHour()
+	sensorService.StartGettingTrustedSensorsEveryHour()
 	sensorService.InvalidateSensorsPeriodically()
 
 	<-ctx.Done()

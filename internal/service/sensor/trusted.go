@@ -11,14 +11,14 @@ import (
 	"go.uber.org/zap"
 )
 
-type SyncSensors struct {
+type SyncTrustedSensors struct {
 	mu   sync.Mutex
 	wg   sync.WaitGroup
 	list []Sensor
 }
 
 // "Trusted" - meaning median from what we have in district, slightly more realistic than AVG and Worst AQI value determination
-func (s *SyncSensors) getTrustedSensor() *Sensor {
+func (s *SyncTrustedSensors) getSensor() *Sensor {
 	if len(s.list) == 0 {
 		return nil
 	}
@@ -27,7 +27,7 @@ func (s *SyncSensors) getTrustedSensor() *Sensor {
 	return &s.list[int(trustedIndex)]
 }
 
-func (s *SyncSensors) sortByAqi() {
+func (s *SyncTrustedSensors) sortByAqi() {
 	slices.SortFunc(s.list, func(a, b Sensor) int {
 		if a.Aqi < b.Aqi {
 			return -1
@@ -38,18 +38,18 @@ func (s *SyncSensors) sortByAqi() {
 	})
 }
 
-func (s *SyncSensors) addSensor(sensor Sensor) {
+func (s *SyncTrustedSensors) addSensor(sensor Sensor) {
 	s.mu.Lock()
 	s.list = append(s.list, sensor)
 	s.mu.Unlock()
 }
 
-func (s *Service) GetTrustedSensorsEveryHour() {
+func (s *Service) StartGettingTrustedSensorsEveryHour() {
 	cronCreator := cron.New()
 	cronString := "0 * * * *"
 
 	_, err := cronCreator.AddFunc(cronString, func() {
-		if time.Now().UTC().Hour()%AliveSensorTimeDiff == 0 {
+		if time.Now().UTC().Hour()%InvalidationPeriod == 0 {
 			<-s.syncCron
 		}
 		s.getTrustedSensors()
@@ -90,14 +90,14 @@ func (s *Service) getTrustedSensors() {
 }
 
 func findTrustedSensor(resChan chan Sensor, sensors []models.AirqualitySensor) {
-	var syncSensorList SyncSensors
+	var syncSensorList SyncTrustedSensors
 	syncSensorList.wg.Add(len(sensors))
 	for _, sensor := range sensors {
 		go getLastUpdatedSensor(&syncSensorList, sensor.ApiId, sensor.District.Name)
 	}
 	syncSensorList.wg.Wait()
 
-	trustedAqlSensor := syncSensorList.getTrustedSensor()
+	trustedAqlSensor := syncSensorList.getSensor()
 	if trustedAqlSensor == nil {
 		return
 	}

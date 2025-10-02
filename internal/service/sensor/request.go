@@ -12,7 +12,7 @@ var (
 	endpoint = "https://airkemerovo.ru/api/sensor/current/%d?client_secret=guest"
 )
 
-func getLastUpdatedSensor(syncSensors *SyncSensors, id int64, districtName string) {
+func getLastUpdatedSensor(syncSensors *SyncTrustedSensors, id int64, districtName string) {
 	defer syncSensors.wg.Done()
 
 	response, err := fetchSensorById(id)
