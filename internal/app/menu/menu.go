@@ -1,14 +1,22 @@
 package menu
 
-import tgbotapi "github.com/OvyFlash/telegram-bot-api"
+import (
+	"slices"
+
+	tgbotapi "github.com/OvyFlash/telegram-bot-api"
+)
 
 const (
 	FAQ   = "❓ FAQ"
 	Setup = "⚙️ Настройки"
+	Users = "users"
+	Ping  = "ping"
 )
 
+var options = []string{FAQ, Setup, Users, Ping}
+
 func IsMenuButton(button string) bool {
-	return button == FAQ || button == Setup
+	return slices.Contains(options, button)
 }
 
 func NewTelegramMainMenu() tgbotapi.ReplyKeyboardMarkup {

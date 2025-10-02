@@ -101,13 +101,13 @@ func (t *tgBot) ListenTelegramUpdates() {
 			switch update.Message.Text {
 			case "/start":
 				t.Commander.Start(update, t.services.UserService)
-			case "users":
+			case menu.Users:
 				t.Commander.ShowUsers(update, t.services.UserService)
 			case menu.FAQ:
 				t.Commander.FAQ(update)
 			case menu.Setup:
 				t.Commander.Setup(update)
-			case "ping":
+			case menu.Ping:
 				t.Commander.Pong(update)
 			}
 
