@@ -17,7 +17,7 @@ type tgBot struct {
 	bot       *tgbotapi.BotAPI
 	updates   tgbotapi.UpdatesChannel
 	services  BotServices
-	Commander *commander.Commander
+	Commander commander.Interface
 }
 
 type BotServices struct {
@@ -100,19 +100,19 @@ func (t *tgBot) ListenTelegramUpdates() {
 
 			switch update.Message.Text {
 			case "/start":
-				t.Commander.Start(update.Message, t.services.UserService)
+				t.Commander.Start(update, t.services.UserService)
 			case "users":
-				t.Commander.ShowUsers(update.Message, t.services.UserService)
+				t.Commander.ShowUsers(update, t.services.UserService)
 			case menu.FAQ:
-				t.Commander.FAQ(update.Message)
+				t.Commander.FAQ(update)
 			case menu.Setup:
-				t.Commander.Setup(update.Message)
+				t.Commander.Setup(update)
 			case "ping":
-				t.Commander.Pong(update.Message)
+				t.Commander.Pong(update)
 			}
 
 			if menu.IsMenuButton(update.Message.Text) {
-				t.Commander.Delete(update.Message)
+				t.Commander.Delete(update)
 			}
 		}
 
@@ -124,10 +124,12 @@ func (t *tgBot) ListenTelegramUpdates() {
 			}
 
 			switch update.CallbackQuery.Data {
-			case keypads.BackData:
-				t.Commander.Back(update.CallbackQuery)
+			case keypads.BackToMenuData:
+				t.Commander.BackToMenu(update)
 			case keypads.OperationModeFAQData:
-				t.Commander.OperatingModeInfo(update.CallbackQuery)
+				t.Commander.OperatingModeFaq(update)
+			case keypads.OperationModeData:
+				//t.Commander.OperatingModeFaq(update)
 			}
 		}
 	}

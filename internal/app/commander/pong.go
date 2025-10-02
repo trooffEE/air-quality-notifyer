@@ -5,7 +5,8 @@ import (
 	"go.uber.org/zap"
 )
 
-func (c *Commander) Pong(message *tgbotapi.Message) {
+func (c *Commander) Pong(update tgbotapi.Update) {
+	message := update.Message
 	msg := tgbotapi.NewMessage(message.Chat.ID, `pong - 🙌`)
 	msg.ParseMode = tgbotapi.ModeHTML
 

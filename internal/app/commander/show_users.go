@@ -10,9 +10,9 @@ import (
 	"go.uber.org/zap"
 )
 
-func (c *Commander) ShowUsers(message *tgbotapi.Message, service *user.Service) {
+func (c *Commander) ShowUsers(update tgbotapi.Update, service *user.Service) {
 	adminId, err := strconv.Atoi(c.cfg.App.AdminTelegramId)
-	chatId := message.Chat.ID
+	chatId := update.Message.Chat.ID
 	if err != nil {
 		zap.L().Error("failed to convert admin telegram id to int", zap.Error(err))
 		return

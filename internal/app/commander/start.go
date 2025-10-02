@@ -2,12 +2,14 @@ package commander
 
 import (
 	"air-quality-notifyer/internal/service/user"
+	"strconv"
+
 	tgbotapi "github.com/OvyFlash/telegram-bot-api"
 	"go.uber.org/zap"
-	"strconv"
 )
 
-func (c *Commander) Start(message *tgbotapi.Message, service *user.Service) {
+func (c *Commander) Start(update tgbotapi.Update, service *user.Service) {
+	message := update.Message
 	chatId, username := message.Chat.ID, message.Chat.UserName
 	c.greetNewUser(chatId)
 

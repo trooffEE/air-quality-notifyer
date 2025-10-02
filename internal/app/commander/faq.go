@@ -3,12 +3,13 @@ package commander
 import (
 	"air-quality-notifyer/internal/app/keypads"
 	"fmt"
+
 	tgbotapi "github.com/OvyFlash/telegram-bot-api"
 	"go.uber.org/zap"
 )
 
-func (c *Commander) FAQ(message *tgbotapi.Message) {
-	msg := tgbotapi.NewMessage(message.Chat.ID, fmt.Sprintf(
+func (c *Commander) FAQ(update tgbotapi.Update) {
+	msg := tgbotapi.NewMessage(update.Message.Chat.ID, fmt.Sprintf(
 		"⚙️<strong>Ответы на вопросы</strong>\n\n"+
 			"<i>- Связан ли данный бот с https://airkemerovo.ru ?</i>\n"+
 			"Данный проект берет информацию именно с этого сервиса, используя публичный API, однако разработчик бота <strong>никак не связан</strong> с https://airkemerovo.ru\n\n"+
@@ -31,7 +32,7 @@ func (c *Commander) FAQ(message *tgbotapi.Message) {
 			tgbotapi.NewInlineKeyboardButtonData(keypads.OperationModeFAQText, keypads.OperationModeFAQData),
 		),
 		tgbotapi.NewInlineKeyboardRow(
-			tgbotapi.NewInlineKeyboardButtonData(keypads.BackText, keypads.BackData),
+			tgbotapi.NewInlineKeyboardButtonData(keypads.BackToMenu, keypads.BackToMenuData),
 		),
 	)
 

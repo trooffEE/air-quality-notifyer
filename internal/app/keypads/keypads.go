@@ -7,6 +7,6 @@ const (
 	OperationModeText    = "🌿 Режимы работы"
 	SensorsData          = "sensors"
 	SensorsText          = "📡 Мои датчики"
-	BackData             = "back"
-	BackText             = "⬅️ Вернуться назад"
+	BackToMenuData       = "back"
+	BackToMenu           = "⬅️ Вернуться в меню"
 )

@@ -3,6 +3,7 @@ package commander
 import (
 	"air-quality-notifyer/internal/app/menu"
 	"air-quality-notifyer/internal/config"
+	"air-quality-notifyer/internal/service/user"
 	"errors"
 	"time"
 
@@ -16,7 +17,19 @@ type Commander struct {
 	loc *time.Location
 }
 
-func NewCommander(bot *tgbotapi.BotAPI, cfg config.Config) *Commander {
+type Interface interface {
+	Send(payload Payload) *tgbotapi.Error
+	Delete(update tgbotapi.Update)
+	Start(update tgbotapi.Update, service *user.Service)
+	BackToMenu(update tgbotapi.Update)
+	FAQ(update tgbotapi.Update)
+	OperatingModeFaq(update tgbotapi.Update)
+	Pong(update tgbotapi.Update)
+	Setup(update tgbotapi.Update)
+	ShowUsers(update tgbotapi.Update, service *user.Service)
+}
+
+func NewCommander(bot *tgbotapi.BotAPI, cfg config.Config) Interface {
 	loc, _ := time.LoadLocation("Asia/Novosibirsk")
 	return &Commander{
 		bot: bot,
@@ -30,7 +43,8 @@ type Payload struct {
 	ReplyMarkup interface{}
 }
 
-func (c *Commander) Delete(message *tgbotapi.Message) {
+func (c *Commander) Delete(update tgbotapi.Update) {
+	message := update.Message
 	_, err := c.bot.Request(tgbotapi.NewDeleteMessage(message.Chat.ID, message.MessageID))
 	if err != nil {
 		zap.L().Error("Error deleting message", zap.Error(err))

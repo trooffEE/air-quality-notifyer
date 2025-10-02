@@ -2,11 +2,13 @@ package commander
 
 import (
 	"fmt"
+
 	tgbotapi "github.com/OvyFlash/telegram-bot-api"
 	"go.uber.org/zap"
 )
 
-func (c *Commander) OperatingModeInfo(callback *tgbotapi.CallbackQuery) {
+func (c *Commander) OperatingModeFaq(update tgbotapi.Update) {
+	callback := update.CallbackQuery
 	msg := tgbotapi.NewMessage(callback.Message.Chat.ID, fmt.Sprintf(
 		"⚙️ <strong>Режимы работы</strong> ⚙️\n\n"+
 			"🏙 <i>Город</i> 🏙\n\n"+
