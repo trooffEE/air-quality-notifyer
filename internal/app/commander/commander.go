@@ -23,6 +23,7 @@ type Interface interface {
 	Start(update tgbotapi.Update, service *user.Service)
 	BackToMenu(update tgbotapi.Update)
 	FAQ(update tgbotapi.Update)
+	OperationMode(update tgbotapi.Update)
 	OperatingModeFaq(update tgbotapi.Update)
 	Pong(update tgbotapi.Update)
 	Setup(update tgbotapi.Update)
@@ -43,12 +44,34 @@ type Payload struct {
 	ReplyMarkup interface{}
 }
 
+type PayloadEdit struct {
+	Msg         tgbotapi.EditMessageTextConfig
+	ReplyMarkup *tgbotapi.InlineKeyboardMarkup
+}
+
 func (c *Commander) Delete(update tgbotapi.Update) {
 	message := update.Message
 	_, err := c.bot.Request(tgbotapi.NewDeleteMessage(message.Chat.ID, message.MessageID))
 	if err != nil {
 		zap.L().Error("Error deleting message", zap.Error(err))
 	}
+}
+
+func (c *Commander) Edit(payload PayloadEdit) *tgbotapi.Error {
+	payload.Msg.ParseMode = tgbotapi.ModeHTML
+
+	//if payload.ReplyMarkup != nil {
+	//	payload.Msg.ReplyMarkup = payload.ReplyMarkup
+	//} else {
+	//	payload.Msg.ReplyMarkup = menu.NewTelegramMainMenu()
+	//}
+	_, err := c.bot.Send(payload.Msg)
+	var tgError *tgbotapi.Error
+	if errors.As(err, &tgError) {
+		return tgError
+	}
+
+	return nil
 }
 
 func (c *Commander) Send(payload Payload) *tgbotapi.Error {

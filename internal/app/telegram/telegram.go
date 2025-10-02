@@ -129,7 +129,7 @@ func (t *tgBot) ListenTelegramUpdates() {
 			case keypads.OperationModeFAQData:
 				t.Commander.OperatingModeFaq(update)
 			case keypads.OperationModeData:
-				//t.Commander.OperatingModeFaq(update)
+				t.Commander.OperationMode(update)
 			}
 		}
 	}

@@ -32,7 +32,7 @@ func (c *Commander) FAQ(update tgbotapi.Update) {
 			tgbotapi.NewInlineKeyboardButtonData(keypads.OperationModeFAQText, keypads.OperationModeFAQData),
 		),
 		tgbotapi.NewInlineKeyboardRow(
-			tgbotapi.NewInlineKeyboardButtonData(keypads.BackToMenu, keypads.BackToMenuData),
+			tgbotapi.NewInlineKeyboardButtonData(keypads.BackToMenuText, keypads.BackToMenuData),
 		),
 	)
 

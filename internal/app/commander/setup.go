@@ -21,7 +21,7 @@ func (c *Commander) Setup(update tgbotapi.Update) {
 			//tgbotapi.NewInlineKeyboardButtonData(keypads.SensorsText, keypads.SensorsData),
 		),
 		tgbotapi.NewInlineKeyboardRow(
-			tgbotapi.NewInlineKeyboardButtonData(keypads.BackToMenu, keypads.BackToMenuData),
+			tgbotapi.NewInlineKeyboardButtonData(keypads.BackToMenuText, keypads.BackToMenuData),
 		),
 	)
 
