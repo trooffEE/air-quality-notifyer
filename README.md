@@ -65,3 +65,4 @@ docker compose up airquality_app --build -d
 3. Их показатели в таблице sensors_aqi
 4. Убрать address поле из Sensor (учесть выше описанный пункт)
 5. Проработать context дерево, сейчас везде создается свой собственный, просто как заглушка
+6. Подумать об разделение на подмодули Commander, например Commander.OperatingMode.SetCity
