@@ -36,7 +36,7 @@ func (c *Commander) FAQ(update tgbotapi.Update) {
 		),
 	)
 
-	if err := c.Send(Payload{Msg: msg, ReplyMarkup: markup}); err != nil {
+	if err := c.Send(MessageConfig{Msg: msg, Markup: markup}); err != nil {
 		zap.L().Error("Error sending faq message", zap.Error(err))
 	}
 }

@@ -18,13 +18,14 @@ type Commander struct {
 }
 
 type Interface interface {
-	Send(payload Payload) *tgbotapi.Error
+	Send(payload MessageConfig) *tgbotapi.Error
 	Delete(update tgbotapi.Update)
 	Start(update tgbotapi.Update, service *user.Service)
 	BackToMenu(update tgbotapi.Update)
 	FAQ(update tgbotapi.Update)
 	OperationMode(update tgbotapi.Update)
 	OperatingModeFaq(update tgbotapi.Update)
+	OperatingModeSetCity(update tgbotapi.Update)
 	Pong(update tgbotapi.Update)
 	Setup(update tgbotapi.Update)
 	ShowUsers(update tgbotapi.Update, service *user.Service)
@@ -39,14 +40,14 @@ func NewCommander(bot *tgbotapi.BotAPI, cfg config.Config) Interface {
 	}
 }
 
-type Payload struct {
-	Msg         tgbotapi.MessageConfig
-	ReplyMarkup interface{}
+type MessageConfig struct {
+	Msg    tgbotapi.MessageConfig
+	Markup interface{}
 }
 
-type PayloadEdit struct {
-	Msg         tgbotapi.EditMessageTextConfig
-	ReplyMarkup *tgbotapi.InlineKeyboardMarkup
+type EditMessageConfig struct {
+	Msg    tgbotapi.EditMessageTextConfig
+	Markup *tgbotapi.InlineKeyboardMarkup
 }
 
 func (c *Commander) Delete(update tgbotapi.Update) {
@@ -57,14 +58,13 @@ func (c *Commander) Delete(update tgbotapi.Update) {
 	}
 }
 
-func (c *Commander) Edit(payload PayloadEdit) *tgbotapi.Error {
+func (c *Commander) Edit(payload EditMessageConfig) *tgbotapi.Error {
 	payload.Msg.ParseMode = tgbotapi.ModeHTML
 
-	//if payload.ReplyMarkup != nil {
-	//	payload.Msg.ReplyMarkup = payload.ReplyMarkup
-	//} else {
-	//	payload.Msg.ReplyMarkup = menu.NewTelegramMainMenu()
-	//}
+	if payload.Markup != nil {
+		payload.Msg.ReplyMarkup = payload.Markup
+	}
+
 	_, err := c.bot.Send(payload.Msg)
 	var tgError *tgbotapi.Error
 	if errors.As(err, &tgError) {
@@ -74,12 +74,12 @@ func (c *Commander) Edit(payload PayloadEdit) *tgbotapi.Error {
 	return nil
 }
 
-func (c *Commander) Send(payload Payload) *tgbotapi.Error {
+func (c *Commander) Send(payload MessageConfig) *tgbotapi.Error {
 	payload.Msg.ParseMode = tgbotapi.ModeHTML
 	payload.Msg.DisableNotification = c.isNotificationsAllowed()
 
-	if payload.ReplyMarkup != nil {
-		payload.Msg.ReplyMarkup = payload.ReplyMarkup
+	if payload.Markup != nil {
+		payload.Msg.ReplyMarkup = payload.Markup
 	} else {
 		payload.Msg.ReplyMarkup = menu.NewTelegramMainMenu()
 	}

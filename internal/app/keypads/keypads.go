@@ -1,13 +1,15 @@
 package keypads
 
 const (
-	CommonKnowMoreText = "Узнать подробнее"
+	OperatingModeFAQFromSetupData = "operation_mode_faq__operating-mode"
+	OperatingModeFAQFromSetupText = "Узнать подробнее"
 
 	OperationModeFAQData = "operation_mode_faq"
 	OperationModeFAQText = "❓ Режимы работы"
 
-	OperationModeData = "operation_mode"
-	OperationModeText = "🌿 Режимы работы"
+	OperationModeData     = "operation_mode"
+	OperationModeBackText = "🌿 Вернуться к режимам работы"
+	OperationModeText     = "🌿 Режимы работы"
 
 	SensorsData = "sensors"
 	SensorsText = "📡 Мои датчики"

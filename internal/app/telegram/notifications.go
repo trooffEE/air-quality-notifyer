@@ -17,7 +17,7 @@ func (t *tgBot) notifyUsers(sensors []s.Sensor) {
 	for _, id := range ids {
 		for _, message := range messages {
 			msg := tgbotapi.NewMessage(id, message)
-			payload := commander.Payload{Msg: msg}
+			payload := commander.MessageConfig{Msg: msg}
 			if err := t.Commander.Send(payload); err != nil && err.Code == 403 {
 				t.services.UserService.DeleteUser(id)
 				break

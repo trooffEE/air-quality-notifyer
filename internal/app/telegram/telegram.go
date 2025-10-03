@@ -126,7 +126,7 @@ func (t *tgBot) ListenTelegramUpdates() {
 			switch update.CallbackQuery.Data {
 			case keypads.BackToMenuData:
 				t.Commander.BackToMenu(update)
-			case keypads.OperationModeFAQData:
+			case keypads.OperationModeFAQData, keypads.OperatingModeFAQFromSetupData:
 				t.Commander.OperatingModeFaq(update)
 			case keypads.OperationModeData:
 				t.Commander.OperationMode(update)

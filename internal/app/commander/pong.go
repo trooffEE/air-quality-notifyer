@@ -12,7 +12,7 @@ func (c *Commander) Pong(update tgbotapi.Update) {
 
 	msg.ReplyParameters.MessageID = message.MessageID
 
-	if err := c.Send(Payload{Msg: msg}); err != nil {
+	if err := c.Send(MessageConfig{Msg: msg}); err != nil {
 		zap.L().Error("Error sending pong message", zap.Error(err))
 	}
 }

@@ -32,7 +32,7 @@ func (c *Commander) ShowUsers(update tgbotapi.Update, service *user.Service) {
 	}
 
 	msg := tgbotapi.NewMessage(chatId, fmt.Sprintf("Bot Users: %d 🙌\n\n%s", len(names), strings.Join(names, ", \n")))
-	if err = c.Send(Payload{Msg: msg}); err != nil {
+	if err = c.Send(MessageConfig{Msg: msg}); err != nil {
 		zap.L().Error("Error sending show_users", zap.Error(err))
 	}
 }
