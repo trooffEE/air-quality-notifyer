@@ -45,35 +45,6 @@ type MessageConfig struct {
 	Markup interface{}
 }
 
-type EditMessageConfig struct {
-	Msg    tgbotapi.EditMessageTextConfig
-	Markup *tgbotapi.InlineKeyboardMarkup
-}
-
-func (c *Commander) Delete(update tgbotapi.Update) {
-	message := update.Message
-	_, err := c.bot.Request(tgbotapi.NewDeleteMessage(message.Chat.ID, message.MessageID))
-	if err != nil {
-		zap.L().Error("Error deleting message", zap.Error(err))
-	}
-}
-
-func (c *Commander) Edit(payload EditMessageConfig) *tgbotapi.Error {
-	payload.Msg.ParseMode = tgbotapi.ModeHTML
-
-	if payload.Markup != nil {
-		payload.Msg.ReplyMarkup = payload.Markup
-	}
-
-	_, err := c.bot.Send(payload.Msg)
-	var tgError *tgbotapi.Error
-	if errors.As(err, &tgError) {
-		return tgError
-	}
-
-	return nil
-}
-
 func (c *Commander) Send(payload MessageConfig) *tgbotapi.Error {
 	payload.Msg.ParseMode = tgbotapi.ModeHTML
 	payload.Msg.DisableNotification = c.isNotificationsAllowed()
@@ -93,9 +64,33 @@ func (c *Commander) Send(payload MessageConfig) *tgbotapi.Error {
 	return nil
 }
 
-func (c *Commander) isNotificationsAllowed() bool {
-	h := time.Now().In(c.loc).Hour()
-	return h < 8 && h >= 0
+func (c *Commander) Delete(update tgbotapi.Update) {
+	message := update.Message
+	_, err := c.bot.Request(tgbotapi.NewDeleteMessage(message.Chat.ID, message.MessageID))
+	if err != nil {
+		zap.L().Error("Error deleting message", zap.Error(err))
+	}
+}
+
+type EditMessageConfig struct {
+	Msg    tgbotapi.EditMessageTextConfig
+	Markup *tgbotapi.InlineKeyboardMarkup
+}
+
+func (c *Commander) Edit(payload EditMessageConfig) *tgbotapi.Error {
+	payload.Msg.ParseMode = tgbotapi.ModeHTML
+
+	if payload.Markup != nil {
+		payload.Msg.ReplyMarkup = payload.Markup
+	}
+
+	_, err := c.bot.Send(payload.Msg)
+	var tgError *tgbotapi.Error
+	if errors.As(err, &tgError) {
+		return tgError
+	}
+
+	return nil
 }
 
 func (c *Commander) isAdmin(update tgbotapi.Update) bool {
@@ -105,4 +100,9 @@ func (c *Commander) isAdmin(update tgbotapi.Update) bool {
 		return false
 	}
 	return int64(adminId) == update.Message.Chat.ID
+}
+
+func (c *Commander) isNotificationsAllowed() bool {
+	h := time.Now().In(c.loc).Hour()
+	return h < 8 && h >= 0
 }
