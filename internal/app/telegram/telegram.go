@@ -105,8 +105,8 @@ func (t *tgBot) ListenTelegramUpdates() {
 				t.Commander.ShowUsers(update, t.services.UserService)
 			case menu.FAQ:
 				t.Commander.FAQ(update)
-			case menu.Setup:
-				t.Commander.Setup(update)
+			case menu.Settings:
+				t.Commander.Settings(update)
 			case menu.Ping:
 				t.Commander.Pong(update)
 			}

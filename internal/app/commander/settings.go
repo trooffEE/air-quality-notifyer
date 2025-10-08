@@ -7,7 +7,7 @@ import (
 	"go.uber.org/zap"
 )
 
-func (c *Commander) Setup(update tgbotapi.Update) {
+func (c *Commander) Settings(update tgbotapi.Update) {
 	msg := tgbotapi.NewMessage(
 		update.Message.Chat.ID,
 		"⚙️ <strong>Настройки</strong>\n"+

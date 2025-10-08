@@ -7,13 +7,13 @@ import (
 )
 
 const (
-	FAQ   = "❓ FAQ"
-	Setup = "⚙️ Настройки"
-	Users = "users"
-	Ping  = "ping"
+	FAQ      = "❓ FAQ"
+	Settings = "⚙️ Настройки"
+	Users    = "users"
+	Ping     = "ping"
 )
 
-var options = []string{FAQ, Setup, Users, Ping}
+var options = []string{FAQ, Settings, Users, Ping}
 
 func IsMenuButton(button string) bool {
 	return slices.Contains(options, button)
@@ -22,7 +22,7 @@ func IsMenuButton(button string) bool {
 func NewTelegramMainMenu() tgbotapi.ReplyKeyboardMarkup {
 	return tgbotapi.NewOneTimeReplyKeyboard(
 		tgbotapi.NewKeyboardButtonRow(
-			tgbotapi.NewKeyboardButton(Setup),
+			tgbotapi.NewKeyboardButton(Settings),
 			tgbotapi.NewKeyboardButton(FAQ),
 		),
 	)

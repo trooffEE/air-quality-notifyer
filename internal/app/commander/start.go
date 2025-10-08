@@ -11,7 +11,11 @@ import (
 func (c *Commander) Start(update tgbotapi.Update, service *user.Service) {
 	message := update.Message
 	chatId, username := message.Chat.ID, message.Chat.UserName
-	c.greetNewUser(chatId)
+
+	msg := tgbotapi.NewMessage(chatId, "Данный бот оповещает о плохом качестве воздуха в городе Кемерово.\n\nПросьба настроить уведомления, чтобы бот не беспокоил ночью! 🍵")
+	if err := c.Send(MessageConfig{Msg: msg}); err != nil {
+		zap.L().Error("Error sending faq message", zap.Error(err))
+	}
 
 	if !service.IsNewUser(chatId) {
 		return
@@ -21,11 +25,4 @@ func (c *Commander) Start(update tgbotapi.Update, service *user.Service) {
 		Id:       strconv.Itoa(int(chatId)),
 		Username: username,
 	})
-}
-
-func (c *Commander) greetNewUser(chatId int64) {
-	msg := tgbotapi.NewMessage(chatId, "Данный бот оповещает о плохом качестве воздуха в городе Кемерово.\n\nПросьба настроить уведомления, чтобы бот не беспокоил ночью! 🍵")
-	if err := c.Send(MessageConfig{Msg: msg}); err != nil {
-		zap.L().Error("Error sending faq message", zap.Error(err))
-	}
 }

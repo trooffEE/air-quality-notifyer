@@ -5,6 +5,7 @@ import (
 	"air-quality-notifyer/internal/config"
 	"air-quality-notifyer/internal/service/user"
 	"errors"
+	"strconv"
 	"time"
 
 	tgbotapi "github.com/OvyFlash/telegram-bot-api"
@@ -25,9 +26,8 @@ type Interface interface {
 	FAQ(update tgbotapi.Update)
 	OperationMode(update tgbotapi.Update)
 	OperatingModeFaq(update tgbotapi.Update)
-	OperatingModeSetCity(update tgbotapi.Update)
 	Pong(update tgbotapi.Update)
-	Setup(update tgbotapi.Update)
+	Settings(update tgbotapi.Update)
 	ShowUsers(update tgbotapi.Update, service *user.Service)
 }
 
@@ -96,4 +96,13 @@ func (c *Commander) Send(payload MessageConfig) *tgbotapi.Error {
 func (c *Commander) isNotificationsAllowed() bool {
 	h := time.Now().In(c.loc).Hour()
 	return h < 8 && h >= 0
+}
+
+func (c *Commander) isAdmin(update tgbotapi.Update) bool {
+	adminId, err := strconv.Atoi(c.cfg.App.AdminTelegramId)
+	if err != nil {
+		zap.L().Error("conversion error", zap.Error(err))
+		return false
+	}
+	return int64(adminId) == update.Message.Chat.ID
 }
