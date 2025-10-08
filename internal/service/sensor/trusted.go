@@ -11,38 +11,9 @@ import (
 	"go.uber.org/zap"
 )
 
-type SyncTrustedSensors struct {
-	mu   sync.Mutex
-	wg   sync.WaitGroup
-	list []Sensor
-}
-
-// "Trusted" - meaning median from what we have in district, slightly more realistic than AVG and Worst AQI value determination
-func (s *SyncTrustedSensors) getSensor() *Sensor {
-	if len(s.list) == 0 {
-		return nil
-	}
-	s.sortByAqi()
-	trustedIndex := math.Ceil(float64(len(s.list) / 2))
-	return &s.list[int(trustedIndex)]
-}
-
-func (s *SyncTrustedSensors) sortByAqi() {
-	slices.SortFunc(s.list, func(a, b Sensor) int {
-		if a.Aqi < b.Aqi {
-			return -1
-		} else if a.Aqi > b.Aqi {
-			return 1
-		}
-		return 0
-	})
-}
-
-func (s *SyncTrustedSensors) addSensor(sensor Sensor) {
-	s.mu.Lock()
-	s.list = append(s.list, sensor)
-	s.mu.Unlock()
-}
+/**
+"Trusted" is just median AQI in district
+*/
 
 func (s *Service) StartGettingTrustedSensorsEveryHour() {
 	cronCreator := cron.New()
@@ -66,17 +37,13 @@ func (s *Service) getTrustedSensors() {
 
 	respChan := make(chan Sensor, len(allDistricts))
 	wg := sync.WaitGroup{}
-	wg.Add(len(allDistricts))
 	for _, district := range allDistricts {
 		sensorsInDistrict, err := s.getDistrictSensorsFromCache(district.Id)
 		if err != nil || sensorsInDistrict == nil {
 			zap.L().Error("failed to get sensors by districtId", zap.Error(err), zap.Int64("districtId", district.Id))
 			continue
 		}
-		go func() {
-			defer wg.Done()
-			findTrustedSensor(respChan, *sensorsInDistrict)
-		}()
+		wg.Go(func() { findTrustedSensor(respChan, *sensorsInDistrict) })
 	}
 	wg.Wait()
 	close(respChan)
@@ -103,4 +70,36 @@ func findTrustedSensor(resChan chan Sensor, sensors []models.AirqualitySensor) {
 	}
 
 	resChan <- *trustedAqlSensor
+}
+
+type SyncTrustedSensors struct {
+	mu   sync.Mutex
+	wg   sync.WaitGroup
+	list []Sensor
+}
+
+func (s *SyncTrustedSensors) getSensor() *Sensor {
+	if len(s.list) == 0 {
+		return nil
+	}
+	s.sortByAqi()
+	trustedIndex := math.Ceil(float64(len(s.list) / 2))
+	return &s.list[int(trustedIndex)]
+}
+
+func (s *SyncTrustedSensors) addSensor(sensor Sensor) {
+	s.mu.Lock()
+	s.list = append(s.list, sensor)
+	s.mu.Unlock()
+}
+
+func (s *SyncTrustedSensors) sortByAqi() {
+	slices.SortFunc(s.list, func(a, b Sensor) int {
+		if a.Aqi < b.Aqi {
+			return -1
+		} else if a.Aqi > b.Aqi {
+			return 1
+		}
+		return 0
+	})
 }

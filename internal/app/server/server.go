@@ -19,13 +19,11 @@ func InitHttpServer(ctx context.Context, cfg config.Config) func() {
 	}
 
 	var wg sync.WaitGroup
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
+	wg.Go(func() {
 		if err := server.ListenAndServe(); err != nil && !errors.Is(http.ErrServerClosed, err) {
 			zap.L().Fatal("http server failed to start on port", zap.String("port", cfg.App.HttpServerPort), zap.Error(err))
 		}
-	}()
+	})
 	zap.L().Info("🏆 http server started on port", zap.String("port", cfg.App.HttpServerPort))
 
 	return func() {
