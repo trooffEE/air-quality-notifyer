@@ -1,6 +1,7 @@
 package sensor
 
 import (
+	"air-quality-notifyer/internal/service/sensor/model"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -18,27 +19,27 @@ func TestSuites(t *testing.T) {
 func (s *SuiteSyncAirqualitySensorList) TestAddSensor() {
 	t := s.T()
 	t.Parallel()
-	sensorsList := SyncTrustedSensors{}
+	sensorsList := model.SyncSensorsList{}
 
-	sensorsList.AddSensor(Sensor{Id: 1})
-	sensorsList.AddSensor(Sensor{Id: 2})
-	sensorsList.AddSensor(Sensor{Id: 3})
+	sensorsList.AddSensor(model.Sensor{Id: 1})
+	sensorsList.AddSensor(model.Sensor{Id: 2})
+	sensorsList.AddSensor(model.Sensor{Id: 3})
 
-	assert.Equal(t, sensorsList.List, []Sensor{{Id: 1}, {Id: 2}, {Id: 3}})
+	assert.Equal(t, sensorsList.List, []model.Sensor{{Id: 1}, {Id: 2}, {Id: 3}})
 }
 
 func (s *SuiteSyncAirqualitySensorList) TestSortAqi() {
 	t := s.T()
 	t.Parallel()
-	sensorsList := SyncTrustedSensors{}
+	sensorsList := model.SyncSensorsList{}
 
-	sensorsList.AddSensor(Sensor{Aqi: 99})
-	sensorsList.AddSensor(Sensor{Aqi: 1})
-	sensorsList.AddSensor(Sensor{Aqi: 33})
-	sensorsList.AddSensor(Sensor{Aqi: 33})
-	sensorsList.AddSensor(Sensor{Aqi: 66})
+	sensorsList.AddSensor(model.Sensor{Aqi: 99})
+	sensorsList.AddSensor(model.Sensor{Aqi: 1})
+	sensorsList.AddSensor(model.Sensor{Aqi: 33})
+	sensorsList.AddSensor(model.Sensor{Aqi: 33})
+	sensorsList.AddSensor(model.Sensor{Aqi: 66})
 
-	expectedResult := []Sensor{{Aqi: 1}, {Aqi: 33}, {Aqi: 33}, {Aqi: 66}, {Aqi: 99}}
+	expectedResult := []model.Sensor{{Aqi: 1}, {Aqi: 33}, {Aqi: 33}, {Aqi: 66}, {Aqi: 99}}
 
 	assert.NotEqual(t, sensorsList.List, expectedResult)
 	sensorsList.SortByAqi()
@@ -48,7 +49,7 @@ func (s *SuiteSyncAirqualitySensorList) TestSortAqi() {
 func (s *SuiteSyncAirqualitySensorList) TestGetTrustedAqiSensor_empty() {
 	t := s.T()
 	t.Parallel()
-	sensorsList := SyncTrustedSensors{}
+	sensorsList := model.SyncSensorsList{}
 
 	trustedSensor := sensorsList.GetSensor()
 	assert.Nil(t, trustedSensor)
@@ -57,40 +58,40 @@ func (s *SuiteSyncAirqualitySensorList) TestGetTrustedAqiSensor_empty() {
 func (s *SuiteSyncAirqualitySensorList) TestGetTrustedAqiSensor_odd() {
 	t := s.T()
 	t.Parallel()
-	sensorsList := SyncTrustedSensors{}
+	sensorsList := model.SyncSensorsList{}
 
-	sensorsList.AddSensor(Sensor{Aqi: 10})
-	sensorsList.AddSensor(Sensor{Aqi: 100})
-	sensorsList.AddSensor(Sensor{Aqi: 50})
+	sensorsList.AddSensor(model.Sensor{Aqi: 10})
+	sensorsList.AddSensor(model.Sensor{Aqi: 100})
+	sensorsList.AddSensor(model.Sensor{Aqi: 50})
 
 	trustedSensor := sensorsList.GetSensor()
 	assert.NotNil(t, trustedSensor)
-	assert.Equal(t, *trustedSensor, Sensor{Aqi: 50})
+	assert.Equal(t, *trustedSensor, model.Sensor{Aqi: 50})
 }
 
 func (s *SuiteSyncAirqualitySensorList) TestGetTrustedAqiSensor_even() {
 	t := s.T()
 	t.Parallel()
-	sensorsList := SyncTrustedSensors{}
+	sensorsList := model.SyncSensorsList{}
 
-	sensorsList.AddSensor(Sensor{Aqi: 10})
-	sensorsList.AddSensor(Sensor{Aqi: 100})
-	sensorsList.AddSensor(Sensor{Aqi: 50})
-	sensorsList.AddSensor(Sensor{Aqi: 33})
+	sensorsList.AddSensor(model.Sensor{Aqi: 10})
+	sensorsList.AddSensor(model.Sensor{Aqi: 100})
+	sensorsList.AddSensor(model.Sensor{Aqi: 50})
+	sensorsList.AddSensor(model.Sensor{Aqi: 33})
 
 	trustedSensor := sensorsList.GetSensor()
 	assert.NotNil(t, trustedSensor)
-	assert.Equal(t, *trustedSensor, Sensor{Aqi: 50})
+	assert.Equal(t, *trustedSensor, model.Sensor{Aqi: 50})
 }
 
 func (s *SuiteSyncAirqualitySensorList) TestGetTrustedAqiSensor_one() {
 	t := s.T()
 	t.Parallel()
-	sensorsList := SyncTrustedSensors{}
+	sensorsList := model.SyncSensorsList{}
 
-	sensorsList.AddSensor(Sensor{Aqi: 10})
+	sensorsList.AddSensor(model.Sensor{Aqi: 10})
 
 	trustedSensor := sensorsList.GetSensor()
 	assert.NotNil(t, trustedSensor)
-	assert.Equal(t, *trustedSensor, Sensor{Aqi: 10})
+	assert.Equal(t, *trustedSensor, model.Sensor{Aqi: 10})
 }
