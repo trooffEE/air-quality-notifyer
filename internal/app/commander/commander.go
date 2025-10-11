@@ -31,7 +31,7 @@ type Interface interface {
 	ShowUsers(update tgbotapi.Update, service *user.Service)
 }
 
-func NewCommander(bot *tgbotapi.BotAPI, cfg config.Config) Interface {
+func New(bot *tgbotapi.BotAPI, cfg config.Config) Interface {
 	loc, _ := time.LoadLocation("Asia/Novosibirsk")
 	return &Commander{
 		bot: bot,
@@ -52,7 +52,7 @@ func (c *Commander) Send(payload MessageConfig) *tgbotapi.Error {
 	if payload.Markup != nil {
 		payload.Msg.ReplyMarkup = payload.Markup
 	} else {
-		payload.Msg.ReplyMarkup = menu.NewTelegramMainMenu()
+		payload.Msg.ReplyMarkup = menu.New()
 	}
 
 	_, err := c.bot.Send(payload.Msg)

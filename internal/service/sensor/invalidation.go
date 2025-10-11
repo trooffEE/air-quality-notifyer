@@ -42,7 +42,7 @@ func (s *Service) saveSensor(sensor scriptTagScrappedSensor) {
 		return
 	}
 
-	payload := models.AirqualitySensor{
+	payload := models.Sensor{
 		DistrictId: district.Id,
 		ApiId:      sensor.Id,
 		Address:    sensor.Address,

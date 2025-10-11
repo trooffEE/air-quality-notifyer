@@ -34,7 +34,7 @@ type CacheConfig struct {
 	DBIndex  int
 }
 
-func NewConfig() Config {
+func New() Config {
 	//TODO Подумать о .env.prod инъекции тут
 	if err := godotenv.Load(); err != nil {
 		zap.L().Fatal("Error loading environment variables", zap.Error(err))

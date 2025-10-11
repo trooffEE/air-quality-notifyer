@@ -25,14 +25,14 @@ type BotServices struct {
 	SensorService *sensor.Service
 }
 
-func InitTelegramBot(services BotServices, cfg config.Config) *tgBot {
+func Init(services BotServices, cfg config.Config) *tgBot {
 	bot, err := tgbotapi.NewBotAPI(cfg.App.TelegramToken)
 	if err != nil {
 		zap.L().Error("Filed to create new bot api", zap.Error(err))
 		panic(err)
 	}
 
-	cmder := commander.NewCommander(bot, cfg)
+	cmder := commander.New(bot, cfg)
 	if cfg.Development {
 		bot.Debug = true
 

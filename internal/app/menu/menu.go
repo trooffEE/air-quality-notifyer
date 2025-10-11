@@ -19,7 +19,7 @@ func IsMenuButton(button string) bool {
 	return slices.Contains(options, button)
 }
 
-func NewTelegramMainMenu() tgbotapi.ReplyKeyboardMarkup {
+func New() tgbotapi.ReplyKeyboardMarkup {
 	return tgbotapi.NewOneTimeReplyKeyboard(
 		tgbotapi.NewKeyboardButtonRow(
 			tgbotapi.NewKeyboardButton(Settings),

@@ -12,7 +12,7 @@ import (
 	"go.uber.org/zap"
 )
 
-func InitHttpServer(ctx context.Context, cfg config.Config) func() {
+func Init(ctx context.Context, cfg config.Config) func() {
 	server := &http.Server{
 		Addr:    fmt.Sprintf(":%s", cfg.App.HttpServerPort),
 		Handler: nil,

@@ -11,7 +11,7 @@ type Service struct {
 	repo repo.DistrictRepositoryInterface
 }
 
-func NewDistrictService(ur repo.DistrictRepositoryInterface) *Service {
+func New(ur repo.DistrictRepositoryInterface) *Service {
 	return &Service{
 		repo: ur,
 	}

@@ -16,14 +16,14 @@ func NewSensorRepository(db *sqlx.DB) *SensorRepository {
 
 type SensorRepositoryInterface interface {
 	GetAllApiIds() ([]int64, error)
-	GetSensorByApiId(id int64) (*models.AirqualitySensor, error)
-	SaveSensor(sensor models.AirqualitySensor) error
+	GetSensorByApiId(id int64) (*models.Sensor, error)
+	SaveSensor(sensor models.Sensor) error
 	EvictSensor(id int64) error
-	GetSensorsByDistrictId(id int64) ([]models.AirqualitySensor, error)
+	GetSensorsByDistrictId(id int64) ([]models.Sensor, error)
 }
 
-func (r *SensorRepository) GetSensorByApiId(id int64) (*models.AirqualitySensor, error) {
-	var sensor models.AirqualitySensor
+func (r *SensorRepository) GetSensorByApiId(id int64) (*models.Sensor, error) {
+	var sensor models.Sensor
 	err := r.db.Get(&sensor, "SELECT * FROM sensors WHERE api_id = $1", id)
 	if err != nil {
 		return nil, err
@@ -32,7 +32,7 @@ func (r *SensorRepository) GetSensorByApiId(id int64) (*models.AirqualitySensor,
 	return &sensor, nil
 }
 
-func (r *SensorRepository) SaveSensor(sensor models.AirqualitySensor) error {
+func (r *SensorRepository) SaveSensor(sensor models.Sensor) error {
 	_, err := r.db.NamedExec(`
 		INSERT INTO sensors (api_id, district_id, address, lat, lon, created_at)
 		VALUES (:api_id, :district_id, :address, :lat, :lon, :created_at)
@@ -65,8 +65,8 @@ func (r *SensorRepository) EvictSensor(sensorApiId int64) error {
 	return nil
 }
 
-func (r *SensorRepository) GetSensorsByDistrictId(id int64) ([]models.AirqualitySensor, error) {
-	var sensors []models.AirqualitySensor
+func (r *SensorRepository) GetSensorsByDistrictId(id int64) ([]models.Sensor, error) {
+	var sensors []models.Sensor
 	err := r.db.Select(&sensors, `
 		SELECT
 		    s.id AS id,

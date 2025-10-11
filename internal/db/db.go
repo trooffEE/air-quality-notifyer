@@ -12,7 +12,7 @@ import (
 	"go.uber.org/zap"
 )
 
-func NewDB(cfg config.Config) *sqlx.DB {
+func New(cfg config.Config) *sqlx.DB {
 	connString := fmt.Sprintf(
 		"postgres://%s:%s@%s/%s?sslmode=disable",
 		cfg.DB.User, cfg.DB.Password, cfg.DB.Host, cfg.DB.Name,

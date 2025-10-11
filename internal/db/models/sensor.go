@@ -1,6 +1,6 @@
 package models
 
-type AirqualitySensor struct {
+type Sensor struct {
 	Id         int64          `db:"id" redis:"id"`
 	ApiId      int64          `db:"api_id" redis:"api_id"`
 	DistrictId int64          `db:"district_id" redis:"district_id"`

@@ -15,7 +15,7 @@ type Service struct {
 	cache      *redis.Client
 }
 
-func NewSensorService(
+func New(
 	repo repo.SensorRepositoryInterface,
 	sDistricts *districts.Service,
 	cache *redis.Client,

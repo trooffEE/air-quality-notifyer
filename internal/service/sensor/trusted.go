@@ -56,7 +56,7 @@ func (s *Service) getTrustedSensors() {
 	s.cSensors <- sensors
 }
 
-func findTrustedSensor(resChan chan Sensor, sensors []models.AirqualitySensor) {
+func findTrustedSensor(resChan chan Sensor, sensors []models.Sensor) {
 	var syncSensorList SyncTrustedSensors
 	syncSensorList.wg.Add(len(sensors))
 	for _, sensor := range sensors {

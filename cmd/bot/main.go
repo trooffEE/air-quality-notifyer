@@ -23,30 +23,30 @@ func main() {
 	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer cancel()
 
-	cfg := config.NewConfig()
+	cfg := config.New()
 	initLogger(cfg)
 
 	//DB
-	database := db.NewDB(cfg)
+	database := db.New(cfg)
 	districtRepository := repository.NewDistrictRepository(database)
 	userRepository := repository.NewUserRepository(database)
 	sensorRepository := repository.NewSensorRepository(database)
 
 	//Cache
-	cacheClient := cache.NewCacheClient(cfg)
+	cacheClient := cache.New(cfg)
 
-	userService := user.NewUserService(userRepository)
-	districtService := districts.NewDistrictService(districtRepository)
-	sensorService := sensor.NewSensorService(sensorRepository, districtService, cacheClient)
+	userService := user.New(userRepository)
+	districtService := districts.New(districtRepository)
+	sensorService := sensor.New(sensorRepository, districtService, cacheClient)
 
-	httpShutdown := server.InitHttpServer(ctx, cfg)
+	httpShutdown := server.Init(ctx, cfg)
 
 	services := telegram.BotServices{
 		UserService:   userService,
 		SensorService: sensorService,
 	}
 
-	bot := telegram.InitTelegramBot(services, cfg)
+	bot := telegram.Init(services, cfg)
 
 	go bot.ListenSensorsUpdates()
 	go bot.ListenTelegramUpdates()

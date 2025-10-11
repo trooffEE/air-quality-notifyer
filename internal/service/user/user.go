@@ -4,6 +4,7 @@ import (
 	"air-quality-notifyer/internal/db/models"
 	repo "air-quality-notifyer/internal/db/repository"
 	"errors"
+
 	"go.uber.org/zap"
 )
 
@@ -11,7 +12,7 @@ type Service struct {
 	repo repo.UserRepositoryInterface
 }
 
-func NewUserService(ur repo.UserRepositoryInterface) *Service {
+func New(ur repo.UserRepositoryInterface) *Service {
 	return &Service{
 		repo: ur,
 	}
