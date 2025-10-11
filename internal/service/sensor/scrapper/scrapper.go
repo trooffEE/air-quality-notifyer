@@ -1,4 +1,4 @@
-package sensor
+package scrapper
 
 import (
 	"bufio"
@@ -11,7 +11,7 @@ import (
 	"go.uber.org/zap"
 )
 
-type scriptTagScrappedSensor struct {
+type Sensor struct {
 	Id        int64   `json:"sensor_id"`
 	Address   string  `json:"address"`
 	Lat       float64 `json:"lat"`
@@ -21,7 +21,7 @@ type scriptTagScrappedSensor struct {
 
 var setLastSensorsDataScriptStringStart, setLastSensorsDataScriptStringEnd = "setLastData('", "');"
 
-func scrapSensorData() []scriptTagScrappedSensor {
+func Scrap() []Sensor {
 	res, err := http.Get("https://airkemerovo.ru")
 	if err != nil {
 		zap.L().Fatal("Failed to access airkemerovo.ru")
@@ -29,7 +29,7 @@ func scrapSensorData() []scriptTagScrappedSensor {
 	defer res.Body.Close()
 	if res.StatusCode != 200 {
 		zap.L().Info("failed to grasp new sensors, airkemerovo page responded with ", zap.Int("status", res.StatusCode))
-		return []scriptTagScrappedSensor{}
+		return []Sensor{}
 	}
 
 	doc, err := goquery.NewDocumentFromReader(res.Body)
@@ -47,7 +47,7 @@ func scrapSensorData() []scriptTagScrappedSensor {
 	reader := strings.NewReader(strings.TrimSpace(scriptContents))
 	scanner := bufio.NewScanner(reader)
 
-	var sensors []scriptTagScrappedSensor
+	var sensors []Sensor
 	for scanner.Scan() {
 		scriptLine := scanner.Text()
 
@@ -66,8 +66,8 @@ func scrapSensorData() []scriptTagScrappedSensor {
 	return sensors
 }
 
-func filterDeadSensors(sensors []scriptTagScrappedSensor, allowedDiffInHours int) []scriptTagScrappedSensor {
-	var aliveSensors []scriptTagScrappedSensor
+func FilterSensorsByHourDiff(sensors []Sensor, diffInHours int) []Sensor {
+	var aliveSensors []Sensor
 	layout := "2006-01-02T15:04:05.999999999Z"
 	for _, sensor := range sensors {
 		sensorTime, err := time.Parse(layout, sensor.CreatedAt)
@@ -77,7 +77,7 @@ func filterDeadSensors(sensors []scriptTagScrappedSensor, allowedDiffInHours int
 		}
 
 		diffInHours := sensorTime.Sub(time.Now().UTC()).Hours()
-		if diffInHours > float64(-1*allowedDiffInHours) {
+		if diffInHours > float64(-1*diffInHours) {
 			aliveSensors = append(aliveSensors, sensor)
 		}
 	}

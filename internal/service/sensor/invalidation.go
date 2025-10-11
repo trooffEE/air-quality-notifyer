@@ -2,6 +2,7 @@ package sensor
 
 import (
 	"air-quality-notifyer/internal/db/repository/sensor"
+	"air-quality-notifyer/internal/service/sensor/scrapper"
 	"fmt"
 
 	"github.com/robfig/cron/v3"
@@ -27,15 +28,15 @@ func (s *Service) StartInvalidatingSensorsPeriodically() {
 }
 
 func (s *Service) startInvalidation(allowedHourDiff int) {
-	scrappedSensors := scrapSensorData()
-	aliveSensors := filterDeadSensors(scrappedSensors, allowedHourDiff)
+	scrappedSensors := scrapper.Scrap()
+	aliveSensors := scrapper.FilterSensorsByHourDiff(scrappedSensors, allowedHourDiff)
 
 	for _, sensor := range aliveSensors {
 		s.saveSensor(sensor)
 	}
 }
 
-func (s *Service) saveSensor(scrappedSensor scriptTagScrappedSensor) {
+func (s *Service) saveSensor(scrappedSensor scrapper.Sensor) {
 	district := s.sDistricts.GetDistrictByCoords(scrappedSensor.Lat, scrappedSensor.Lon)
 	// TODO Не работаем с датчиками вне районов города
 	if district == nil {

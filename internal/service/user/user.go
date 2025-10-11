@@ -11,7 +11,15 @@ type Service struct {
 	repo user.Interface
 }
 
-func New(ur user.Interface) *Service {
+type Interface interface {
+	IsNewUser(id int64) bool
+	DeleteUser(id int64)
+	GetUsersNames() []string
+	GetUsersIds() []int64
+	Register(userModel User)
+}
+
+func New(ur user.Interface) Interface {
 	return &Service{
 		repo: ur,
 	}

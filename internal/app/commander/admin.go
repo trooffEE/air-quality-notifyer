@@ -9,7 +9,7 @@ import (
 	"go.uber.org/zap"
 )
 
-func (c *Commander) ShowUsers(update tgbotapi.Update, service *user.Service) {
+func (c *Commander) ShowUsers(update tgbotapi.Update, service user.Interface) {
 	if !c.isAdmin(update) {
 		return
 	}

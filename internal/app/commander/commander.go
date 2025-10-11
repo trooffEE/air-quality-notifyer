@@ -21,14 +21,14 @@ type Commander struct {
 type Interface interface {
 	Send(payload MessageConfig) *tgbotapi.Error
 	Delete(update tgbotapi.Update)
-	Start(update tgbotapi.Update, service *user.Service)
+	Start(update tgbotapi.Update, service user.Interface)
 	BackToMenu(update tgbotapi.Update)
 	FAQ(update tgbotapi.Update)
 	OperationMode(update tgbotapi.Update)
 	OperatingModeFaq(update tgbotapi.Update)
 	Pong(update tgbotapi.Update)
 	Settings(update tgbotapi.Update)
-	ShowUsers(update tgbotapi.Update, service *user.Service)
+	ShowUsers(update tgbotapi.Update, service user.Interface)
 }
 
 func New(bot *tgbotapi.BotAPI, cfg config.Config) Interface {

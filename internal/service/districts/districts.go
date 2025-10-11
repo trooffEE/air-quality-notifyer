@@ -11,7 +11,12 @@ type Service struct {
 	repo districts.Interface
 }
 
-func New(ur districts.Interface) *Service {
+type Interface interface {
+	GetAllDistricts() []districts.District
+	GetDistrictByCoords(x, y float64) *sensor.DistrictSensor
+}
+
+func New(ur districts.Interface) Interface {
 	return &Service{
 		repo: ur,
 	}

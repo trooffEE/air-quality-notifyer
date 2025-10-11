@@ -8,7 +8,7 @@ import (
 	"go.uber.org/zap"
 )
 
-func (c *Commander) Start(update tgbotapi.Update, service *user.Service) {
+func (c *Commander) Start(update tgbotapi.Update, service user.Interface) {
 	message := update.Message
 	chatId, username := message.Chat.ID, message.Chat.UserName
 

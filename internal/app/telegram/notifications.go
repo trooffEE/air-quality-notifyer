@@ -2,7 +2,7 @@ package telegram
 
 import (
 	"air-quality-notifyer/internal/app/commander"
-	s "air-quality-notifyer/internal/service/sensor"
+	mSensor "air-quality-notifyer/internal/service/sensor/model"
 	"fmt"
 	"time"
 
@@ -10,7 +10,7 @@ import (
 	"go.uber.org/zap"
 )
 
-func (t *tgBot) notifyUsers(sensors []s.Sensor) {
+func (t *tgBot) notifyUsers(sensors []mSensor.Sensor) {
 	messages := newUserMessages(sensors)
 
 	ids := t.services.UserService.GetUsersIds()
@@ -26,7 +26,7 @@ func (t *tgBot) notifyUsers(sensors []s.Sensor) {
 	}
 }
 
-func newUserMessages(sensors []s.Sensor) []string {
+func newUserMessages(sensors []mSensor.Sensor) []string {
 	var messages []string
 	for _, sensor := range sensors {
 		if sensor.IsDangerousLevelDetected() {
@@ -37,9 +37,9 @@ func newUserMessages(sensors []s.Sensor) []string {
 	return messages
 }
 
-func prepareDangerousLevelMessage(s s.Sensor) string {
-	pollutionLevel := s.GetExtendedPollutionLevel()
-	if pollutionLevel == nil {
+func prepareDangerousLevelMessage(s mSensor.Sensor) string {
+	pollution := s.GetPollutionData()
+	if pollution == nil {
 		return ""
 	}
 
@@ -58,7 +58,7 @@ func prepareDangerousLevelMessage(s s.Sensor) string {
 	date := t.In(loc).Format("02.01.2006 15:04")
 	return fmt.Sprintf(
 		"<b>В районе - %s</b> 🏠\n\nЗа прошедший час - для времени %s 🕛 \n\nЗафиксировано значительное ухудшение качества воздуха - уровень опасности \"%s\"\n\n<b>AQI(PM10): %d\nAQI(PM2.5): %d</b>\n\nПодробнее: %s",
-		s.District, date, pollutionLevel.Name,
+		s.District, date, pollution.Name,
 		s.Aqi10, s.Aqi25, s.SourceLink,
 	)
 }

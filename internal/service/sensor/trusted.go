@@ -2,8 +2,8 @@ package sensor
 
 import (
 	"air-quality-notifyer/internal/db/repository/sensor"
-	"math"
-	"slices"
+	"air-quality-notifyer/internal/service/sensor/model"
+	"air-quality-notifyer/internal/service/sensor/request"
 	"sync"
 	"time"
 
@@ -35,7 +35,7 @@ func (s *Service) StartGettingTrustedSensorsEveryHour() {
 func (s *Service) getTrustedSensors() {
 	allDistricts := s.sDistricts.GetAllDistricts() // think about it
 
-	respChan := make(chan Sensor, len(allDistricts))
+	respChan := make(chan model.Sensor, len(allDistricts))
 	wg := sync.WaitGroup{}
 	for _, district := range allDistricts {
 		sensorsInDistrict, err := s.getDistrictSensorsFromCache(district.Id)
@@ -43,12 +43,12 @@ func (s *Service) getTrustedSensors() {
 			zap.L().Error("failed to get sensors by districtId", zap.Error(err), zap.Int64("districtId", district.Id))
 			continue
 		}
-		wg.Go(func() { findTrustedSensor(respChan, *sensorsInDistrict) })
+		wg.Go(func() { getTrustedSensor(respChan, *sensorsInDistrict) })
 	}
 	wg.Wait()
 	close(respChan)
 
-	var sensors []Sensor
+	var sensors []model.Sensor
 	for resp := range respChan {
 		sensors = append(sensors, resp)
 	}
@@ -56,50 +56,18 @@ func (s *Service) getTrustedSensors() {
 	s.cSensors <- sensors
 }
 
-func findTrustedSensor(resChan chan Sensor, sensors []sensor.Sensor) {
-	var syncSensorList SyncTrustedSensors
-	syncSensorList.wg.Add(len(sensors))
+func getTrustedSensor(resChan chan model.Sensor, sensors []sensor.Sensor) {
+	var syncSensorList model.SyncSensorsList
+	syncSensorList.Wg.Add(len(sensors))
 	for _, sensor := range sensors {
-		go getLastUpdatedSensor(&syncSensorList, sensor.ApiId, sensor.District.Name)
+		go request.GetArchiveSensor(&syncSensorList, sensor.ApiId, sensor.District.Name)
 	}
-	syncSensorList.wg.Wait()
+	syncSensorList.Wg.Wait()
 
-	trustedAqlSensor := syncSensorList.getSensor()
+	trustedAqlSensor := syncSensorList.GetSensor()
 	if trustedAqlSensor == nil {
 		return
 	}
 
 	resChan <- *trustedAqlSensor
-}
-
-type SyncTrustedSensors struct {
-	mu   sync.Mutex
-	wg   sync.WaitGroup
-	list []Sensor
-}
-
-func (s *SyncTrustedSensors) getSensor() *Sensor {
-	if len(s.list) == 0 {
-		return nil
-	}
-	s.sortByAqi()
-	trustedIndex := math.Ceil(float64(len(s.list) / 2))
-	return &s.list[int(trustedIndex)]
-}
-
-func (s *SyncTrustedSensors) addSensor(sensor Sensor) {
-	s.mu.Lock()
-	s.list = append(s.list, sensor)
-	s.mu.Unlock()
-}
-
-func (s *SyncTrustedSensors) sortByAqi() {
-	slices.SortFunc(s.list, func(a, b Sensor) int {
-		if a.Aqi < b.Aqi {
-			return -1
-		} else if a.Aqi > b.Aqi {
-			return 1
-		}
-		return 0
-	})
 }

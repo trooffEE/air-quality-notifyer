@@ -21,8 +21,8 @@ type tgBot struct {
 }
 
 type BotServices struct {
-	UserService   *user.Service
-	SensorService *sensor.Service
+	UserService   user.Interface
+	SensorService sensor.Interface
 }
 
 func Init(services BotServices, cfg config.Config) *tgBot {

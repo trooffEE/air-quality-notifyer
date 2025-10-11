@@ -1,4 +1,4 @@
-package sensor
+package request
 
 import (
 	"encoding/json"
@@ -20,6 +20,10 @@ type SuiteExternalAPI struct {
 	sensorId     int
 	httpMock     *httptest.Server
 	httpResponse string
+}
+
+func TestSuites(t *testing.T) {
+	suite.Run(t, new(SuiteExternalAPI))
 }
 
 func (s *SuiteExternalAPI) SetupTest(sensorId int64) {
@@ -44,12 +48,7 @@ func (s *SuiteExternalAPI) TestFetch() {
 	sensorResponse, err := fetchSensorById(mockSensorId)
 	assert.NoError(t, err)
 
-	var lazyExpectedParsedResult SensorResponse
+	var lazyExpectedParsedResult Response
 	json.Unmarshal([]byte(s.httpResponse), &lazyExpectedParsedResult)
 	assert.Equal(t, sensorResponse, lazyExpectedParsedResult)
-}
-
-func TestSuites(t *testing.T) {
-	suite.Run(t, new(SuiteSyncAirqualitySensorList))
-	suite.Run(t, new(SuiteExternalAPI))
 }
