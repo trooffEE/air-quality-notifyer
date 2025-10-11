@@ -66,6 +66,7 @@ func Scrap() []Sensor {
 	return sensors
 }
 
+// TODO Maybe not a place for it
 func FilterSensorsByHourDiff(sensors []Sensor, diffInHours int) []Sensor {
 	var aliveSensors []Sensor
 	layout := "2006-01-02T15:04:05.999999999Z"
