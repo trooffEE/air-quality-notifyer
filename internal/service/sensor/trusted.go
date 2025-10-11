@@ -1,7 +1,7 @@
 package sensor
 
 import (
-	"air-quality-notifyer/internal/db/models"
+	"air-quality-notifyer/internal/db/repository/sensor"
 	"math"
 	"slices"
 	"sync"
@@ -56,7 +56,7 @@ func (s *Service) getTrustedSensors() {
 	s.cSensors <- sensors
 }
 
-func findTrustedSensor(resChan chan Sensor, sensors []models.Sensor) {
+func findTrustedSensor(resChan chan Sensor, sensors []sensor.Sensor) {
 	var syncSensorList SyncTrustedSensors
 	syncSensorList.wg.Add(len(sensors))
 	for _, sensor := range sensors {

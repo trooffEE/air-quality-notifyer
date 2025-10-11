@@ -1,7 +1,7 @@
 package sensor
 
 import (
-	"air-quality-notifyer/internal/db/models"
+	rSensor "air-quality-notifyer/internal/db/repository/sensor"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -12,7 +12,7 @@ import (
 
 var TTL time.Duration = time.Hour * 4
 
-func (s *Service) saveSensorInCache(sensor models.Sensor) {
+func (s *Service) saveSensorInCache(sensor rSensor.Sensor) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
 	defer cancel()
 
@@ -61,7 +61,7 @@ func (s *Service) saveSensorInCache(sensor models.Sensor) {
 	pipeline.Exec(ctx)
 }
 
-func (s *Service) getSensorFromCache(sensorId int64) (*models.Sensor, error) {
+func (s *Service) getSensorFromCache(sensorId int64) (*rSensor.Sensor, error) {
 	key := getSensorCacheKey(sensorId)
 
 	result, err := s.cache.Get(context.Background(), key).Result()
@@ -69,7 +69,7 @@ func (s *Service) getSensorFromCache(sensorId int64) (*models.Sensor, error) {
 		return nil, err
 	}
 
-	var sensor models.Sensor
+	var sensor rSensor.Sensor
 	err = json.Unmarshal([]byte(result), &sensor)
 	if err != nil {
 		return nil, err
@@ -78,7 +78,7 @@ func (s *Service) getSensorFromCache(sensorId int64) (*models.Sensor, error) {
 	return &sensor, nil
 }
 
-func (s *Service) getDistrictSensorsFromCache(districtID int64) (*[]models.Sensor, error) {
+func (s *Service) getDistrictSensorsFromCache(districtID int64) (*[]rSensor.Sensor, error) {
 	key := getDistrictSensorsCacheKey(districtID)
 
 	result, err := s.cache.HGetAll(context.Background(), key).Result()
@@ -86,9 +86,9 @@ func (s *Service) getDistrictSensorsFromCache(districtID int64) (*[]models.Senso
 		return nil, err
 	}
 
-	var sensors []models.Sensor
+	var sensors []rSensor.Sensor
 	for _, sensorJSON := range result {
-		var sensor models.Sensor
+		var sensor rSensor.Sensor
 		if err := json.Unmarshal([]byte(sensorJSON), &sensor); err != nil {
 			return nil, err
 		}

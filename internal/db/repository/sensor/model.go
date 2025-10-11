@@ -1,4 +1,4 @@
-package models
+package sensor
 
 type Sensor struct {
 	Id         int64          `db:"id" redis:"id"`

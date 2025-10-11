@@ -75,11 +75,11 @@ func Init(services BotServices, cfg config.Config) *tgBot {
 	}
 }
 
-func (t *tgBot) ListenSensorsUpdates() {
+func (t *tgBot) ListenSensors() {
 	t.services.SensorService.ListenChangesInSensors(t.notifyUsers)
 }
 
-func (t *tgBot) ListenTelegramUpdates() {
+func (t *tgBot) ListenUpdates() {
 	cfg := tgbotapi.NewSetMyCommands(
 		tgbotapi.BotCommand{
 			Command:     "start",

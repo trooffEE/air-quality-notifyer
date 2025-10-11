@@ -1,29 +1,27 @@
-package repository
+package sensor
 
 import (
-	"air-quality-notifyer/internal/db/models"
-
 	"github.com/jmoiron/sqlx"
 )
 
-type SensorRepository struct {
+type Repository struct {
 	db *sqlx.DB
 }
 
-func NewSensorRepository(db *sqlx.DB) *SensorRepository {
-	return &SensorRepository{db: db}
+func New(db *sqlx.DB) *Repository {
+	return &Repository{db: db}
 }
 
-type SensorRepositoryInterface interface {
+type Interface interface {
 	GetAllApiIds() ([]int64, error)
-	GetSensorByApiId(id int64) (*models.Sensor, error)
-	SaveSensor(sensor models.Sensor) error
+	GetSensorByApiId(id int64) (*Sensor, error)
+	SaveSensor(sensor Sensor) error
 	EvictSensor(id int64) error
-	GetSensorsByDistrictId(id int64) ([]models.Sensor, error)
+	GetSensorsByDistrictId(id int64) ([]Sensor, error)
 }
 
-func (r *SensorRepository) GetSensorByApiId(id int64) (*models.Sensor, error) {
-	var sensor models.Sensor
+func (r *Repository) GetSensorByApiId(id int64) (*Sensor, error) {
+	var sensor Sensor
 	err := r.db.Get(&sensor, "SELECT * FROM sensors WHERE api_id = $1", id)
 	if err != nil {
 		return nil, err
@@ -32,7 +30,7 @@ func (r *SensorRepository) GetSensorByApiId(id int64) (*models.Sensor, error) {
 	return &sensor, nil
 }
 
-func (r *SensorRepository) SaveSensor(sensor models.Sensor) error {
+func (r *Repository) SaveSensor(sensor Sensor) error {
 	_, err := r.db.NamedExec(`
 		INSERT INTO sensors (api_id, district_id, address, lat, lon, created_at)
 		VALUES (:api_id, :district_id, :address, :lat, :lon, :created_at)
@@ -45,7 +43,7 @@ func (r *SensorRepository) SaveSensor(sensor models.Sensor) error {
 	return nil
 }
 
-func (r *SensorRepository) GetAllApiIds() ([]int64, error) {
+func (r *Repository) GetAllApiIds() ([]int64, error) {
 	var ids []int64
 	err := r.db.Select(&ids, "SELECT api_id FROM sensors")
 
@@ -56,7 +54,7 @@ func (r *SensorRepository) GetAllApiIds() ([]int64, error) {
 	return ids, nil
 }
 
-func (r *SensorRepository) EvictSensor(sensorApiId int64) error {
+func (r *Repository) EvictSensor(sensorApiId int64) error {
 	_, err := r.db.Exec("DELETE FROM sensors WHERE api_id = $1", sensorApiId)
 	if err != nil {
 		return err
@@ -65,8 +63,8 @@ func (r *SensorRepository) EvictSensor(sensorApiId int64) error {
 	return nil
 }
 
-func (r *SensorRepository) GetSensorsByDistrictId(id int64) ([]models.Sensor, error) {
-	var sensors []models.Sensor
+func (r *Repository) GetSensorsByDistrictId(id int64) ([]Sensor, error) {
+	var sensors []Sensor
 	err := r.db.Select(&sensors, `
 		SELECT
 		    s.id AS id,

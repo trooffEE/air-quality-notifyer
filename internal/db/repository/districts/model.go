@@ -1,4 +1,4 @@
-package models
+package districts
 
 type District struct {
 	Id   int64  `db:"id"`

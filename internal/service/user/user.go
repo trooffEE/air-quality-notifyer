@@ -1,18 +1,17 @@
 package user
 
 import (
-	"air-quality-notifyer/internal/db/models"
-	repo "air-quality-notifyer/internal/db/repository"
+	"air-quality-notifyer/internal/db/repository/user"
 	"errors"
 
 	"go.uber.org/zap"
 )
 
 type Service struct {
-	repo repo.UserRepositoryInterface
+	repo user.Interface
 }
 
-func New(ur repo.UserRepositoryInterface) *Service {
+func New(ur user.Interface) *Service {
 	return &Service{
 		repo: ur,
 	}
@@ -22,7 +21,7 @@ func (ur *Service) IsNewUser(id int64) bool {
 	_, err := ur.repo.FindById(id)
 
 	if err != nil {
-		if errors.Is(repo.UserNotFound, err) {
+		if errors.Is(user.NotFound, err) {
 			return true
 		}
 		zap.L().Error("repository error", zap.Error(err))
@@ -31,10 +30,10 @@ func (ur *Service) IsNewUser(id int64) bool {
 	return false
 }
 
-func (ur *Service) Register(user User) {
-	dto := models.User{
-		TelegramId: user.Id,
-		Username:   user.Username,
+func (ur *Service) Register(userModel User) {
+	dto := user.User{
+		TelegramId: userModel.Id,
+		Username:   userModel.Username,
 	}
 
 	err := ur.repo.Register(dto)

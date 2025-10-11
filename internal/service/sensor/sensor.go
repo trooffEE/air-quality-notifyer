@@ -1,14 +1,14 @@
 package sensor
 
 import (
-	repo "air-quality-notifyer/internal/db/repository"
+	"air-quality-notifyer/internal/db/repository/sensor"
 	"air-quality-notifyer/internal/service/districts"
 
 	"github.com/redis/go-redis/v9"
 )
 
 type Service struct {
-	repo       repo.SensorRepositoryInterface
+	repo       sensor.Interface
 	sDistricts *districts.Service
 	cSensors   chan []Sensor
 	syncCron   chan interface{}
@@ -16,7 +16,7 @@ type Service struct {
 }
 
 func New(
-	repo repo.SensorRepositoryInterface,
+	repo sensor.Interface,
 	sDistricts *districts.Service,
 	cache *redis.Client,
 ) *Service {

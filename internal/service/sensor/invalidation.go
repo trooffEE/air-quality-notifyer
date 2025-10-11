@@ -1,7 +1,7 @@
 package sensor
 
 import (
-	"air-quality-notifyer/internal/db/models"
+	"air-quality-notifyer/internal/db/repository/sensor"
 	"fmt"
 
 	"github.com/robfig/cron/v3"
@@ -11,7 +11,7 @@ var (
 	InvalidationPeriod = 4
 )
 
-func (s *Service) InvalidateSensorsPeriodically() {
+func (s *Service) StartInvalidatingSensorsPeriodically() {
 	cronCreator := cron.New()
 	cronString := fmt.Sprintf("0 */%d * * *", InvalidationPeriod)
 
@@ -35,21 +35,21 @@ func (s *Service) startInvalidation(allowedHourDiff int) {
 	}
 }
 
-func (s *Service) saveSensor(sensor scriptTagScrappedSensor) {
-	district := s.sDistricts.GetDistrictByCoords(sensor.Lat, sensor.Lon)
+func (s *Service) saveSensor(scrappedSensor scriptTagScrappedSensor) {
+	district := s.sDistricts.GetDistrictByCoords(scrappedSensor.Lat, scrappedSensor.Lon)
 	// TODO Не работаем с датчиками вне районов города
 	if district == nil {
 		return
 	}
 
-	payload := models.Sensor{
+	payload := sensor.Sensor{
 		DistrictId: district.Id,
-		ApiId:      sensor.Id,
-		Address:    sensor.Address,
-		Lat:        sensor.Lat,
-		Lon:        sensor.Lon,
-		CreatedAt:  sensor.CreatedAt,
-		District: models.DistrictSensor{
+		ApiId:      scrappedSensor.Id,
+		Address:    scrappedSensor.Address,
+		Lat:        scrappedSensor.Lat,
+		Lon:        scrappedSensor.Lon,
+		CreatedAt:  scrappedSensor.CreatedAt,
+		District: sensor.DistrictSensor{
 			Id:   district.Id,
 			Name: district.Name,
 		},

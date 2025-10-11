@@ -6,10 +6,12 @@ import (
 	"air-quality-notifyer/internal/cache"
 	"air-quality-notifyer/internal/config"
 	"air-quality-notifyer/internal/db"
-	"air-quality-notifyer/internal/db/repository"
-	"air-quality-notifyer/internal/service/districts"
-	"air-quality-notifyer/internal/service/sensor"
-	"air-quality-notifyer/internal/service/user"
+	rDistricts "air-quality-notifyer/internal/db/repository/districts"
+	rSensor "air-quality-notifyer/internal/db/repository/sensor"
+	rUser "air-quality-notifyer/internal/db/repository/user"
+	sDistricts "air-quality-notifyer/internal/service/districts"
+	sSensor "air-quality-notifyer/internal/service/sensor"
+	sUser "air-quality-notifyer/internal/service/user"
 	"context"
 	_ "database/sql"
 	"os/signal"
@@ -28,16 +30,16 @@ func main() {
 
 	//DB
 	database := db.New(cfg)
-	districtRepository := repository.NewDistrictRepository(database)
-	userRepository := repository.NewUserRepository(database)
-	sensorRepository := repository.NewSensorRepository(database)
+	districtRepository := rDistricts.New(database)
+	userRepository := rUser.New(database)
+	sensorRepository := rSensor.New(database)
 
 	//Cache
 	cacheClient := cache.New(cfg)
 
-	userService := user.New(userRepository)
-	districtService := districts.New(districtRepository)
-	sensorService := sensor.New(sensorRepository, districtService, cacheClient)
+	userService := sUser.New(userRepository)
+	districtService := sDistricts.New(districtRepository)
+	sensorService := sSensor.New(sensorRepository, districtService, cacheClient)
 
 	httpShutdown := server.Init(ctx, cfg)
 
@@ -48,11 +50,11 @@ func main() {
 
 	bot := telegram.Init(services, cfg)
 
-	go bot.ListenSensorsUpdates()
-	go bot.ListenTelegramUpdates()
+	go bot.ListenSensors()
+	go bot.ListenUpdates()
 
 	sensorService.StartGettingTrustedSensorsEveryHour()
-	sensorService.InvalidateSensorsPeriodically()
+	sensorService.StartInvalidatingSensorsPeriodically()
 
 	<-ctx.Done()
 	zap.L().Info("starting application shutdown...")
