@@ -1,4 +1,4 @@
-package menu
+package api
 
 import (
 	"slices"
@@ -19,7 +19,7 @@ func IsMenuButton(button string) bool {
 	return slices.Contains(options, button)
 }
 
-func New() tgbotapi.ReplyKeyboardMarkup {
+func NewReplyKeyboard() tgbotapi.ReplyKeyboardMarkup {
 	return tgbotapi.NewOneTimeReplyKeyboard(
 		tgbotapi.NewKeyboardButtonRow(
 			tgbotapi.NewKeyboardButton(Settings),

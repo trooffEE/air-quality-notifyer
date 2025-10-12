@@ -1,7 +1,7 @@
 package telegram
 
 import (
-	"air-quality-notifyer/internal/app/commander"
+	"air-quality-notifyer/internal/app/commander/api"
 	mSensor "air-quality-notifyer/internal/service/sensor/model"
 	"fmt"
 	"time"
@@ -17,8 +17,8 @@ func (t *tgBot) notifyUsers(sensors []mSensor.Sensor) {
 	for _, id := range ids {
 		for _, message := range messages {
 			msg := tgbotapi.NewMessage(id, message)
-			payload := commander.MessageConfig{Msg: msg}
-			if err := t.Commander.Send(payload); err != nil && err.Code == 403 {
+			payload := api.MessageConfig{Msg: msg}
+			if err := t.Commander.API.Send(payload); err != nil && err.Code == 403 {
 				t.services.UserService.DeleteUser(id)
 				break
 			}

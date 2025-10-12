@@ -2,8 +2,8 @@ package telegram
 
 import (
 	"air-quality-notifyer/internal/app/commander"
-	"air-quality-notifyer/internal/app/keypads"
-	"air-quality-notifyer/internal/app/menu"
+	"air-quality-notifyer/internal/app/commander/api"
+	"air-quality-notifyer/internal/app/commander/mode"
 	"air-quality-notifyer/internal/config"
 	"air-quality-notifyer/internal/service/sensor"
 	"air-quality-notifyer/internal/service/user"
@@ -17,7 +17,7 @@ type tgBot struct {
 	bot       *tgbotapi.BotAPI
 	updates   tgbotapi.UpdatesChannel
 	services  BotServices
-	Commander commander.Interface
+	Commander *commander.Commander
 }
 
 type BotServices struct {
@@ -101,18 +101,18 @@ func (t *tgBot) ListenUpdates() {
 			switch update.Message.Text {
 			case "/start":
 				t.Commander.Start(update, t.services.UserService)
-			case menu.Users:
-				t.Commander.ShowUsers(update, t.services.UserService)
-			case menu.FAQ:
-				t.Commander.FAQ(update)
-			case menu.Settings:
+			case api.Users:
+				t.Commander.Admin.ShowUsers(update, t.services.UserService)
+			case api.FAQ:
+				t.Commander.API.MenuFaq(update)
+			case api.Settings:
 				t.Commander.Settings(update)
-			case menu.Ping:
-				t.Commander.Pong(update)
+			case api.Ping:
+				t.Commander.Admin.Pong(update)
 			}
 
-			if menu.IsMenuButton(update.Message.Text) {
-				t.Commander.Delete(update)
+			if api.IsMenuButton(update.Message.Text) {
+				t.Commander.API.Delete(update)
 			}
 		}
 
@@ -124,12 +124,12 @@ func (t *tgBot) ListenUpdates() {
 			}
 
 			switch update.CallbackQuery.Data {
-			case keypads.BackToMenuData:
-				t.Commander.BackToMenu(update)
-			case keypads.OperationModeFAQData, keypads.OperatingModeFAQFromSetupData:
-				t.Commander.OperatingModeFaq(update)
-			case keypads.OperationModeData:
-				t.Commander.OperationMode(update)
+			case api.KeypadMenuBackData:
+				t.Commander.API.MenuBack(update)
+			case api.KeypadFaqData, mode.KeypadFaqFromSetupData:
+				t.Commander.Mode.Faq(update)
+			case mode.KeypadData:
+				t.Commander.Mode.Setup(update)
 			}
 		}
 	}

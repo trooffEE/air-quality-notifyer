@@ -1,22 +1,21 @@
-package commander
+package api
 
 import (
-	"air-quality-notifyer/internal/app/keypads"
 	"fmt"
 
 	tgbotapi "github.com/OvyFlash/telegram-bot-api"
 	"go.uber.org/zap"
 )
 
-func (c *Commander) BackToMenu(update tgbotapi.Update) {
+func (a *Api) MenuBack(update tgbotapi.Update) {
 	msg := tgbotapi.NewMessage(update.CallbackQuery.Message.Chat.ID, "Вы вернулись в меню ⬇️")
 
-	if err := c.Send(MessageConfig{Msg: msg}); err != nil {
+	if err := a.Send(MessageConfig{Msg: msg}); err != nil {
 		zap.L().Error("Error sending back message", zap.Error(err))
 	}
 }
 
-func (c *Commander) FAQ(update tgbotapi.Update) {
+func (a *Api) MenuFaq(update tgbotapi.Update) {
 	msg := tgbotapi.NewMessage(update.Message.Chat.ID, fmt.Sprintf(
 		"⚙️<strong>Ответы на вопросы</strong>\n\n"+
 			"<i>- Связан ли данный бот с https://airkemerovo.ru ?</i>\n"+
@@ -32,19 +31,19 @@ func (c *Commander) FAQ(update tgbotapi.Update) {
 			"ℹ Подробнее о режимах можно прочитать в меню - \n\"%s\"\n\n"+
 			"<i>- Почему на https://airkemerovo.ru больше датчиков, чем в предложенном перечне?</i>\n"+
 			"Потому что на данном этапе проекта реализована работа только с <strong>датчиками города Кемерово</strong>. Это сознательное решение автора проекта, однако это вполне может поменяться в будущем\n\n",
-		keypads.OperationModeFAQText,
+		KeypadFaqText,
 	),
 	)
 	markup := tgbotapi.NewInlineKeyboardMarkup(
 		tgbotapi.NewInlineKeyboardRow(
-			tgbotapi.NewInlineKeyboardButtonData(keypads.OperationModeFAQText, keypads.OperationModeFAQData),
+			tgbotapi.NewInlineKeyboardButtonData(KeypadFaqText, KeypadFaqData),
 		),
 		tgbotapi.NewInlineKeyboardRow(
-			tgbotapi.NewInlineKeyboardButtonData(keypads.BackToMenuText, keypads.BackToMenuData),
+			tgbotapi.NewInlineKeyboardButtonData(KeypadMenuBackText, KeypadMenuBackData),
 		),
 	)
 
-	if err := c.Send(MessageConfig{Msg: msg, Markup: markup}); err != nil {
+	if err := a.Send(MessageConfig{Msg: msg, Markup: markup}); err != nil {
 		zap.L().Error("Error sending faq message", zap.Error(err))
 	}
 }

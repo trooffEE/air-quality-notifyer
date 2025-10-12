@@ -10,7 +10,7 @@ import (
 	"go.uber.org/zap"
 )
 
-var TTL time.Duration = time.Hour * 4
+var TTL = time.Hour * 4
 
 func (s *Service) saveSensorInCache(sensor rSensor.Sensor) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)

@@ -1,6 +1,7 @@
 package commander
 
 import (
+	"air-quality-notifyer/internal/app/commander/api"
 	"air-quality-notifyer/internal/service/user"
 	"strconv"
 
@@ -13,7 +14,7 @@ func (c *Commander) Start(update tgbotapi.Update, service user.Interface) {
 	chatId, username := message.Chat.ID, message.Chat.UserName
 
 	msg := tgbotapi.NewMessage(chatId, "Данный бот оповещает о плохом качестве воздуха в городе Кемерово.\n\nПросьба настроить уведомления, чтобы бот не беспокоил ночью! 🍵")
-	if err := c.Send(MessageConfig{Msg: msg}); err != nil {
+	if err := c.API.Send(api.MessageConfig{Msg: msg}); err != nil {
 		zap.L().Error("Error sending faq message", zap.Error(err))
 	}
 
