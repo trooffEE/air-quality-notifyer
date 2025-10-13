@@ -2,6 +2,8 @@ package user
 
 import (
 	"air-quality-notifyer/internal/db/repository/user"
+	"air-quality-notifyer/internal/service/user/mode"
+	"air-quality-notifyer/internal/service/user/model"
 	"errors"
 
 	"go.uber.org/zap"
@@ -9,6 +11,7 @@ import (
 
 type Service struct {
 	repo user.Interface
+	Mode mode.Interface
 }
 
 type Interface interface {
@@ -16,7 +19,7 @@ type Interface interface {
 	DeleteUser(id int64)
 	GetUsersNames() []string
 	GetUsersIds() []int64
-	Register(userModel User)
+	Register(userModel model.User)
 }
 
 func New(ur user.Interface) Interface {
@@ -38,7 +41,7 @@ func (ur *Service) IsNewUser(id int64) bool {
 	return false
 }
 
-func (ur *Service) Register(userModel User) {
+func (ur *Service) Register(userModel model.User) {
 	dto := user.User{
 		TelegramId: userModel.Id,
 		Username:   userModel.Username,

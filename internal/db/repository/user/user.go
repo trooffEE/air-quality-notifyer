@@ -18,6 +18,7 @@ type Interface interface {
 	GetAllIds() ([]int64, error)
 	GetAllNames() ([]string, error)
 	DeleteUserById(id int64) error
+	//SetMode(mode int) error
 }
 
 type Repository struct {
@@ -88,6 +89,11 @@ func (r *Repository) DeleteUserById(id int64) error {
 	if err != nil {
 		return err
 	}
+
+	return nil
+}
+
+func (r *Repository) SetMode() error {
 
 	return nil
 }
