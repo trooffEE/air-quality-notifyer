@@ -101,13 +101,13 @@ func (t *tgBot) ListenUpdates() {
 			switch update.Message.Text {
 			case "/start":
 				t.Commander.Start(update, t.services.UserService)
-			case api.Users:
+			case api.KeypadUsersText:
 				t.Commander.Admin.ShowUsers(update, t.services.UserService)
-			case api.FAQ:
+			case api.KeypadFaqText:
 				t.Commander.API.MenuFaq(update)
-			case api.Settings:
+			case api.KeypadSettingsText:
 				t.Commander.Settings(update)
-			case api.Ping:
+			case api.KeypadPingText:
 				t.Commander.Admin.Pong(update)
 			}
 
@@ -126,7 +126,7 @@ func (t *tgBot) ListenUpdates() {
 			switch update.CallbackQuery.Data {
 			case api.KeypadMenuBackData:
 				t.Commander.API.MenuBack(update)
-			case api.KeypadFaqData, mode.KeypadFaqFromSetupData:
+			case api.KeypadModeFaqData, mode.KeypadFaqFromSetupData:
 				t.Commander.Mode.Faq(update)
 			case mode.KeypadData:
 				t.Commander.Mode.Setup(update)

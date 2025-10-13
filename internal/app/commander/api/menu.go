@@ -2,10 +2,26 @@ package api
 
 import (
 	"fmt"
+	"slices"
 
 	tgbotapi "github.com/OvyFlash/telegram-bot-api"
 	"go.uber.org/zap"
 )
+
+var options = []string{KeypadFaqText, KeypadSettingsText, KeypadUsersText, KeypadPingText}
+
+func IsMenuButton(button string) bool {
+	return slices.Contains(options, button)
+}
+
+func NewReplyKeyboard() tgbotapi.ReplyKeyboardMarkup {
+	return tgbotapi.NewOneTimeReplyKeyboard(
+		tgbotapi.NewKeyboardButtonRow(
+			tgbotapi.NewKeyboardButton(KeypadSettingsText),
+			tgbotapi.NewKeyboardButton(KeypadFaqText),
+		),
+	)
+}
 
 func (a *Api) MenuBack(update tgbotapi.Update) {
 	msg := tgbotapi.NewMessage(update.CallbackQuery.Message.Chat.ID, "Вы вернулись в меню ⬇️")
@@ -31,12 +47,12 @@ func (a *Api) MenuFaq(update tgbotapi.Update) {
 			"ℹ Подробнее о режимах можно прочитать в меню - \n\"%s\"\n\n"+
 			"<i>- Почему на https://airkemerovo.ru больше датчиков, чем в предложенном перечне?</i>\n"+
 			"Потому что на данном этапе проекта реализована работа только с <strong>датчиками города Кемерово</strong>. Это сознательное решение автора проекта, однако это вполне может поменяться в будущем\n\n",
-		KeypadFaqText,
+		KeypadModeFaqText,
 	),
 	)
 	markup := tgbotapi.NewInlineKeyboardMarkup(
 		tgbotapi.NewInlineKeyboardRow(
-			tgbotapi.NewInlineKeyboardButtonData(KeypadFaqText, KeypadFaqData),
+			tgbotapi.NewInlineKeyboardButtonData(KeypadModeFaqText, KeypadModeFaqData),
 		),
 		tgbotapi.NewInlineKeyboardRow(
 			tgbotapi.NewInlineKeyboardButtonData(KeypadMenuBackText, KeypadMenuBackData),
