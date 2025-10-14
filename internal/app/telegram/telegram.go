@@ -112,7 +112,10 @@ func (t *tgBot) ListenUpdates() {
 			}
 
 			if api.IsMenuButton(update.Message.Text) {
-				t.Commander.API.Delete(update)
+				err := t.Commander.API.Delete(update.Message)
+				if err != nil {
+					zap.L().Error("failed to delete commander menu item", zap.Error(err))
+				}
 			}
 		}
 
@@ -130,6 +133,12 @@ func (t *tgBot) ListenUpdates() {
 				t.Commander.Mode.Faq(update)
 			case mode.KeypadData:
 				t.Commander.Mode.Setup(update)
+			case mode.KeypadSetCityData:
+				t.Commander.Mode.SetCity(update, t.services.UserService)
+				//case mode.KeypadSetDistrictData:
+				//	t.Commander.Mode.SetDistrict(update, t.services.UserService, constants.District)
+				//case mode.KeypadSetHomeData:
+				//	t.Commander.Mode.SetHome(update, t.services.UserService, constants.Home)
 			}
 		}
 	}

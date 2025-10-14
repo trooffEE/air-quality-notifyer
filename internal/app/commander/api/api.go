@@ -18,7 +18,7 @@ type Api struct {
 
 type Interface interface {
 	Send(payload MessageConfig) *tgbotapi.Error
-	Delete(update tgbotapi.Update)
+	Delete(update *tgbotapi.Message) error
 	Edit(payload EditMessageConfig) *tgbotapi.Error
 	IsAdmin(update tgbotapi.Update) bool
 	IsNotificationsAllowed() bool
@@ -62,12 +62,13 @@ func (a *Api) Send(payload MessageConfig) *tgbotapi.Error {
 	return nil
 }
 
-func (a *Api) Delete(update tgbotapi.Update) {
-	message := update.Message
+func (a *Api) Delete(message *tgbotapi.Message) error {
 	_, err := a.bot.Request(tgbotapi.NewDeleteMessage(message.Chat.ID, message.MessageID))
 	if err != nil {
 		zap.L().Error("Error deleting message", zap.Error(err))
+		return err
 	}
+	return nil
 }
 
 type EditMessageConfig struct {

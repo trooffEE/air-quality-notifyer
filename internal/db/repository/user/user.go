@@ -1,6 +1,9 @@
 package user
 
 import (
+	"air-quality-notifyer/internal/constants"
+	"air-quality-notifyer/internal/exception"
+	"air-quality-notifyer/internal/helper"
 	"database/sql"
 	"errors"
 
@@ -18,7 +21,7 @@ type Interface interface {
 	GetAllIds() ([]int64, error)
 	GetAllNames() ([]string, error)
 	DeleteUserById(id int64) error
-	//SetMode(mode int) error
+	SetOperatingMode(tgId int64, mode constants.ModeType) error
 }
 
 type Repository struct {
@@ -93,7 +96,19 @@ func (r *Repository) DeleteUserById(id int64) error {
 	return nil
 }
 
-func (r *Repository) SetMode() error {
+func (r *Repository) SetOperatingMode(tgId int64, mode constants.ModeType) error {
+	if !helper.IsValidMode(mode) {
+		err := exception.InvalidOperatingMode
+		zap.L().Error("Setting mode", zap.Error(err))
+		return err
+	}
+
+	_, err := r.db.Exec("UPDATE users SET operating_mode = $1 WHERE telegram_id = $2", mode, tgId)
+
+	if err != nil {
+		zap.L().Error("Failed to set operating mode", zap.Error(err))
+		return err
+	}
 
 	return nil
 }

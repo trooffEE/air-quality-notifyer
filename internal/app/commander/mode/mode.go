@@ -2,6 +2,8 @@ package mode
 
 import (
 	"air-quality-notifyer/internal/app/commander/api"
+	"air-quality-notifyer/internal/constants"
+	sUser "air-quality-notifyer/internal/service/user"
 	"fmt"
 
 	tgbotapi "github.com/OvyFlash/telegram-bot-api"
@@ -14,8 +16,8 @@ type Commander struct {
 
 type Interface interface {
 	Setup(update tgbotapi.Update)
-	//Set(update tgbotapi.Update, mode string)
 	Faq(update tgbotapi.Update)
+	SetCity(update tgbotapi.Update, sUser sUser.Interface)
 }
 
 func New(api api.Interface) Interface {
@@ -79,5 +81,28 @@ func (c *Commander) Faq(update tgbotapi.Update) {
 
 	if err := c.api.Edit(api.EditMessageConfig{Msg: msg, Markup: &markup}); err != nil {
 		zap.L().Error("Error sending operating_mode_faq message", zap.Error(err))
+	}
+}
+
+func (c *Commander) SetCity(update tgbotapi.Update, u sUser.Interface) {
+	message := update.CallbackQuery.Message
+	chatId := message.Chat.ID
+	err := u.SetOperatingMode(chatId, constants.City)
+	if err != nil {
+		zap.L().Error("Error setting operating mode", zap.Error(err))
+		return
+	}
+
+	msg := tgbotapi.NewMessage(
+		chatId,
+		"🏙 Город 🏙\n\nТеперь вы будете получать оповещения с датчиков по всему городу! 🍃",
+	)
+
+	if err := c.api.Send(api.MessageConfig{Msg: msg}); err != nil {
+		zap.L().Error("Error sending Mode.Set message", zap.Error(err))
+	}
+
+	if err = c.api.Delete(message); err != nil {
+		zap.L().Error("Error deleting prev message", zap.Error(err))
 	}
 }

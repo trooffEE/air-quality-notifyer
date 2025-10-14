@@ -1,8 +1,10 @@
 package user
 
 import (
+	"air-quality-notifyer/internal/constants"
 	"air-quality-notifyer/internal/db/repository/user"
-	"air-quality-notifyer/internal/service/user/mode"
+	"air-quality-notifyer/internal/exception"
+	"air-quality-notifyer/internal/helper"
 	"air-quality-notifyer/internal/service/user/model"
 	"errors"
 
@@ -11,7 +13,6 @@ import (
 
 type Service struct {
 	repo user.Interface
-	Mode mode.Interface
 }
 
 type Interface interface {
@@ -20,6 +21,7 @@ type Interface interface {
 	GetUsersNames() []string
 	GetUsersIds() []int64
 	Register(userModel model.User)
+	SetOperatingMode(id int64, mode constants.ModeType) error
 }
 
 func New(ur user.Interface) Interface {
@@ -80,4 +82,19 @@ func (ur *Service) DeleteUser(id int64) {
 	if err != nil {
 		zap.L().Error("failed to delete user", zap.Error(err), zap.Int64("userId", id))
 	}
+}
+
+func (ur *Service) SetOperatingMode(id int64, mode constants.ModeType) error {
+	if !helper.IsValidMode(mode) {
+		zap.L().Error("Setting mode", zap.Error(exception.InvalidOperatingMode))
+		return exception.InvalidOperatingMode
+	}
+
+	err := ur.repo.SetOperatingMode(id, mode)
+	if err != nil {
+		zap.L().Error("failed to set operating mode", zap.Error(err))
+		return err
+	}
+
+	return nil
 }
