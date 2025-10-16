@@ -17,7 +17,7 @@ type Commander struct {
 type Interface interface {
 	Setup(update tgbotapi.Update)
 	Faq(update tgbotapi.Update)
-	SetCity(update tgbotapi.Update, sUser sUser.Interface)
+	Set(update tgbotapi.Update, sUser sUser.Interface)
 }
 
 func New(api api.Interface) Interface {
@@ -57,7 +57,7 @@ func (c *Commander) Faq(update tgbotapi.Update) {
 
 	if update.CallbackQuery.Data == KeypadFaqFromSetupData {
 		markup.InlineKeyboard = append(markup.InlineKeyboard, tgbotapi.NewInlineKeyboardRow(
-			tgbotapi.NewInlineKeyboardButtonData(KeypadBackText, KeypadData),
+			tgbotapi.NewInlineKeyboardButtonData(KeypadBackText, KeypadSetupData),
 		))
 	}
 
@@ -84,7 +84,20 @@ func (c *Commander) Faq(update tgbotapi.Update) {
 	}
 }
 
-func (c *Commander) SetCity(update tgbotapi.Update, u sUser.Interface) {
+func (c *Commander) Set(update tgbotapi.Update, u sUser.Interface) {
+	switch update.CallbackQuery.Data {
+	case KeypadSetCityText:
+		c.setCity(update, u)
+	case KeypadSetDistrictText:
+	//c.SetDistrict()
+	case KeypadSetHomeData:
+	//c.SetHome(update, u)
+	default:
+		zap.L().Warn("Unknown callback query", zap.String("callbackQuery", update.CallbackQuery.Data))
+	}
+}
+
+func (c *Commander) setCity(update tgbotapi.Update, u sUser.Interface) {
 	message := update.CallbackQuery.Message
 	chatId := message.Chat.ID
 	err := u.SetOperatingMode(chatId, constants.City)

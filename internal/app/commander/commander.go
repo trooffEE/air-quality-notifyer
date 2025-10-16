@@ -61,7 +61,7 @@ func (c *Commander) Settings(update tgbotapi.Update) {
 
 	markup := tgbotapi.NewInlineKeyboardMarkup(
 		tgbotapi.NewInlineKeyboardRow(
-			tgbotapi.NewInlineKeyboardButtonData(mode.KeypadText, mode.KeypadData),
+			tgbotapi.NewInlineKeyboardButtonData(mode.KeypadSetupText, mode.KeypadSetupData),
 			//TODO will be back soon
 			//tgbotapi.NewInlineKeyboardButtonData(keypads.SensorsText, keypads.SensorsData),
 		),

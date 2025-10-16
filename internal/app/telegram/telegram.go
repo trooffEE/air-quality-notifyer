@@ -131,10 +131,10 @@ func (t *tgBot) ListenUpdates() {
 				t.Commander.API.MenuBack(update)
 			case api.KeypadModeFaqData, mode.KeypadFaqFromSetupData:
 				t.Commander.Mode.Faq(update)
-			case mode.KeypadData:
+			case mode.KeypadSetupData:
 				t.Commander.Mode.Setup(update)
-			case mode.KeypadSetCityData:
-				t.Commander.Mode.SetCity(update, t.services.UserService)
+			case mode.KeypadSetCityData, mode.KeypadSetDistrictData, mode.KeypadSetHomeData:
+				t.Commander.Mode.Set(update, t.services.UserService)
 				//case mode.KeypadSetDistrictData:
 				//	t.Commander.Mode.SetDistrict(update, t.services.UserService, constants.District)
 				//case mode.KeypadSetHomeData:
