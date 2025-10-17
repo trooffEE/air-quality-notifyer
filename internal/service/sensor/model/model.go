@@ -7,16 +7,16 @@ import (
 
 type Sensor struct {
 	Id          int64
-	Aqi         int     `json:"aqi"`
-	Aqi25       int     `json:"aqi25"`
-	Aqi10       int     `json:"aqi10"`
-	Level       string  `json:"level"`
-	Pm10        float64 `json:"pm10"`
-	Pm25        float64 `json:"pm25"`
-	Humidity    float64 `json:"humidity"`
-	Temperature float64 `json:"temperature"`
-	Date        string  `json:"date"`
-	UpdatedAt   string  `json:"updated_at"`
+	Aqi         int                   `json:"aqi"`
+	Aqi25       int                   `json:"aqi25"`
+	Aqi10       int                   `json:"aqi10"`
+	Level       pollution.DangerLevel `json:"level"`
+	Pm10        float64               `json:"pm10"`
+	Pm25        float64               `json:"pm25"`
+	Humidity    float64               `json:"humidity"`
+	Temperature float64               `json:"temperature"`
+	Date        string                `json:"date"`
+	UpdatedAt   string                `json:"updated_at"`
 	District    string
 	SourceLink  string
 }
@@ -34,6 +34,6 @@ func (s *Sensor) IsDangerousLevelDetected() bool {
 	return !(s.Level == pollution.Good || s.Level == pollution.Moderate || s.Level == "")
 }
 
-func (s *Sensor) GetPollutionData() *pollution.Level {
-	return pollution.GetPollutionData(s.Level)
+func (s *Sensor) GetPollutionLevel() *pollution.Level {
+	return pollution.GetPollutionLevelByDangerLevel(s.Level)
 }

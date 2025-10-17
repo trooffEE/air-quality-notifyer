@@ -38,7 +38,7 @@ func newUserMessages(sensors []mSensor.Sensor) []string {
 }
 
 func prepareDangerousLevelMessage(s mSensor.Sensor) string {
-	pollution := s.GetPollutionData()
+	pollution := s.GetPollutionLevel()
 	if pollution == nil {
 		return ""
 	}

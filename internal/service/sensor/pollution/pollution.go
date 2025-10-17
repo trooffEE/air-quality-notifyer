@@ -1,15 +1,26 @@
 package pollution
 
-var (
-	Good               = "good"
-	Moderate           = "moderate"
-	UnhealthySensitive = "unhealthy_sensitive"
-	Unhealthy          = "unhealthy"
-	UnhealthyModerate  = "very_unhealthy"
-	Hazardous          = "hazardous"
+import "go.uber.org/zap"
+
+type DangerLevel = string
+
+type DangerLevelToPollutionLevel = map[DangerLevel]Level
+type Level struct {
+	Name                     string
+	AqiDescription           string
+	AqiSafetyRecommendations string
+}
+
+const (
+	Good               DangerLevel = "good"
+	Moderate           DangerLevel = "moderate"
+	UnhealthySensitive DangerLevel = "unhealthy_sensitive"
+	Unhealthy          DangerLevel = "unhealthy"
+	UnhealthyModerate  DangerLevel = "very_unhealthy"
+	Hazardous          DangerLevel = "hazardous"
 )
 
-var LevelsMap = Levels{
+var dangerLevelToPollutionLevel = DangerLevelToPollutionLevel{
 	Good: Level{
 		Name:                     "Хорошо",
 		AqiDescription:           "Нормальный уровень",
@@ -42,36 +53,11 @@ var LevelsMap = Levels{
 	},
 }
 
-type Levels struct {
-	Good               Level
-	Moderate           Level
-	UnhealthySensitive Level
-	Unhealthy          Level
-	UnhealthyModerate  Level
-	Hazardous          Level
-}
-
-type Level struct {
-	Name                     string
-	AqiDescription           string
-	AqiSafetyRecommendations string
-}
-
-func GetPollutionData(level string) *Level {
-	switch level {
-	case Good:
-		return &LevelsMap.Good
-	case Moderate:
-		return &LevelsMap.Moderate
-	case UnhealthySensitive:
-		return &LevelsMap.UnhealthySensitive
-	case Unhealthy:
-		return &LevelsMap.Unhealthy
-	case UnhealthyModerate:
-		return &LevelsMap.UnhealthyModerate
-	case Hazardous:
-		return &LevelsMap.Hazardous
+func GetPollutionLevelByDangerLevel(dangerLevel DangerLevel) *Level {
+	level, ok := dangerLevelToPollutionLevel[dangerLevel]
+	if !ok {
+		zap.L().Warn("")
+		return nil
 	}
-
-	return nil
+	return &level
 }
