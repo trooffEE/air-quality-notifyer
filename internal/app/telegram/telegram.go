@@ -85,13 +85,16 @@ func (t *tgBot) ListenUpdates() {
 		zap.L().Error("commander request error", zap.Error(err))
 	}
 
+	//t.Commander.HandleUpdate(t.updates)
 	for update := range t.updates {
 		if update.Message != nil {
-			zap.L().Info(
-				"client message",
-				zap.String("msg", update.Message.Text),
-				zap.String("username", update.Message.From.UserName),
-			)
+			if !update.Message.From.IsBot {
+				zap.L().Info(
+					"client message",
+					zap.String("msg", update.Message.Text),
+					zap.String("username", update.Message.From.UserName),
+				)
+			}
 
 			switch update.Message.Text {
 			case "/start":
@@ -131,7 +134,7 @@ func (t *tgBot) ListenUpdates() {
 			case mode.KeypadSetCityData:
 				t.Commander.Mode.SetCity(update)
 			case mode.KeypadSetDistrictData:
-				//t.Commander.Mode.SetDistrict(update, t.services.UserService)
+				t.Commander.Mode.SetDistrict(update)
 				//case mode.KeypadSetDistrictData:
 				//	t.Commander.Mode.SetDistrict(update, t.services.UserService, constants.District)
 				//case mode.KeypadSetHomeData:

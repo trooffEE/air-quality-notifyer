@@ -38,9 +38,9 @@ func main() {
 	cacheClient := cache.New(cfg)
 
 	userService := sUser.New(userRepository)
-	districtService := sDistricts.New(districtRepository)
+	districtService := sDistricts.New(districtRepository, cacheClient)
 	sensorService := sSensor.New(sensorRepository, districtService, cacheClient)
-
+	
 	httpShutdown := server.Init(ctx, cfg)
 
 	services := commander.Services{
@@ -50,7 +50,8 @@ func main() {
 	}
 
 	bot := telegram.Init(cfg, &services)
-	bot.Start()
+	go bot.ListenUpdates()
+	go bot.ListenSensors()
 
 	sensorService.StartGettingTrustedSensorsEveryHour()
 	sensorService.StartInvalidatingSensorsPeriodically()

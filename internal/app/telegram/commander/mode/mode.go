@@ -123,13 +123,17 @@ func (c *Commander) SetDistrict(update tgbotapi.Update) {
 		"🏘 Район 🏘\n\nДля того чтобы выставить режим работы \"Район 🏘\", выберите перечень интересующих районов:",
 	)
 
-	//districts := c.service.District.GetAllDistricts()
-	
+	districts := c.service.District.GetAllDistricts()
+	//districts := c.service.District.GetOptionForDistrict()
+	var buttons []tgbotapi.KeyboardButton
+	for _, d := range districts {
+		buttons = append(buttons, tgbotapi.KeyboardButton{
+			Text: d.Name,
+		})
+	}
+
 	replyMarkup := tgbotapi.NewReplyKeyboard(
-		tgbotapi.NewKeyboardButtonRow(
-			tgbotapi.NewKeyboardButton("test1"),
-			tgbotapi.NewKeyboardButton("test2"),
-		),
+		tgbotapi.NewKeyboardButtonRow(buttons...),
 	)
 
 	if err := c.api.Send(api.MessageConfig{Msg: msg, Markup: replyMarkup}); err != nil {
