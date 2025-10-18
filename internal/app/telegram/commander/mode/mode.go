@@ -6,6 +6,7 @@ import (
 	sDistricts "air-quality-notifyer/internal/service/districts"
 	sUser "air-quality-notifyer/internal/service/user"
 	"fmt"
+	"math"
 
 	tgbotapi "github.com/OvyFlash/telegram-bot-api"
 	"go.uber.org/zap"
@@ -132,8 +133,10 @@ func (c *Commander) SetDistrict(update tgbotapi.Update) {
 		})
 	}
 
+	endOfRow := int(math.Ceil(float64(len(buttons)) / 2))
 	replyMarkup := tgbotapi.NewReplyKeyboard(
-		tgbotapi.NewKeyboardButtonRow(buttons...),
+		tgbotapi.NewKeyboardButtonRow(buttons[:endOfRow]...),
+		tgbotapi.NewKeyboardButtonRow(buttons[endOfRow:]...),
 	)
 
 	if err := c.api.Send(api.MessageConfig{Msg: msg, Markup: replyMarkup}); err != nil {
