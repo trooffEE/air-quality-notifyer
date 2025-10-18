@@ -10,6 +10,11 @@ build:
 run:
 	go run ./cmd/bot/main.go
 
+migration-version-apply:
+	@bash -c 'read -p "Please provide migration version to force: " version && \
+    echo $$version && \
+	migrate -path ./internal/db/migrations -database "postgresql://${DB_USER}:${DB_PASSWORD}@localhost:5432/${DB_NAME}?sslmode=disable" force $$version'
+
 create-migration:
 	@bash -c 'read -p "Please provide migration name: " name && \
 	echo $$name && \
@@ -27,7 +32,7 @@ generate-coverage:
 	google-chrome ./tmp/coverage.html
 
 migration-down: create-dump
-	migrate -path ./data/migrations -database "postgresql://${DB_USER}:${DB_PASSWORD}@localhost:5432/${DB_NAME}?sslmode=disable" -verbose \
+	migrate -path ./internal/db/migrations -database "postgresql://${DB_USER}:${DB_PASSWORD}@localhost:5432/${DB_NAME}?sslmode=disable" -verbose \
 	down
 
 .PHONY: build run migration-down apply-dump create-migration generate-html-coverage
