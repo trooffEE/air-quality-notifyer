@@ -1,8 +1,8 @@
 package telegram
 
 import (
-	"air-quality-notifyer/internal/app/commander/api"
-	mSensor "air-quality-notifyer/internal/service/sensor/model"
+	"air-quality-notifyer/internal/app/telegram/commander/api"
+	"air-quality-notifyer/internal/service/sensor/model"
 	"fmt"
 	"time"
 
@@ -10,23 +10,23 @@ import (
 	"go.uber.org/zap"
 )
 
-func (t *tgBot) notifyUsers(sensors []mSensor.Sensor) {
+func (t *tgBot) NotifyUsers(sensors []model.Sensor) {
 	messages := newUserMessages(sensors)
 
-	ids := t.services.UserService.GetUsersIds()
+	ids := t.Commander.Services.User.GetUsersIds()
 	for _, id := range ids {
 		for _, message := range messages {
 			msg := tgbotapi.NewMessage(id, message)
 			payload := api.MessageConfig{Msg: msg}
 			if err := t.Commander.API.Send(payload); err != nil && err.Code == 403 {
-				t.services.UserService.DeleteUser(id)
+				t.Commander.Services.User.Delete(id)
 				break
 			}
 		}
 	}
 }
 
-func newUserMessages(sensors []mSensor.Sensor) []string {
+func newUserMessages(sensors []model.Sensor) []string {
 	var messages []string
 	for _, sensor := range sensors {
 		if sensor.IsDangerousLevelDetected() {
@@ -37,7 +37,7 @@ func newUserMessages(sensors []mSensor.Sensor) []string {
 	return messages
 }
 
-func prepareDangerousLevelMessage(s mSensor.Sensor) string {
+func prepareDangerousLevelMessage(s model.Sensor) string {
 	pollution := s.GetPollutionLevel()
 	if pollution == nil {
 		return ""

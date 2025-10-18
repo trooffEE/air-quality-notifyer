@@ -3,6 +3,7 @@ package main
 import (
 	"air-quality-notifyer/internal/app/server"
 	"air-quality-notifyer/internal/app/telegram"
+	"air-quality-notifyer/internal/app/telegram/commander"
 	"air-quality-notifyer/internal/cache"
 	"air-quality-notifyer/internal/config"
 	"air-quality-notifyer/internal/db"
@@ -34,7 +35,6 @@ func main() {
 	userRepository := rUser.New(database)
 	sensorRepository := rSensor.New(database)
 
-	//Cache
 	cacheClient := cache.New(cfg)
 
 	userService := sUser.New(userRepository)
@@ -43,15 +43,14 @@ func main() {
 
 	httpShutdown := server.Init(ctx, cfg)
 
-	services := telegram.BotServices{
-		UserService:   userService,
-		SensorService: sensorService,
+	services := commander.Services{
+		User:     userService,
+		Sensor:   sensorService,
+		District: districtService,
 	}
 
-	bot := telegram.Init(services, cfg)
-
-	go bot.ListenSensors()
-	go bot.ListenUpdates()
+	bot := telegram.Init(cfg, &services)
+	bot.Start()
 
 	sensorService.StartGettingTrustedSensorsEveryHour()
 	sensorService.StartInvalidatingSensorsPeriodically()

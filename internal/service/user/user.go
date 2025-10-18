@@ -16,8 +16,8 @@ type Service struct {
 }
 
 type Interface interface {
-	IsNewUser(id int64) bool
-	DeleteUser(id int64)
+	IsNew(id int64) bool
+	Delete(id int64)
 	GetUsersNames() []string
 	GetUsersIds() []int64
 	Register(userModel model.User)
@@ -30,7 +30,7 @@ func New(ur user.Interface) Interface {
 	}
 }
 
-func (ur *Service) IsNewUser(id int64) bool {
+func (ur *Service) IsNew(id int64) bool {
 	_, err := ur.repo.FindById(id)
 
 	if err != nil {
@@ -76,7 +76,7 @@ func (ur *Service) GetUsersNames() []string {
 	return names
 }
 
-func (ur *Service) DeleteUser(id int64) {
+func (ur *Service) Delete(id int64) {
 	err := ur.repo.DeleteUserById(id)
 
 	if err != nil {

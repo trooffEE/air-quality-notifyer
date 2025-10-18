@@ -26,7 +26,7 @@ type Interface interface {
 	MenuFaq(update tgbotapi.Update)
 }
 
-func NewApi(bot *tgbotapi.BotAPI, cfg config.Config) (Interface, error) {
+func NewApi(cfg config.Config, bot *tgbotapi.BotAPI) (Interface, error) {
 	loc, err := time.LoadLocation("Asia/Novosibirsk")
 	if err != nil {
 		return nil, err

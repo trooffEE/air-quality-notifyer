@@ -1,8 +1,9 @@
 package mode
 
 import (
-	"air-quality-notifyer/internal/app/commander/api"
+	"air-quality-notifyer/internal/app/telegram/commander/api"
 	"air-quality-notifyer/internal/constants"
+	sDistricts "air-quality-notifyer/internal/service/districts"
 	sUser "air-quality-notifyer/internal/service/user"
 	"fmt"
 
@@ -11,18 +12,26 @@ import (
 )
 
 type Commander struct {
-	api api.Interface
+	api     api.Interface
+	service Service
+}
+
+type Service struct {
+	User     sUser.Interface
+	District sDistricts.Interface
 }
 
 type Interface interface {
 	Setup(update tgbotapi.Update)
 	Faq(update tgbotapi.Update)
-	Set(update tgbotapi.Update, sUser sUser.Interface)
+	SetCity(update tgbotapi.Update)
+	SetDistrict(update tgbotapi.Update)
 }
 
-func New(api api.Interface) Interface {
+func New(api api.Interface, service Service) Interface {
 	return &Commander{
-		api: api,
+		api:     api,
+		service: service,
 	}
 }
 
@@ -84,23 +93,10 @@ func (c *Commander) Faq(update tgbotapi.Update) {
 	}
 }
 
-func (c *Commander) Set(update tgbotapi.Update, u sUser.Interface) {
-	switch update.CallbackQuery.Data {
-	case KeypadSetCityText:
-		c.setCity(update, u)
-	case KeypadSetDistrictText:
-	//c.SetDistrict()
-	case KeypadSetHomeData:
-	//c.SetHome(update, u)
-	default:
-		zap.L().Warn("Unknown callback query", zap.String("callbackQuery", update.CallbackQuery.Data))
-	}
-}
-
-func (c *Commander) setCity(update tgbotapi.Update, u sUser.Interface) {
+func (c *Commander) SetCity(update tgbotapi.Update) {
 	message := update.CallbackQuery.Message
 	chatId := message.Chat.ID
-	err := u.SetOperatingMode(chatId, constants.City)
+	err := c.service.User.SetOperatingMode(chatId, constants.City)
 	if err != nil {
 		zap.L().Error("Error setting operating mode", zap.Error(err))
 		return
@@ -117,5 +113,26 @@ func (c *Commander) setCity(update tgbotapi.Update, u sUser.Interface) {
 
 	if err = c.api.Delete(message); err != nil {
 		zap.L().Error("Error deleting prev message", zap.Error(err))
+	}
+}
+
+func (c *Commander) SetDistrict(update tgbotapi.Update) {
+	chatId := update.CallbackQuery.Message.Chat.ID
+	msg := tgbotapi.NewMessage(
+		chatId,
+		"🏘 Район 🏘\n\nДля того чтобы выставить режим работы \"Район 🏘\", выберите перечень интересующих районов:",
+	)
+
+	//districts := c.service.District.GetAllDistricts()
+	
+	replyMarkup := tgbotapi.NewReplyKeyboard(
+		tgbotapi.NewKeyboardButtonRow(
+			tgbotapi.NewKeyboardButton("test1"),
+			tgbotapi.NewKeyboardButton("test2"),
+		),
+	)
+
+	if err := c.api.Send(api.MessageConfig{Msg: msg, Markup: replyMarkup}); err != nil {
+		zap.L().Error("Error sending Mode.Set message", zap.Error(err))
 	}
 }

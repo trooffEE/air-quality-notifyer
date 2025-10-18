@@ -17,7 +17,7 @@ type Service struct {
 }
 
 type Interface interface {
-	ListenChangesInSensors(handler func([]model.Sensor))
+	ListenChanges(handler func([]model.Sensor))
 	StartInvalidatingSensorsPeriodically()
 	StartGettingTrustedSensorsEveryHour()
 }
@@ -36,7 +36,7 @@ func New(
 	}
 }
 
-func (s *Service) ListenChangesInSensors(handler func([]model.Sensor)) {
+func (s *Service) ListenChanges(handler func([]model.Sensor)) {
 	for update := range s.cSensors {
 		handler(update)
 	}

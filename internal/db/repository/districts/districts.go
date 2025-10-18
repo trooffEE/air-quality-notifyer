@@ -37,6 +37,6 @@ func (r *Repository) GetAssociatedDistrictIdByCoords(x, y float64) *sensor.Distr
 
 func (r *Repository) GetAllDistricts() ([]District, error) {
 	var districts []District
-	err := r.db.Select(&districts, "SELECT d.id, d.name FROM districts AS d")
+	err := r.db.Select(&districts, "SELECT d.id, d.name FROM districts AS d ORDER BY d.name DESC")
 	return districts, err
 }

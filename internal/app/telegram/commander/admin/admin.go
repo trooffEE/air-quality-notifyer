@@ -1,7 +1,7 @@
 package admin
 
 import (
-	"air-quality-notifyer/internal/app/commander/api"
+	"air-quality-notifyer/internal/app/telegram/commander/api"
 	"air-quality-notifyer/internal/service/user"
 	"fmt"
 	"strings"
@@ -11,17 +11,23 @@ import (
 )
 
 type Commander struct {
-	api api.Interface
+	api     api.Interface
+	service Service
+}
+
+type Service struct {
+	User user.Interface
 }
 
 type Interface interface {
 	Pong(update tgbotapi.Update)
-	ShowUsers(update tgbotapi.Update, service user.Interface)
+	ShowUsers(update tgbotapi.Update)
 }
 
-func New(api api.Interface) Interface {
+func New(api api.Interface, service Service) Interface {
 	return &Commander{
-		api: api,
+		api:     api,
+		service: service,
 	}
 }
 
@@ -38,12 +44,12 @@ func (c *Commander) Pong(update tgbotapi.Update) {
 	}
 }
 
-func (c *Commander) ShowUsers(update tgbotapi.Update, service user.Interface) {
+func (c *Commander) ShowUsers(update tgbotapi.Update) {
 	if !c.api.IsAdmin(update) {
 		return
 	}
 
-	names := service.GetUsersNames()
+	names := c.service.User.GetUsersNames()
 
 	if len(names) == 0 {
 		return

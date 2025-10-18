@@ -1,10 +1,12 @@
 package commander
 
 import (
-	"air-quality-notifyer/internal/app/commander/admin"
-	"air-quality-notifyer/internal/app/commander/api"
-	"air-quality-notifyer/internal/app/commander/mode"
+	"air-quality-notifyer/internal/app/telegram/commander/admin"
+	"air-quality-notifyer/internal/app/telegram/commander/api"
+	"air-quality-notifyer/internal/app/telegram/commander/mode"
 	"air-quality-notifyer/internal/config"
+	"air-quality-notifyer/internal/service/districts"
+	"air-quality-notifyer/internal/service/sensor"
 	"air-quality-notifyer/internal/service/user"
 	"air-quality-notifyer/internal/service/user/model"
 	"strconv"
@@ -14,26 +16,34 @@ import (
 )
 
 type Commander struct {
-	API   api.Interface
-	Admin admin.Interface
-	Mode  mode.Interface
+	API      api.Interface
+	Admin    admin.Interface
+	Mode     mode.Interface
+	Services *Services
 }
 
-func New(bot *tgbotapi.BotAPI, cfg config.Config) *Commander {
-	apiCmder, err := api.NewApi(bot, cfg)
+type Services struct {
+	User     user.Interface
+	District districts.Interface
+	Sensor   sensor.Interface
+}
+
+func New(cfg config.Config, bot *tgbotapi.BotAPI, s *Services) *Commander {
+	apiCmder, err := api.NewApi(cfg, bot)
 	if err != nil {
 		zap.S().Fatalw("Failed to create api interface", "error", err)
 		return nil
 	}
 
 	return &Commander{
-		API:   apiCmder,
-		Admin: admin.New(apiCmder),
-		Mode:  mode.New(apiCmder),
+		API:      apiCmder,
+		Admin:    admin.New(apiCmder, admin.Service{User: s.User}),
+		Mode:     mode.New(apiCmder, mode.Service{User: s.User, District: s.District}),
+		Services: s,
 	}
 }
 
-func (c *Commander) Start(update tgbotapi.Update, service user.Interface) {
+func (c *Commander) Start(update tgbotapi.Update) {
 	message := update.Message
 	chatId, username := message.Chat.ID, message.Chat.UserName
 
@@ -42,11 +52,11 @@ func (c *Commander) Start(update tgbotapi.Update, service user.Interface) {
 		zap.L().Error("Error sending faq message", zap.Error(err))
 	}
 
-	if !service.IsNewUser(chatId) {
+	if !c.Services.User.IsNew(chatId) {
 		return
 	}
 
-	service.Register(model.User{
+	c.Services.User.Register(model.User{
 		Id:       strconv.Itoa(int(chatId)),
 		Username: username,
 	})

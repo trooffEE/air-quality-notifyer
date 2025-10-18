@@ -1,12 +1,10 @@
 package telegram
 
 import (
-	"air-quality-notifyer/internal/app/commander"
-	"air-quality-notifyer/internal/app/commander/api"
-	"air-quality-notifyer/internal/app/commander/mode"
+	"air-quality-notifyer/internal/app/telegram/commander"
+	"air-quality-notifyer/internal/app/telegram/commander/api"
+	"air-quality-notifyer/internal/app/telegram/commander/mode"
 	"air-quality-notifyer/internal/config"
-	"air-quality-notifyer/internal/service/sensor"
-	"air-quality-notifyer/internal/service/user"
 	"fmt"
 
 	tgbotapi "github.com/OvyFlash/telegram-bot-api"
@@ -16,23 +14,17 @@ import (
 type tgBot struct {
 	bot       *tgbotapi.BotAPI
 	updates   tgbotapi.UpdatesChannel
-	services  BotServices
 	Commander *commander.Commander
 }
 
-type BotServices struct {
-	UserService   user.Interface
-	SensorService sensor.Interface
-}
-
-func Init(services BotServices, cfg config.Config) *tgBot {
+func Init(cfg config.Config, services *commander.Services) *tgBot {
 	bot, err := tgbotapi.NewBotAPI(cfg.App.TelegramToken)
 	if err != nil {
 		zap.L().Error("Filed to create new bot api", zap.Error(err))
 		panic(err)
 	}
 
-	cmder := commander.New(bot, cfg)
+	cmder := commander.New(cfg, bot, services)
 	if cfg.Development {
 		bot.Debug = true
 
@@ -42,7 +34,6 @@ func Init(services BotServices, cfg config.Config) *tgBot {
 		return &tgBot{
 			bot:       bot,
 			updates:   bot.GetUpdatesChan(updateConfig),
-			services:  services,
 			Commander: cmder,
 		}
 	}
@@ -70,13 +61,17 @@ func Init(services BotServices, cfg config.Config) *tgBot {
 	return &tgBot{
 		bot:       bot,
 		updates:   updates,
-		services:  services,
 		Commander: cmder,
 	}
 }
 
+func (t *tgBot) Start() {
+	go t.ListenUpdates()
+	go t.ListenSensors()
+}
+
 func (t *tgBot) ListenSensors() {
-	t.services.SensorService.ListenChangesInSensors(t.notifyUsers)
+	t.Commander.Services.Sensor.ListenChanges(t.NotifyUsers)
 }
 
 func (t *tgBot) ListenUpdates() {
@@ -100,9 +95,9 @@ func (t *tgBot) ListenUpdates() {
 
 			switch update.Message.Text {
 			case "/start":
-				t.Commander.Start(update, t.services.UserService)
+				t.Commander.Start(update)
 			case api.KeypadUsersText:
-				t.Commander.Admin.ShowUsers(update, t.services.UserService)
+				t.Commander.Admin.ShowUsers(update)
 			case api.KeypadFaqText:
 				t.Commander.API.MenuFaq(update)
 			case api.KeypadSettingsText:
@@ -133,8 +128,10 @@ func (t *tgBot) ListenUpdates() {
 				t.Commander.Mode.Faq(update)
 			case mode.KeypadSetupData:
 				t.Commander.Mode.Setup(update)
-			case mode.KeypadSetCityData, mode.KeypadSetDistrictData, mode.KeypadSetHomeData:
-				t.Commander.Mode.Set(update, t.services.UserService)
+			case mode.KeypadSetCityData:
+				t.Commander.Mode.SetCity(update)
+			case mode.KeypadSetDistrictData:
+				//t.Commander.Mode.SetDistrict(update, t.services.UserService)
 				//case mode.KeypadSetDistrictData:
 				//	t.Commander.Mode.SetDistrict(update, t.services.UserService, constants.District)
 				//case mode.KeypadSetHomeData:
