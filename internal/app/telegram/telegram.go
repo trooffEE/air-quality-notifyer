@@ -3,8 +3,8 @@ package telegram
 import (
 	"air-quality-notifyer/internal/app/telegram/commander"
 	"air-quality-notifyer/internal/app/telegram/commander/api"
-	"air-quality-notifyer/internal/app/telegram/commander/mode"
 	"air-quality-notifyer/internal/config"
+	"air-quality-notifyer/internal/service/sensor/model"
 	"fmt"
 
 	tgbotapi "github.com/OvyFlash/telegram-bot-api"
@@ -66,15 +66,41 @@ func Init(cfg config.Config, services *commander.Services) *tgBot {
 }
 
 func (t *tgBot) Start() {
-	go t.ListenUpdates()
-	go t.ListenSensors()
+	go t.listenUpdates()
+	go t.listenSensors()
 }
 
-func (t *tgBot) ListenSensors() {
-	t.Commander.Services.Sensor.ListenChanges(t.NotifyUsers)
+func (t *tgBot) listenSensors() {
+	t.Commander.Services.Sensor.ListenChanges(t.notifyUsers)
 }
 
-func (t *tgBot) ListenUpdates() {
+func (t *tgBot) notifyUsers(sensors []model.Sensor) {
+	messages := newUserMessages(sensors)
+
+	ids := t.Commander.Services.User.GetUsersIds()
+	for _, id := range ids {
+		for _, message := range messages {
+			payload := api.MessageConfig{Msg: tgbotapi.NewMessage(id, message)}
+			if err := t.Commander.API.Send(payload); err != nil && err.Code == 403 {
+				t.Commander.Services.User.Delete(id)
+				break
+			}
+		}
+	}
+}
+
+func newUserMessages(sensors []model.Sensor) []string {
+	var messages []string
+	for _, sensor := range sensors {
+		if sensor.IsDangerousLevelDetected() {
+			msg := sensor.DangerLevelText()
+			messages = append(messages, msg)
+		}
+	}
+	return messages
+}
+
+func (t *tgBot) listenUpdates() {
 	cfg := tgbotapi.NewSetMyCommands(
 		tgbotapi.BotCommand{
 			Command:     "start",
@@ -85,61 +111,5 @@ func (t *tgBot) ListenUpdates() {
 		zap.L().Error("commander request error", zap.Error(err))
 	}
 
-	//t.Commander.HandleUpdate(t.updates)
-	for update := range t.updates {
-		if update.Message != nil {
-			if !update.Message.From.IsBot {
-				zap.L().Info(
-					"client message",
-					zap.String("msg", update.Message.Text),
-					zap.String("username", update.Message.From.UserName),
-				)
-			}
-
-			switch update.Message.Text {
-			case "/start":
-				t.Commander.Start(update)
-			case api.KeypadUsersText:
-				t.Commander.Admin.ShowUsers(update)
-			case api.KeypadFaqText:
-				t.Commander.API.MenuFaq(update)
-			case api.KeypadSettingsText:
-				t.Commander.Settings(update)
-			case api.KeypadPingText:
-				t.Commander.Admin.Pong(update)
-			}
-
-			if api.IsMenuButton(update.Message.Text) {
-				err := t.Commander.API.Delete(update.Message)
-				if err != nil {
-					zap.L().Error("failed to delete commander menu item", zap.Error(err))
-				}
-			}
-		}
-
-		if update.CallbackQuery != nil {
-			callback := tgbotapi.NewCallback(update.CallbackQuery.ID, "")
-			if _, err := t.bot.Request(callback); err != nil {
-				zap.L().Error("Error receiving response from callback with id", zap.Error(err), zap.String("id", update.CallbackQuery.ID))
-				continue
-			}
-
-			switch update.CallbackQuery.Data {
-			case api.KeypadMenuBackData:
-				t.Commander.API.MenuBack(update)
-			case api.KeypadModeFaqData, mode.KeypadFaqFromSetupData:
-				t.Commander.Mode.Faq(update)
-			case mode.KeypadSetupData:
-				t.Commander.Mode.Setup(update)
-			case mode.KeypadSetCityData:
-				t.Commander.Mode.SetCity(update)
-			case mode.KeypadSetDistrictData:
-				t.Commander.Mode.SetDistrict(update)
-				//case mode.KeypadSetDistrictData:
-				//	t.Commander.Mode.SetDistrict(update, t.services.UserService, constants.District)
-				//case mode.KeypadSetHomeData:
-				//	t.Commander.Mode.SetHome(update, t.services.UserService, constants.Home)
-			}
-		}
-	}
+	t.Commander.HandleUpdate(t.updates)
 }

@@ -16,7 +16,7 @@ import (
 )
 
 type Commander struct {
-	API      api.Interface
+	API      *api.Api
 	Admin    admin.Interface
 	Mode     mode.Interface
 	Services *Services
@@ -40,6 +40,65 @@ func New(cfg config.Config, bot *tgbotapi.BotAPI, s *Services) *Commander {
 		Admin:    admin.New(apiCmder, admin.Service{User: s.User}),
 		Mode:     mode.New(apiCmder, mode.Service{User: s.User, District: s.District}),
 		Services: s,
+	}
+}
+
+func (c *Commander) HandleUpdate(updates tgbotapi.UpdatesChannel) {
+	for update := range updates {
+		if update.Message != nil {
+			if !update.Message.From.IsBot {
+				zap.L().Info(
+					"client message",
+					zap.String("msg", update.Message.Text),
+					zap.String("username", update.Message.From.UserName),
+				)
+			}
+
+			switch update.Message.Text {
+			case "/start":
+				c.Start(update)
+			case api.KeypadUsersText:
+				c.Admin.ShowUsers(update)
+			case api.KeypadFaqText:
+				c.API.MenuFaq(update)
+			case api.KeypadSettingsText:
+				c.Settings(update)
+			case api.KeypadPingText:
+				c.Admin.Pong(update)
+			}
+
+			if api.IsMenuButton(update.Message.Text) {
+				err := c.API.Delete(update.Message)
+				if err != nil {
+					zap.L().Error("failed to delete commander menu item", zap.Error(err))
+				}
+			}
+		}
+
+		if update.CallbackQuery != nil {
+			callback := tgbotapi.NewCallback(update.CallbackQuery.ID, "")
+			if _, err := c.API.Bot.Request(callback); err != nil {
+				zap.L().Error("Error receiving response from callback with id", zap.Error(err), zap.String("id", update.CallbackQuery.ID))
+				continue
+			}
+
+			switch update.CallbackQuery.Data {
+			case api.KeypadMenuBackData:
+				c.API.MenuBack(update)
+			case api.KeypadModeFaqData, mode.KeypadFaqFromSetupData:
+				c.Mode.Faq(update)
+			case mode.KeypadSetupData:
+				c.Mode.Setup(update)
+			case mode.KeypadSetCityData:
+				c.Mode.SetCity(update)
+			case mode.KeypadSetDistrictData:
+				c.Mode.SetDistrict(update)
+				//case mode.KeypadSetDistrictData:
+				//	t.Commander.Mode.SetDistrict(update, t.services.UserService, constants.District)
+				//case mode.KeypadSetHomeData:
+				//	t.Commander.Mode.SetHome(update, t.services.UserService, constants.Home)
+			}
+		}
 	}
 }
 

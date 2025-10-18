@@ -11,7 +11,7 @@ import (
 )
 
 type Api struct {
-	bot *tgbotapi.BotAPI
+	Bot *tgbotapi.BotAPI
 	cfg config.Config
 	loc *time.Location
 }
@@ -26,13 +26,13 @@ type Interface interface {
 	MenuFaq(update tgbotapi.Update)
 }
 
-func NewApi(cfg config.Config, bot *tgbotapi.BotAPI) (Interface, error) {
+func NewApi(cfg config.Config, bot *tgbotapi.BotAPI) (*Api, error) {
 	loc, err := time.LoadLocation("Asia/Novosibirsk")
 	if err != nil {
 		return nil, err
 	}
 	return &Api{
-		bot: bot,
+		Bot: bot,
 		cfg: cfg,
 		loc: loc,
 	}, nil
@@ -53,7 +53,7 @@ func (a *Api) Send(payload MessageConfig) *tgbotapi.Error {
 		payload.Msg.ReplyMarkup = NewReplyKeyboard()
 	}
 
-	_, err := a.bot.Send(payload.Msg)
+	_, err := a.Bot.Send(payload.Msg)
 	var tgError *tgbotapi.Error
 	if errors.As(err, &tgError) {
 		return tgError
@@ -63,7 +63,7 @@ func (a *Api) Send(payload MessageConfig) *tgbotapi.Error {
 }
 
 func (a *Api) Delete(message *tgbotapi.Message) error {
-	_, err := a.bot.Request(tgbotapi.NewDeleteMessage(message.Chat.ID, message.MessageID))
+	_, err := a.Bot.Request(tgbotapi.NewDeleteMessage(message.Chat.ID, message.MessageID))
 	if err != nil {
 		zap.L().Error("Error deleting message", zap.Error(err))
 		return err
@@ -83,7 +83,7 @@ func (a *Api) Edit(payload EditMessageConfig) *tgbotapi.Error {
 		payload.Msg.ReplyMarkup = payload.Markup
 	}
 
-	_, err := a.bot.Send(payload.Msg)
+	_, err := a.Bot.Send(payload.Msg)
 	var tgError *tgbotapi.Error
 	if errors.As(err, &tgError) {
 		return tgError
