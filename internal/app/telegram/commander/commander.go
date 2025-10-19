@@ -75,6 +75,10 @@ func (c *Commander) HandleUpdate(updates tgbotapi.UpdatesChannel) {
 			}
 		}
 
+		if update.Poll != nil {
+			c.Mode.HandleDistrictsOptionsResult(update.Poll)
+		}
+
 		if update.CallbackQuery != nil {
 			callback := tgbotapi.NewCallback(update.CallbackQuery.ID, "")
 			if _, err := c.API.Bot.Request(callback); err != nil {
@@ -91,10 +95,10 @@ func (c *Commander) HandleUpdate(updates tgbotapi.UpdatesChannel) {
 				c.Mode.Setup(update)
 			case mode.KeypadSetCityData:
 				c.Mode.SetCity(update)
-			case mode.KeypadSetDistrictData:
-				c.Mode.SetDistrict(update)
-				//case mode.KeypadSetDistrictData:
-				//	t.Commander.Mode.SetDistrict(update, t.services.UserService, constants.District)
+			case mode.KeypadAskForDistrictOptionsData:
+				c.Mode.AskForDistrictOptions(update)
+				//case mode.KeypadAskForDistrictOptionsData:
+				//	t.Commander.Mode.AskForDistrictOptions(update, t.services.UserService, constants.District)
 				//case mode.KeypadSetHomeData:
 				//	t.Commander.Mode.SetHome(update, t.services.UserService, constants.Home)
 			}

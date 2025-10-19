@@ -44,6 +44,7 @@ func (c *Commander) Pong(update tgbotapi.Update) {
 	}
 }
 
+// TODO maybe use tgbotapi.GetChatMembersCount
 func (c *Commander) ShowUsers(update tgbotapi.Update) {
 	if !c.api.IsAdmin(update) {
 		return

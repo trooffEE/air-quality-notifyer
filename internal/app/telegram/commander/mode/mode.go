@@ -3,10 +3,10 @@ package mode
 import (
 	"air-quality-notifyer/internal/app/telegram/commander/api"
 	"air-quality-notifyer/internal/constants"
+	"air-quality-notifyer/internal/helper"
 	sDistricts "air-quality-notifyer/internal/service/districts"
 	sUser "air-quality-notifyer/internal/service/user"
 	"fmt"
-	"math"
 
 	tgbotapi "github.com/OvyFlash/telegram-bot-api"
 	"go.uber.org/zap"
@@ -26,7 +26,8 @@ type Interface interface {
 	Setup(update tgbotapi.Update)
 	Faq(update tgbotapi.Update)
 	SetCity(update tgbotapi.Update)
-	SetDistrict(update tgbotapi.Update)
+	AskForDistrictOptions(update tgbotapi.Update)
+	HandleDistrictsOptionsResult(update *tgbotapi.Poll)
 }
 
 func New(api api.Interface, service Service) Interface {
@@ -46,7 +47,7 @@ func (c *Commander) Setup(update tgbotapi.Update) {
 	markup := tgbotapi.NewInlineKeyboardMarkup(
 		tgbotapi.NewInlineKeyboardRow(
 			tgbotapi.NewInlineKeyboardButtonData(KeypadSetCityText, KeypadSetCityData),
-			tgbotapi.NewInlineKeyboardButtonData(KeypadSetDistrictText, KeypadSetDistrictData),
+			tgbotapi.NewInlineKeyboardButtonData(KeypadAskForDistrictOptionsText, KeypadAskForDistrictOptionsData),
 			tgbotapi.NewInlineKeyboardButtonData(KeypadSetHomeText, KeypadSetHomeData),
 		),
 		tgbotapi.NewInlineKeyboardRow(
@@ -117,29 +118,43 @@ func (c *Commander) SetCity(update tgbotapi.Update) {
 	}
 }
 
-func (c *Commander) SetDistrict(update tgbotapi.Update) {
-	chatId := update.CallbackQuery.Message.Chat.ID
-	msg := tgbotapi.NewMessage(
-		chatId,
-		"🏘 Район 🏘\n\nДля того чтобы выставить режим работы \"Район 🏘\", выберите перечень интересующих районов:",
+func (c *Commander) AskForDistrictOptions(update tgbotapi.Update) {
+	chatID := update.CallbackQuery.Message.Chat.ID
+	districts := c.service.District.GetAllDistrictsNames()
+	response, err := c.api.SendPoll(chatID, api.PollConfig{
+		Question: "Интересующие районы 🏘:",
+		Options:  districts,
+	})
+	if err != nil {
+		zap.L().Error("set district: error sending poll", zap.Error(err))
+	}
+	c.service.District.SaveDistrictPollMessageInCache(
+		response.Poll.ID,
+		response.Chat.ID,
+		response.MessageID,
 	)
+}
 
-	districts := c.service.District.GetAllDistricts()
-	//districts := c.service.District.GetOptionForDistrict()
-	var buttons []tgbotapi.KeyboardButton
-	for _, d := range districts {
-		buttons = append(buttons, tgbotapi.KeyboardButton{
-			Text: d.Name,
-		})
+func (c *Commander) HandleDistrictsOptionsResult(pollUpdate *tgbotapi.Poll) {
+	if pollUpdate == nil || pollUpdate.TotalVoterCount == 0 {
+		return
 	}
 
-	endOfRow := int(math.Ceil(float64(len(buttons)) / 2))
-	replyMarkup := tgbotapi.NewReplyKeyboard(
-		tgbotapi.NewKeyboardButtonRow(buttons[:endOfRow]...),
-		tgbotapi.NewKeyboardButtonRow(buttons[endOfRow:]...),
-	)
-
-	if err := c.api.Send(api.MessageConfig{Msg: msg, Markup: replyMarkup}); err != nil {
-		zap.L().Error("Error sending Mode.Set message", zap.Error(err))
+	//TODO Rename GetDistrictPollMessageInCache
+	cachedPollState, err := c.service.District.GetDistrictPollMessageInCache(pollUpdate.ID)
+	if err != nil {
+		zap.L().Error("Error sending poll", zap.Error(err))
+	} else {
+		messageToDelete := tgbotapi.NewDeleteMessage(cachedPollState.ChatID, cachedPollState.MessageID)
+		if err = c.api.DeleteRequest(messageToDelete); err != nil {
+			zap.L().Error("Error sending DeleteMessage", zap.Error(err))
+		}
 	}
+	options := helper.Filter(pollUpdate.Options, func(item tgbotapi.PollOption) bool { return item.VoterCount == 1 })
+
+	fmt.Println(options)
+
+	/**
+	Logic that updates table - users_observed_districts
+	*/
 }

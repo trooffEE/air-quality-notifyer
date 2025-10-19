@@ -16,6 +16,7 @@ func New(db *sqlx.DB) *Repository {
 }
 
 type Interface interface {
+	GetAllDistrictsNames() ([]string, error)
 	GetAllDistricts() ([]District, error)
 	GetAssociatedDistrictIdByCoords(x, y float64) *sensor.DistrictSensor
 }
@@ -38,5 +39,11 @@ func (r *Repository) GetAssociatedDistrictIdByCoords(x, y float64) *sensor.Distr
 func (r *Repository) GetAllDistricts() ([]District, error) {
 	var districts []District
 	err := r.db.Select(&districts, "SELECT d.id, d.name FROM districts AS d ORDER BY d.name DESC")
+	return districts, err
+}
+
+func (r *Repository) GetAllDistrictsNames() ([]string, error) {
+	var districts []string
+	err := r.db.Select(&districts, "SELECT d.name FROM districts AS d ORDER BY d.name DESC")
 	return districts, err
 }
