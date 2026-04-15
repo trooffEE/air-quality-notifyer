@@ -7,6 +7,7 @@ import (
 	sDistricts "air-quality-notifyer/internal/service/districts"
 	sUser "air-quality-notifyer/internal/service/user"
 	"fmt"
+	"strings"
 
 	tgbotapi "github.com/OvyFlash/telegram-bot-api"
 	"go.uber.org/zap"
@@ -96,6 +97,7 @@ func (c *Commander) Faq(update tgbotapi.Update) {
 }
 
 func (c *Commander) SetCity(update tgbotapi.Update) {
+	// City mode is implemented end-to-end: mode is saved and user gets a confirmation.
 	message := update.CallbackQuery.Message
 	chatId := message.Chat.ID
 	err := c.service.User.SetOperatingMode(chatId, constants.City)
@@ -119,6 +121,8 @@ func (c *Commander) SetCity(update tgbotapi.Update) {
 }
 
 func (c *Commander) AskForDistrictOptions(update tgbotapi.Update) {
+	// District mode setup currently stops at poll creation.
+	// TODO: Persist selected districts to users_observed_districts and set constants.District as operating mode.
 	chatID := update.CallbackQuery.Message.Chat.ID
 	districts := c.service.District.GetAllDistrictsNames()
 	response, err := c.api.SendPoll(chatID, api.PollConfig{
@@ -140,21 +144,70 @@ func (c *Commander) HandleDistrictsOptionsResult(pollUpdate *tgbotapi.Poll) {
 		return
 	}
 
-	//TODO Rename GetDistrictPollMessageInCache
 	cachedPollState, err := c.service.District.GetDistrictPollMessageInCache(pollUpdate.ID)
 	if err != nil {
-		zap.L().Error("Error sending poll", zap.Error(err))
-	} else {
-		messageToDelete := tgbotapi.NewDeleteMessage(cachedPollState.ChatID, cachedPollState.MessageID)
-		if err = c.api.DeleteRequest(messageToDelete); err != nil {
-			zap.L().Error("Error sending DeleteMessage", zap.Error(err))
-		}
+		zap.L().Error("failed to get poll state from cache", zap.Error(err), zap.String("pollId", pollUpdate.ID))
+		return
 	}
-	options := helper.Filter(pollUpdate.Options, func(item tgbotapi.PollOption) bool { return item.VoterCount == 1 })
 
-	fmt.Println(options)
+	messageToDelete := tgbotapi.NewDeleteMessage(cachedPollState.ChatID, cachedPollState.MessageID)
+	if err = c.api.DeleteRequest(messageToDelete); err != nil {
+		zap.L().Error("Error sending DeleteMessage", zap.Error(err))
+	}
 
-	/**
-	Logic that updates table - users_observed_districts
-	*/
+	selectedOptions := helper.Filter(pollUpdate.Options, func(item tgbotapi.PollOption) bool { return item.VoterCount > 0 })
+	if len(selectedOptions) == 0 {
+		msg := tgbotapi.NewMessage(cachedPollState.ChatID, "Для режима \"Район\" нужно выбрать хотя бы один район. Попробуйте снова в настройках.")
+		if sendErr := c.api.Send(api.MessageConfig{Msg: msg}); sendErr != nil {
+			zap.L().Error("failed to send district mode empty selection message", zap.Error(sendErr))
+		}
+		return
+	}
+
+	allDistricts := c.service.District.GetAllDistricts()
+	districtIDByName := make(map[string]int64, len(allDistricts))
+	for _, district := range allDistricts {
+		districtIDByName[district.Name] = district.Id
+	}
+
+	selectedDistrictIDs := make([]int64, 0, len(selectedOptions))
+	selectedDistrictNames := make([]string, 0, len(selectedOptions))
+	for _, option := range selectedOptions {
+		districtID, exists := districtIDByName[option.Text]
+		if !exists {
+			zap.L().Warn("poll option does not match district", zap.String("districtName", option.Text), zap.String("pollId", pollUpdate.ID))
+			continue
+		}
+
+		selectedDistrictIDs = append(selectedDistrictIDs, districtID)
+		selectedDistrictNames = append(selectedDistrictNames, option.Text)
+	}
+
+	if len(selectedDistrictIDs) == 0 {
+		zap.L().Error("failed to map district poll options to district IDs", zap.String("pollId", pollUpdate.ID))
+		return
+	}
+
+	err = c.service.User.SetObservedDistricts(cachedPollState.ChatID, selectedDistrictIDs)
+	if err != nil {
+		zap.L().Error("failed to save observed districts", zap.Error(err), zap.Int64("chatId", cachedPollState.ChatID))
+		return
+	}
+
+	err = c.service.User.SetOperatingMode(cachedPollState.ChatID, constants.District)
+	if err != nil {
+		zap.L().Error("failed to set district operating mode", zap.Error(err), zap.Int64("chatId", cachedPollState.ChatID))
+		return
+	}
+
+	msg := tgbotapi.NewMessage(
+		cachedPollState.ChatID,
+		fmt.Sprintf(
+			"🏘 Район 🏘\n\nТеперь вы будете получать оповещения по выбранным районам! 🍃\n\nВы выбрали:\n%s",
+			strings.Join(selectedDistrictNames, "\n"),
+		),
+	)
+	if sendErr := c.api.Send(api.MessageConfig{Msg: msg}); sendErr != nil {
+		zap.L().Error("failed to send district mode confirmation", zap.Error(sendErr))
+	}
 }

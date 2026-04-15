@@ -5,7 +5,6 @@ import (
 	"air-quality-notifyer/internal/app/telegram/commander/api"
 	"air-quality-notifyer/internal/config"
 	"air-quality-notifyer/internal/service/sensor/model"
-	"fmt"
 
 	tgbotapi "github.com/OvyFlash/telegram-bot-api"
 	"go.uber.org/zap"
@@ -25,42 +24,14 @@ func Init(cfg config.Config, services *commander.Services) *tgBot {
 	}
 
 	cmder := commander.New(cfg, bot, services)
-	if cfg.Development {
-		bot.Debug = true
+	bot.Debug = true
 
-		updateConfig := tgbotapi.NewUpdate(0)
-		updateConfig.Timeout = 30
-
-		return &tgBot{
-			bot:       bot,
-			updates:   bot.GetUpdatesChan(updateConfig),
-			Commander: cmder,
-		}
-	}
-
-	wh, err := tgbotapi.NewWebhook(fmt.Sprintf("https://%s/webhook%s", cfg.App.WebhookHost, bot.Token))
-	if err != nil {
-		zap.L().Panic("Filed to create new webhook", zap.Error(err))
-	}
-	_, err = bot.Request(wh)
-	if err != nil {
-		panic(err)
-	}
-
-	info, err := bot.GetWebhookInfo()
-	if err != nil {
-		zap.L().Panic("Failed to get webhook info", zap.Error(err))
-	}
-
-	if info.LastErrorDate != 0 {
-		zap.L().Error("failed to init get info about webhook", zap.Error(err))
-	}
-
-	updates := bot.ListenForWebhook(fmt.Sprintf("/webhook%s", bot.Token))
+	updateConfig := tgbotapi.NewUpdate(0)
+	updateConfig.Timeout = 30
 
 	return &tgBot{
 		bot:       bot,
-		updates:   updates,
+		updates:   bot.GetUpdatesChan(updateConfig),
 		Commander: cmder,
 	}
 }

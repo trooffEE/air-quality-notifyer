@@ -22,6 +22,7 @@ type Interface interface {
 	GetUsersIds() []int64
 	Register(userModel model.User)
 	SetOperatingMode(id int64, mode constants.ModeType) error
+	SetObservedDistricts(id int64, districtIDs []int64) error
 }
 
 func New(ur user.Interface) Interface {
@@ -93,6 +94,16 @@ func (ur *Service) SetOperatingMode(id int64, mode constants.ModeType) error {
 	err := ur.repo.SetOperatingMode(id, mode)
 	if err != nil {
 		zap.L().Error("failed to set operating mode", zap.Error(err))
+		return err
+	}
+
+	return nil
+}
+
+func (ur *Service) SetObservedDistricts(id int64, districtIDs []int64) error {
+	err := ur.repo.SetObservedDistricts(id, districtIDs)
+	if err != nil {
+		zap.L().Error("failed to set observed districts", zap.Error(err), zap.Int64("userId", id))
 		return err
 	}
 

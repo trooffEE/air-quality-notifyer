@@ -22,6 +22,7 @@ type Interface interface {
 	GetAllNames() ([]string, error)
 	DeleteUserById(id int64) error
 	SetOperatingMode(tgId int64, mode constants.ModeType) error
+	SetObservedDistricts(tgId int64, districtIDs []int64) error
 }
 
 type Repository struct {
@@ -107,6 +108,47 @@ func (r *Repository) SetOperatingMode(tgId int64, mode constants.ModeType) error
 
 	if err != nil {
 		zap.L().Error("Failed to set operating mode", zap.Error(err))
+		return err
+	}
+
+	return nil
+}
+
+func (r *Repository) SetObservedDistricts(tgId int64, districtIDs []int64) error {
+	transaction, err := r.db.Beginx()
+	if err != nil {
+		return err
+	}
+	defer func() {
+		if err != nil {
+			_ = transaction.Rollback()
+		}
+	}()
+
+	var userID int64
+	err = transaction.Get(&userID, "SELECT id FROM users WHERE telegram_id = $1", tgId)
+	if err != nil {
+		return err
+	}
+
+	_, err = transaction.Exec("DELETE FROM users_observed_districts WHERE user_id = $1", userID)
+	if err != nil {
+		return err
+	}
+
+	for _, districtID := range districtIDs {
+		_, err = transaction.Exec(
+			"INSERT INTO users_observed_districts (user_id, district_id) VALUES ($1, $2)",
+			userID,
+			districtID,
+		)
+		if err != nil {
+			return err
+		}
+	}
+
+	err = transaction.Commit()
+	if err != nil {
 		return err
 	}
 
