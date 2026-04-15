@@ -19,7 +19,9 @@ type Interface interface {
 	FindById(id int64) (*User, error)
 	Register(user User) error
 	GetAllIds() ([]int64, error)
+	GetAllIdsByOperatingMode(mode constants.ModeType) ([]int64, error)
 	GetAllNames() ([]string, error)
+	GetObservedDistrictIdsByOperatingMode(mode constants.ModeType) (map[int64][]int64, error)
 	DeleteUserById(id int64) error
 	SetOperatingMode(tgId int64, mode constants.ModeType) error
 	SetObservedDistricts(tgId int64, districtIDs []int64) error
@@ -74,6 +76,43 @@ func (r *Repository) GetAllIds() ([]int64, error) {
 	}
 
 	return ids, nil
+}
+
+func (r *Repository) GetAllIdsByOperatingMode(mode constants.ModeType) ([]int64, error) {
+	var ids []int64
+	err := r.db.Select(&ids, "SELECT telegram_id FROM users WHERE operating_mode = $1", mode)
+	if err != nil {
+		return nil, err
+	}
+
+	return ids, nil
+}
+
+type userObservedDistrict struct {
+	TelegramID int64 `db:"telegram_id"`
+	DistrictID int64 `db:"district_id"`
+}
+
+func (r *Repository) GetObservedDistrictIdsByOperatingMode(mode constants.ModeType) (map[int64][]int64, error) {
+	var rows []userObservedDistrict
+	err := r.db.Select(&rows, `
+		SELECT
+			u.telegram_id AS telegram_id,
+			uod.district_id AS district_id
+		FROM users u
+		JOIN users_observed_districts uod ON u.id = uod.user_id
+		WHERE u.operating_mode = $1
+	`, mode)
+	if err != nil {
+		return nil, err
+	}
+
+	usersDistricts := make(map[int64][]int64)
+	for _, row := range rows {
+		usersDistricts[row.TelegramID] = append(usersDistricts[row.TelegramID], row.DistrictID)
+	}
+
+	return usersDistricts, nil
 }
 
 func (r *Repository) GetAllNames() ([]string, error) {

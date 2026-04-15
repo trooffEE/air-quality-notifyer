@@ -20,6 +20,8 @@ type Interface interface {
 	Delete(id int64)
 	GetUsersNames() []string
 	GetUsersIds() []int64
+	GetUsersIdsByOperatingMode(mode constants.ModeType) []int64
+	GetObservedDistrictIdsByOperatingMode(mode constants.ModeType) map[int64][]int64
 	Register(userModel model.User)
 	SetOperatingMode(id int64, mode constants.ModeType) error
 	SetObservedDistricts(id int64, districtIDs []int64) error
@@ -65,6 +67,25 @@ func (ur *Service) GetUsersIds() []int64 {
 	}
 
 	return ids
+}
+
+func (ur *Service) GetUsersIdsByOperatingMode(mode constants.ModeType) []int64 {
+	ids, err := ur.repo.GetAllIdsByOperatingMode(mode)
+	if err != nil {
+		zap.L().Error("failed to get users ids by operating mode", zap.Error(err), zap.Int("mode", mode))
+	}
+
+	return ids
+}
+
+func (ur *Service) GetObservedDistrictIdsByOperatingMode(mode constants.ModeType) map[int64][]int64 {
+	observedDistricts, err := ur.repo.GetObservedDistrictIdsByOperatingMode(mode)
+	if err != nil {
+		zap.L().Error("failed to get observed districts by operating mode", zap.Error(err), zap.Int("mode", mode))
+		return map[int64][]int64{}
+	}
+
+	return observedDistricts
 }
 
 func (ur *Service) GetUsersNames() []string {

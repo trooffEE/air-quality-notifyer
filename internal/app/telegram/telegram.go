@@ -4,6 +4,7 @@ import (
 	"air-quality-notifyer/internal/app/telegram/commander"
 	"air-quality-notifyer/internal/app/telegram/commander/api"
 	"air-quality-notifyer/internal/config"
+	"air-quality-notifyer/internal/constants"
 	"air-quality-notifyer/internal/service/sensor/model"
 
 	tgbotapi "github.com/OvyFlash/telegram-bot-api"
@@ -46,16 +47,72 @@ func (t *tgBot) listenSensors() {
 }
 
 func (t *tgBot) notifyUsers(sensors []model.Sensor) {
-	messages := newUserMessages(sensors)
+	modeHandlers := map[constants.ModeType]func([]model.Sensor){
+		constants.City:     t.notifyCityUsers,
+		constants.District: t.notifyDistrictUsers,
+		constants.Home:     t.notifyHomeUsers,
+	}
 
-	ids := t.Commander.Services.User.GetUsersIds()
-	for _, id := range ids {
-		for _, message := range messages {
-			payload := api.MessageConfig{Msg: tgbotapi.NewMessage(id, message)}
-			if err := t.Commander.API.Send(payload); err != nil && err.Code == 403 {
-				t.Commander.Services.User.Delete(id)
-				break
+	modeOrder := []constants.ModeType{constants.City, constants.District, constants.Home}
+	for _, mode := range modeOrder {
+		modeHandlers[mode](sensors)
+	}
+}
+
+func (t *tgBot) notifyCityUsers(sensors []model.Sensor) {
+	cityUsers := t.Commander.Services.User.GetUsersIdsByOperatingMode(constants.City)
+	messages := newUserMessages(sensors)
+	for _, userID := range cityUsers {
+		t.sendMessagesToUser(userID, messages)
+	}
+}
+
+func (t *tgBot) notifyDistrictUsers(sensors []model.Sensor) {
+	userDistricts := t.Commander.Services.User.GetObservedDistrictIdsByOperatingMode(constants.District)
+	if len(userDistricts) == 0 {
+		return
+	}
+
+	districtNameByID := map[int64]string{}
+	for _, district := range t.Commander.Services.District.GetAllDistricts() {
+		districtNameByID[district.Id] = district.Name
+	}
+
+	for userID, observedDistrictIDs := range userDistricts {
+		observedDistrictNames := map[string]struct{}{}
+		for _, districtID := range observedDistrictIDs {
+			districtName, exists := districtNameByID[districtID]
+			if !exists {
+				continue
 			}
+			observedDistrictNames[districtName] = struct{}{}
+		}
+
+		if len(observedDistrictNames) == 0 {
+			continue
+		}
+
+		districtSensors := []model.Sensor{}
+		for _, sensor := range sensors {
+			if _, exists := observedDistrictNames[sensor.District]; exists {
+				districtSensors = append(districtSensors, sensor)
+			}
+		}
+
+		t.sendMessagesToUser(userID, newUserMessages(districtSensors))
+	}
+}
+
+func (t *tgBot) notifyHomeUsers(_ []model.Sensor) {
+	// Placeholder for future Home mode implementation.
+}
+
+func (t *tgBot) sendMessagesToUser(userID int64, messages []string) {
+	for _, message := range messages {
+		payload := api.MessageConfig{Msg: tgbotapi.NewMessage(userID, message)}
+		if err := t.Commander.API.Send(payload); err != nil && err.Code == 403 {
+			t.Commander.Services.User.Delete(userID)
+			break
 		}
 	}
 }

@@ -67,7 +67,7 @@ func Scrap() []Sensor {
 }
 
 // FilterSensorsByHourDiff TODO Maybe not a place for it
-func FilterSensorsByHourDiff(sensors []Sensor, diffInHours int) []Sensor {
+func FilterSensorsByHourDiff(sensors []Sensor, allowedDiffInHours int) []Sensor {
 	var aliveSensors []Sensor
 	layout := "2006-01-02T15:04:05.999999999Z"
 	for _, sensor := range sensors {
@@ -78,7 +78,7 @@ func FilterSensorsByHourDiff(sensors []Sensor, diffInHours int) []Sensor {
 		}
 
 		diffInHours := sensorTime.Sub(time.Now().UTC()).Hours()
-		if diffInHours > -1*diffInHours {
+		if -1*diffInHours <= float64(allowedDiffInHours) {
 			aliveSensors = append(aliveSensors, sensor)
 		}
 	}
