@@ -136,6 +136,10 @@ func (t *tgBot) listenUpdates() {
 			Command:     "start",
 			Description: "🌀 Перезапустить бота",
 		},
+		tgbotapi.BotCommand{
+			Command:     commander.CommandFeedback,
+			Description: "💬 Обратная связь",
+		},
 	)
 	if _, err := t.bot.Request(cfg); err != nil {
 		zap.L().Error("commander request error", zap.Error(err))

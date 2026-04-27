@@ -1,6 +1,8 @@
 package commander
 
 import (
+	"strconv"
+
 	"air-quality-notifyer/internal/app/telegram/commander/admin"
 	"air-quality-notifyer/internal/app/telegram/commander/api"
 	"air-quality-notifyer/internal/app/telegram/commander/mode"
@@ -9,9 +11,9 @@ import (
 	"air-quality-notifyer/internal/service/sensor"
 	"air-quality-notifyer/internal/service/user"
 	"air-quality-notifyer/internal/service/user/model"
-	"strconv"
 
 	tgbotapi "github.com/OvyFlash/telegram-bot-api"
+	"github.com/redis/go-redis/v9"
 	"go.uber.org/zap"
 )
 
@@ -26,6 +28,7 @@ type Services struct {
 	User     user.Interface
 	District districts.Interface
 	Sensor   sensor.Interface
+	Cache    *redis.Client
 }
 
 func New(cfg config.Config, bot *tgbotapi.BotAPI, s *Services) *Commander {
@@ -54,6 +57,10 @@ func (c *Commander) HandleUpdate(updates tgbotapi.UpdatesChannel) {
 				)
 			}
 
+			if c.HandlePendingFeedback(update) {
+				continue
+			}
+
 			switch update.Message.Text {
 			case "/start":
 				c.Start(update)
@@ -66,8 +73,11 @@ func (c *Commander) HandleUpdate(updates tgbotapi.UpdatesChannel) {
 			case api.KeypadPingText:
 				c.Admin.Pong(update)
 			default:
-				if admin.IsAnnounceCommand(update.Message.Text) {
+				switch {
+				case admin.IsAnnounceCommand(update.Message.Text):
 					c.Admin.Announce(update)
+				case isFeedbackCommand(update.Message):
+					c.Feedback(update)
 				}
 			}
 

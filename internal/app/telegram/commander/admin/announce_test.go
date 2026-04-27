@@ -1,6 +1,7 @@
 package admin
 
 import (
+	tgmessage "air-quality-notifyer/internal/app/telegram/commander/message"
 	"testing"
 
 	tgbotapi "github.com/OvyFlash/telegram-bot-api"
@@ -57,6 +58,6 @@ func TestAnnouncementMessageAddsHeader(t *testing.T) {
 
 	assert.Equal(t, "🤖\n\nformatted text", text)
 	assert.Equal(t, []tgbotapi.MessageEntity{
-		{Type: "bold", Offset: utf16Len(announcementHeader), Length: 9},
+		{Type: "bold", Offset: tgmessage.UTF16Len(announcementHeader), Length: 9},
 	}, entities)
 }

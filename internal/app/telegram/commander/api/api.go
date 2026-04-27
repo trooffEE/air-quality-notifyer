@@ -19,6 +19,7 @@ type Api struct {
 type Interface interface {
 	Send(payload MessageConfig) *tgbotapi.Error
 	SendPoll(chatID int64, config PollConfig) (*tgbotapi.Message, error)
+	AdminChatID() (int64, bool)
 	Delete(update *tgbotapi.Message) error
 	DeleteRequest(message tgbotapi.DeleteMessageConfig) error
 	Edit(payload EditMessageConfig) error
@@ -41,12 +42,13 @@ func NewApi(cfg config.Config, bot *tgbotapi.BotAPI) (*Api, error) {
 }
 
 type MessageConfig struct {
-	Msg    tgbotapi.MessageConfig
-	Markup interface{}
+	Msg              tgbotapi.MessageConfig
+	Markup           interface{}
+	DisableParseMode bool
 }
 
 func (a *Api) Send(payload MessageConfig) *tgbotapi.Error {
-	if len(payload.Msg.Entities) == 0 {
+	if !payload.DisableParseMode && len(payload.Msg.Entities) == 0 {
 		payload.Msg.ParseMode = tgbotapi.ModeHTML
 	}
 	payload.Msg.DisableNotification = a.IsNotificationsAllowed()
@@ -133,12 +135,17 @@ func (a *Api) SendPoll(chatID int64, config PollConfig) (*tgbotapi.Message, erro
 }
 
 func (a *Api) IsAdmin(update tgbotapi.Update) bool {
-	adminId, err := strconv.Atoi(a.cfg.App.AdminTelegramId)
+	adminId, ok := a.AdminChatID()
+	return ok && update.Message != nil && adminId == update.Message.Chat.ID
+}
+
+func (a *Api) AdminChatID() (int64, bool) {
+	adminId, err := strconv.ParseInt(a.cfg.App.AdminTelegramId, 10, 64)
 	if err != nil {
 		zap.L().Error("conversion error", zap.Error(err))
-		return false
+		return 0, false
 	}
-	return int64(adminId) == update.Message.Chat.ID
+	return adminId, true
 }
 
 func (a *Api) IsNotificationsAllowed() bool {

@@ -47,6 +47,7 @@ func main() {
 		User:     userService,
 		Sensor:   sensorService,
 		District: districtService,
+		Cache:    cacheClient,
 	}
 
 	bot := telegram.Init(cfg, &services)
