@@ -65,6 +65,10 @@ func (c *Commander) HandleUpdate(updates tgbotapi.UpdatesChannel) {
 				c.Settings(update)
 			case api.KeypadPingText:
 				c.Admin.Pong(update)
+			default:
+				if admin.IsAnnounceCommand(update.Message.Text) {
+					c.Admin.Announce(update)
+				}
 			}
 
 			if api.IsMenuButton(update.Message.Text) {

@@ -20,6 +20,7 @@ type Service struct {
 }
 
 type Interface interface {
+	Announce(update tgbotapi.Update)
 	Pong(update tgbotapi.Update)
 	ShowUsers(update tgbotapi.Update)
 }

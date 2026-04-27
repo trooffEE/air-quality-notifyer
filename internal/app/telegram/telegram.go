@@ -25,7 +25,9 @@ func Init(cfg config.Config, services *commander.Services) *tgBot {
 	}
 
 	cmder := commander.New(cfg, bot, services)
-	bot.Debug = true
+	if cfg.Development {
+		bot.Debug = true
+	}
 
 	updateConfig := tgbotapi.NewUpdate(0)
 	updateConfig.Timeout = 30

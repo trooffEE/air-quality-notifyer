@@ -46,7 +46,9 @@ type MessageConfig struct {
 }
 
 func (a *Api) Send(payload MessageConfig) *tgbotapi.Error {
-	payload.Msg.ParseMode = tgbotapi.ModeHTML
+	if len(payload.Msg.Entities) == 0 {
+		payload.Msg.ParseMode = tgbotapi.ModeHTML
+	}
 	payload.Msg.DisableNotification = a.IsNotificationsAllowed()
 
 	if payload.Markup != nil {
