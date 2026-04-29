@@ -329,7 +329,7 @@
 
     function renderSelectionStatus(total) {
       if (total === 0) {
-        setStatus("На данный момент активных датчиков нет.");
+        setStatus(`На данный момент активных датчиков нет. ${initData || "ничерта нет"}`);
         confirmEl.disabled = true;
         return;
       }
@@ -355,6 +355,8 @@
         headers: { "X-Telegram-Init-Data": initData }
       });
       if (!response.ok) {
+        // REMOVE THIS AFTER TESTING
+        renderSelectionStatus(0)
         throw new Error(`Не удалось загрузить датчики. ${initData || "ничерта нет"}`);
       }
 
