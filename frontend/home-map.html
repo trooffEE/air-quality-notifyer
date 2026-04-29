@@ -355,7 +355,7 @@
         headers: { "X-Telegram-Init-Data": initData }
       });
       if (!response.ok) {
-        throw new Error(`Не удалось загрузить датчики. ${initData}`);
+        throw new Error(`Не удалось загрузить датчики. ${initData || "ничерта нет"}`);
       }
 
       const sensors = await response.json();
