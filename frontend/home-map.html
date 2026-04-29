@@ -6,21 +6,34 @@
   <title>Choose Sensors</title>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIINfQ39LfxI4tT56NLRB3azRYssNQ+uCwM=" crossorigin="">
   <style>
-    html, body, #map { height: 100%; margin: 0; }
+    :root { --app-height: 100dvh; }
+    html, body {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      overflow: hidden;
+    }
     body {
       font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
       background: #f7f7f4;
       color: #18201b;
+      overscroll-behavior: none;
     }
-    #map { min-height: 100vh; }
+    #map {
+      position: fixed;
+      inset: 0;
+      width: 100vw;
+      height: var(--app-height);
+      min-height: 100dvh;
+    }
     .panel {
       position: fixed;
       left: 12px;
       right: 12px;
-      bottom: 12px;
+      bottom: max(12px, env(safe-area-inset-bottom));
       z-index: 1000;
       display: grid;
-      grid-template-columns: 1fr auto;
+      grid-template-columns: minmax(0, 1fr) auto;
       gap: 10px;
       align-items: center;
       padding: 10px;
@@ -28,7 +41,12 @@
       background: rgba(255, 255, 255, 0.94);
       box-shadow: 0 6px 24px rgba(24, 32, 27, 0.18);
     }
-    .status { min-width: 0; font-size: 14px; line-height: 1.35; }
+    .status {
+      min-width: 0;
+      font-size: 14px;
+      line-height: 1.35;
+      overflow-wrap: anywhere;
+    }
     button {
       min-height: 42px;
       border: 0;
@@ -42,24 +60,33 @@
     button:disabled { background: #9aa39d; }
     .empty {
       position: fixed;
-      inset: 20px;
+      inset: 0;
       z-index: 900;
       display: none;
       place-items: center;
+      padding: 20px 20px 96px;
       text-align: center;
       font-size: 16px;
       line-height: 1.45;
       color: #4e5b53;
+      background: rgba(247, 247, 244, 0.72);
       pointer-events: none;
+    }
+    .empty span {
+      max-width: 280px;
+      padding: 12px 14px;
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.94);
+      box-shadow: 0 6px 24px rgba(24, 32, 27, 0.14);
     }
   </style>
 </head>
 <body>
   <div id="map"></div>
-  <div id="empty" class="empty">No active sensors are available right now.</div>
+  <div id="empty" class="empty"><span>На данный момент активных датчиков нет.</span></div>
   <div class="panel">
-    <div id="status" class="status">Loading sensors...</div>
-    <button id="confirm" disabled>Save</button>
+    <div id="status" class="status">Загрузка датчиков...</div>
+    <button id="confirm" disabled>Выбрать датчики!</button>
   </div>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
@@ -82,19 +109,40 @@
       attribution: "&copy; OpenStreetMap"
     }).addTo(map);
 
+    function syncViewportHeight() {
+      if (tg && tg.viewportHeight) {
+        document.documentElement.style.setProperty("--app-height", tg.viewportHeight + "px");
+      } else {
+        document.documentElement.style.setProperty("--app-height", window.innerHeight + "px");
+      }
+    }
+
+    function syncMapSize() {
+      syncViewportHeight();
+      requestAnimationFrame(() => map.invalidateSize(false));
+      setTimeout(() => map.invalidateSize(false), 250);
+    }
+
+    syncMapSize();
+    window.addEventListener("resize", syncMapSize);
+    window.addEventListener("orientationchange", syncMapSize);
+    if (tg) {
+      tg.onEvent("viewportChanged", syncMapSize);
+    }
+
     function setStatus(text) {
       statusEl.textContent = text;
     }
 
     function renderSelectionStatus(total) {
       if (total === 0) {
-        setStatus("No active sensors are available right now.");
+        setStatus("На данный момент активных датчиков нет.");
         confirmEl.disabled = true;
         return;
       }
 
       const count = selected.size;
-      setStatus(count === 0 ? "Tap markers to choose sensors." : "Selected: " + count);
+      setStatus(count === 0 ? "Нажмите на маркеры, чтобы выбрать датчики." : "Выбрано: " + count);
       confirmEl.disabled = count === 0;
     }
 
@@ -114,13 +162,14 @@
         headers: { "X-Telegram-Init-Data": initData }
       });
       if (!response.ok) {
-        throw new Error("Unable to load sensors.");
+        throw new Error("Не удалось загрузить датчики.");
       }
 
       const sensors = await response.json();
       if (sensors.length === 0) {
         emptyEl.style.display = "grid";
         renderSelectionStatus(0);
+        syncMapSize();
         return;
       }
 
@@ -134,11 +183,12 @@
 
       map.fitBounds(bounds, { padding: [28, 70], maxZoom: 14 });
       renderSelectionStatus(sensors.length);
+      syncMapSize();
     }
 
     confirmEl.addEventListener("click", async () => {
       confirmEl.disabled = true;
-      setStatus("Saving...");
+      setStatus("Сохранение...");
 
       const response = await fetch("/api/map/home-selection", {
         method: "POST",
@@ -150,12 +200,12 @@
       });
 
       if (!response.ok) {
-        setStatus("Could not save selection. Please try again.");
+        setStatus("Не удалось сохранить выбор. Пожалуйста, попробуйте еще раз.");
         confirmEl.disabled = false;
         return;
       }
 
-      setStatus("Saved.");
+      setStatus("Сохранено.");
       setTimeout(() => {
         if (tg) {
           tg.close();

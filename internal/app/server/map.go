@@ -47,6 +47,7 @@ func (h *mapHandler) handleHomeMap(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	w.Header().Set("Cache-Control", "no-store")
 	http.ServeFile(w, r, "frontend/home-map.html")
 }
 
