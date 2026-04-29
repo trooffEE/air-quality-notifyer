@@ -6,4 +6,4 @@ RUN go mod download
 COPY . .
 
 RUN make build
-RUN ./main
+CMD ["./main"]

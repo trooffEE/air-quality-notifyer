@@ -1,0 +1,7 @@
+data/data
+data/
+postgres_data/
+.git
+node_modules
+__pycache__
+redis_data

@@ -1,4 +1,6 @@
 networks:
+   web-shared-network:
+    external: true
   server-network:
     driver: bridge
 
@@ -43,7 +45,7 @@ services:
     volumes:
       - redis_data:/data
     ports:
-      - "6379:6379"
+      - "127.0.0.1:6379:6379"
     env_file: .env
     networks:
       - server-network
