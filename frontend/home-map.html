@@ -1,0 +1,172 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Choose Sensors</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIINfQ39LfxI4tT56NLRB3azRYssNQ+uCwM=" crossorigin="">
+  <style>
+    html, body, #map { height: 100%; margin: 0; }
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #f7f7f4;
+      color: #18201b;
+    }
+    #map { min-height: 100vh; }
+    .panel {
+      position: fixed;
+      left: 12px;
+      right: 12px;
+      bottom: 12px;
+      z-index: 1000;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 10px;
+      align-items: center;
+      padding: 10px;
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.94);
+      box-shadow: 0 6px 24px rgba(24, 32, 27, 0.18);
+    }
+    .status { min-width: 0; font-size: 14px; line-height: 1.35; }
+    button {
+      min-height: 42px;
+      border: 0;
+      border-radius: 8px;
+      padding: 0 14px;
+      background: #1f7a4d;
+      color: white;
+      font-weight: 700;
+      font-size: 14px;
+    }
+    button:disabled { background: #9aa39d; }
+    .empty {
+      position: fixed;
+      inset: 20px;
+      z-index: 900;
+      display: none;
+      place-items: center;
+      text-align: center;
+      font-size: 16px;
+      line-height: 1.45;
+      color: #4e5b53;
+      pointer-events: none;
+    }
+  </style>
+</head>
+<body>
+  <div id="map"></div>
+  <div id="empty" class="empty">No active sensors are available right now.</div>
+  <div class="panel">
+    <div id="status" class="status">Loading sensors...</div>
+    <button id="confirm" disabled>Save</button>
+  </div>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+  <script>
+    const tg = window.Telegram && window.Telegram.WebApp ? window.Telegram.WebApp : null;
+    if (tg) {
+      tg.ready();
+      tg.expand();
+    }
+
+    const initData = tg ? tg.initData : "";
+    const selected = new Set();
+    const statusEl = document.getElementById("status");
+    const confirmEl = document.getElementById("confirm");
+    const emptyEl = document.getElementById("empty");
+    const map = L.map("map", { zoomControl: true }).setView([55.354, 86.087], 11);
+
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      maxZoom: 19,
+      attribution: "&copy; OpenStreetMap"
+    }).addTo(map);
+
+    function setStatus(text) {
+      statusEl.textContent = text;
+    }
+
+    function renderSelectionStatus(total) {
+      if (total === 0) {
+        setStatus("No active sensors are available right now.");
+        confirmEl.disabled = true;
+        return;
+      }
+
+      const count = selected.size;
+      setStatus(count === 0 ? "Tap markers to choose sensors." : "Selected: " + count);
+      confirmEl.disabled = count === 0;
+    }
+
+    function toggleMarker(sensor, marker, total) {
+      if (selected.has(sensor.api_id)) {
+        selected.delete(sensor.api_id);
+        marker.setOpacity(0.65);
+      } else {
+        selected.add(sensor.api_id);
+        marker.setOpacity(1);
+      }
+      renderSelectionStatus(total);
+    }
+
+    async function loadSensors() {
+      const response = await fetch("/api/map/alive-sensors", {
+        headers: { "X-Telegram-Init-Data": initData }
+      });
+      if (!response.ok) {
+        throw new Error("Unable to load sensors.");
+      }
+
+      const sensors = await response.json();
+      if (sensors.length === 0) {
+        emptyEl.style.display = "grid";
+        renderSelectionStatus(0);
+        return;
+      }
+
+      const bounds = [];
+      for (const sensor of sensors) {
+        const marker = L.marker([sensor.lat, sensor.lon], { opacity: 0.65 }).addTo(map);
+        marker.bindPopup((sensor.address || "Sensor") + "<br>" + (sensor.district || ""));
+        marker.on("click", () => toggleMarker(sensor, marker, sensors.length));
+        bounds.push([sensor.lat, sensor.lon]);
+      }
+
+      map.fitBounds(bounds, { padding: [28, 70], maxZoom: 14 });
+      renderSelectionStatus(sensors.length);
+    }
+
+    confirmEl.addEventListener("click", async () => {
+      confirmEl.disabled = true;
+      setStatus("Saving...");
+
+      const response = await fetch("/api/map/home-selection", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Telegram-Init-Data": initData
+        },
+        body: JSON.stringify({ sensor_api_ids: Array.from(selected) })
+      });
+
+      if (!response.ok) {
+        setStatus("Could not save selection. Please try again.");
+        confirmEl.disabled = false;
+        return;
+      }
+
+      setStatus("Saved.");
+      setTimeout(() => {
+        if (tg) {
+          tg.close();
+        }
+      }, 700);
+    });
+
+    loadSensors().catch((error) => {
+      setStatus(error.message);
+      confirmEl.disabled = true;
+    });
+  </script>
+</body>
+</html>

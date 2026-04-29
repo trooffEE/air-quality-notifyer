@@ -44,6 +44,10 @@ func (t *tgBot) Start() {
 	go t.listenSensors()
 }
 
+func (t *tgBot) BotAPI() *tgbotapi.BotAPI {
+	return t.bot
+}
+
 func (t *tgBot) listenSensors() {
 	t.Commander.Services.Sensor.ListenChanges(t.notifyUsers)
 }
@@ -105,8 +109,27 @@ func (t *tgBot) notifyDistrictUsers(sensors []model.Sensor) {
 	}
 }
 
-func (t *tgBot) notifyHomeUsers(_ []model.Sensor) {
-	// Placeholder for future Home mode implementation.
+func (t *tgBot) notifyHomeUsers(sensors []model.Sensor) {
+	userSensors := t.Commander.Services.User.GetObservedSensorAPIIdsByOperatingMode(constants.Home)
+	if len(userSensors) == 0 {
+		return
+	}
+
+	for userID, observedSensorIDs := range userSensors {
+		observedSensors := map[int64]struct{}{}
+		for _, sensorID := range observedSensorIDs {
+			observedSensors[sensorID] = struct{}{}
+		}
+
+		homeSensors := []model.Sensor{}
+		for _, sensor := range sensors {
+			if _, exists := observedSensors[sensor.Id]; exists {
+				homeSensors = append(homeSensors, sensor)
+			}
+		}
+
+		t.sendMessagesToUser(userID, newUserMessages(homeSensors))
+	}
 }
 
 func (t *tgBot) sendMessagesToUser(userID int64, messages []string) {

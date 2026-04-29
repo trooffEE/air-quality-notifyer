@@ -49,7 +49,7 @@ func (c *Commander) Setup(update tgbotapi.Update) {
 		tgbotapi.NewInlineKeyboardRow(
 			tgbotapi.NewInlineKeyboardButtonData(KeypadSetCityText, KeypadSetCityData),
 			tgbotapi.NewInlineKeyboardButtonData(KeypadAskForDistrictOptionsText, KeypadAskForDistrictOptionsData),
-			tgbotapi.NewInlineKeyboardButtonData(KeypadSetHomeText, KeypadSetHomeData),
+			c.api.HomeMapInlineKeyboardButton(KeypadSetHomeText),
 		),
 		tgbotapi.NewInlineKeyboardRow(
 			tgbotapi.NewInlineKeyboardButtonData(KeypadFaqFromSetupText, KeypadFaqFromSetupData),

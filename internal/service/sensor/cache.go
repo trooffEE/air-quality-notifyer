@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strings"
 	"time"
 
 	"go.uber.org/zap"
@@ -96,6 +97,63 @@ func (s *Service) getDistrictSensorsFromCache(districtID int64) (*[]rSensor.Sens
 	}
 
 	return &sensors, nil
+}
+
+func (s *Service) GetAliveSensorsFromCache() ([]AliveSensor, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
+	defer cancel()
+
+	var cursor uint64
+	var payloads []string
+	for {
+		keys, nextCursor, err := s.cache.Scan(ctx, cursor, "sensor:*", 100).Result()
+		if err != nil {
+			return nil, err
+		}
+
+		for _, key := range keys {
+			if !isAliveSensorCacheKey(key) {
+				continue
+			}
+
+			payload, err := s.cache.Get(ctx, key).Result()
+			if err != nil {
+				return nil, err
+			}
+			payloads = append(payloads, payload)
+		}
+
+		if nextCursor == 0 {
+			break
+		}
+		cursor = nextCursor
+	}
+
+	return aliveSensorsFromCachePayloads(payloads)
+}
+
+func aliveSensorsFromCachePayloads(payloads []string) ([]AliveSensor, error) {
+	sensors := make([]AliveSensor, 0, len(payloads))
+	for _, payload := range payloads {
+		var sensor rSensor.Sensor
+		if err := json.Unmarshal([]byte(payload), &sensor); err != nil {
+			return nil, err
+		}
+
+		sensors = append(sensors, AliveSensor{
+			APIID:    sensor.ApiId,
+			Address:  sensor.Address,
+			Lat:      sensor.Lat,
+			Lon:      sensor.Lon,
+			District: sensor.District.Name,
+		})
+	}
+
+	return sensors, nil
+}
+
+func isAliveSensorCacheKey(key string) bool {
+	return strings.HasPrefix(key, "sensor:") && !strings.HasPrefix(key, "sensor:district:")
 }
 
 func getSensorCacheKey(sensorId int64) string {

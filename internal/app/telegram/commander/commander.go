@@ -111,10 +111,6 @@ func (c *Commander) HandleUpdate(updates tgbotapi.UpdatesChannel) {
 				c.Mode.SetCity(update)
 			case mode.KeypadAskForDistrictOptionsData:
 				c.Mode.AskForDistrictOptions(update)
-				//case mode.KeypadAskForDistrictOptionsData:
-				//	t.Commander.Mode.AskForDistrictOptions(update, t.services.UserService, constants.District)
-				//case mode.KeypadSetHomeData:
-				//	t.Commander.Mode.SetHome(update, t.services.UserService, constants.Home)
 			}
 		}
 	}

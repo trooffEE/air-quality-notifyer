@@ -22,9 +22,11 @@ type Interface interface {
 	GetAllIdsByOperatingMode(mode constants.ModeType) ([]int64, error)
 	GetAllNames() ([]string, error)
 	GetObservedDistrictIdsByOperatingMode(mode constants.ModeType) (map[int64][]int64, error)
+	GetObservedSensorAPIIdsByOperatingMode(mode constants.ModeType) (map[int64][]int64, error)
 	DeleteUserById(id int64) error
 	SetOperatingMode(tgId int64, mode constants.ModeType) error
 	SetObservedDistricts(tgId int64, districtIDs []int64) error
+	SetObservedSensorsByAPIIds(tgId int64, sensorAPIIDs []int64) error
 }
 
 type Repository struct {
@@ -115,6 +117,34 @@ func (r *Repository) GetObservedDistrictIdsByOperatingMode(mode constants.ModeTy
 	return usersDistricts, nil
 }
 
+type userObservedSensor struct {
+	TelegramID  int64 `db:"telegram_id"`
+	SensorAPIID int64 `db:"sensor_api_id"`
+}
+
+func (r *Repository) GetObservedSensorAPIIdsByOperatingMode(mode constants.ModeType) (map[int64][]int64, error) {
+	var rows []userObservedSensor
+	err := r.db.Select(&rows, `
+		SELECT
+			u.telegram_id AS telegram_id,
+			s.api_id AS sensor_api_id
+		FROM users u
+		JOIN users_observed_sensors uos ON u.id = uos.user_id
+		JOIN sensors s ON s.id = uos.sensor_id
+		WHERE u.operating_mode = $1
+	`, mode)
+	if err != nil {
+		return nil, err
+	}
+
+	usersSensors := make(map[int64][]int64)
+	for _, row := range rows {
+		usersSensors[row.TelegramID] = append(usersSensors[row.TelegramID], row.SensorAPIID)
+	}
+
+	return usersSensors, nil
+}
+
 func (r *Repository) GetAllNames() ([]string, error) {
 	var names []string
 	err := r.db.Select(&names, "SELECT username FROM users")
@@ -180,6 +210,62 @@ func (r *Repository) SetObservedDistricts(tgId int64, districtIDs []int64) error
 			"INSERT INTO users_observed_districts (user_id, district_id) VALUES ($1, $2)",
 			userID,
 			districtID,
+		)
+		if err != nil {
+			return err
+		}
+	}
+
+	err = transaction.Commit()
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (r *Repository) SetObservedSensorsByAPIIds(tgId int64, sensorAPIIDs []int64) error {
+	transaction, err := r.db.Beginx()
+	if err != nil {
+		return err
+	}
+	defer func() {
+		if err != nil {
+			_ = transaction.Rollback()
+		}
+	}()
+
+	var userID int64
+	err = transaction.Get(&userID, "SELECT id FROM users WHERE telegram_id = $1", tgId)
+	if err != nil {
+		return err
+	}
+
+	_, err = transaction.Exec("DELETE FROM users_observed_sensors WHERE user_id = $1", userID)
+	if err != nil {
+		return err
+	}
+
+	seen := make(map[int64]struct{}, len(sensorAPIIDs))
+	for _, sensorAPIID := range sensorAPIIDs {
+		if _, exists := seen[sensorAPIID]; exists {
+			continue
+		}
+		seen[sensorAPIID] = struct{}{}
+
+		var sensorID int64
+		err = transaction.Get(&sensorID, "SELECT id FROM sensors WHERE api_id = $1 ORDER BY id LIMIT 1", sensorAPIID)
+		if errors.Is(err, sql.ErrNoRows) {
+			err = transaction.Get(&sensorID, "INSERT INTO sensors (api_id) VALUES ($1) RETURNING id", sensorAPIID)
+		}
+		if err != nil {
+			return err
+		}
+
+		_, err = transaction.Exec(
+			"INSERT INTO users_observed_sensors (user_id, sensor_id) VALUES ($1, $2)",
+			userID,
+			sensorID,
 		)
 		if err != nil {
 			return err

@@ -16,10 +16,19 @@ type Service struct {
 	cache      *redis.Client
 }
 
+type AliveSensor struct {
+	APIID    int64   `json:"api_id"`
+	Address  string  `json:"address"`
+	Lat      float64 `json:"lat"`
+	Lon      float64 `json:"lon"`
+	District string  `json:"district"`
+}
+
 type Interface interface {
 	ListenChanges(handler func([]model.Sensor))
 	StartInvalidatingSensorsPeriodically()
 	StartGettingTrustedSensorsEveryHour()
+	GetAliveSensorsFromCache() ([]AliveSensor, error)
 }
 
 func New(

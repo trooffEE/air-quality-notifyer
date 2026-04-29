@@ -27,6 +27,7 @@ type Interface interface {
 	IsNotificationsAllowed() bool
 	MenuBack(update tgbotapi.Update)
 	MenuFaq(update tgbotapi.Update)
+	HomeMapInlineKeyboardButton(text string) tgbotapi.InlineKeyboardButton
 }
 
 func NewApi(cfg config.Config, bot *tgbotapi.BotAPI) (*Api, error) {

@@ -22,9 +22,11 @@ type Interface interface {
 	GetUsersIds() []int64
 	GetUsersIdsByOperatingMode(mode constants.ModeType) []int64
 	GetObservedDistrictIdsByOperatingMode(mode constants.ModeType) map[int64][]int64
+	GetObservedSensorAPIIdsByOperatingMode(mode constants.ModeType) map[int64][]int64
 	Register(userModel model.User)
 	SetOperatingMode(id int64, mode constants.ModeType) error
 	SetObservedDistricts(id int64, districtIDs []int64) error
+	SetObservedSensorsByAPIIds(id int64, sensorAPIIDs []int64) error
 }
 
 func New(ur user.Interface) Interface {
@@ -88,6 +90,16 @@ func (ur *Service) GetObservedDistrictIdsByOperatingMode(mode constants.ModeType
 	return observedDistricts
 }
 
+func (ur *Service) GetObservedSensorAPIIdsByOperatingMode(mode constants.ModeType) map[int64][]int64 {
+	observedSensors, err := ur.repo.GetObservedSensorAPIIdsByOperatingMode(mode)
+	if err != nil {
+		zap.L().Error("failed to get observed sensors by operating mode", zap.Error(err), zap.Int("mode", mode))
+		return map[int64][]int64{}
+	}
+
+	return observedSensors
+}
+
 func (ur *Service) GetUsersNames() []string {
 	names, err := ur.repo.GetAllNames()
 
@@ -125,6 +137,16 @@ func (ur *Service) SetObservedDistricts(id int64, districtIDs []int64) error {
 	err := ur.repo.SetObservedDistricts(id, districtIDs)
 	if err != nil {
 		zap.L().Error("failed to set observed districts", zap.Error(err), zap.Int64("userId", id))
+		return err
+	}
+
+	return nil
+}
+
+func (ur *Service) SetObservedSensorsByAPIIds(id int64, sensorAPIIDs []int64) error {
+	err := ur.repo.SetObservedSensorsByAPIIds(id, sensorAPIIDs)
+	if err != nil {
+		zap.L().Error("failed to set observed sensors", zap.Error(err), zap.Int64("userId", id))
 		return err
 	}
 

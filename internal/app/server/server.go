@@ -2,6 +2,8 @@ package server
 
 import (
 	"air-quality-notifyer/internal/config"
+	"air-quality-notifyer/internal/service/sensor"
+	"air-quality-notifyer/internal/service/user"
 	"context"
 	"errors"
 	"fmt"
@@ -9,13 +11,23 @@ import (
 	"sync"
 	"time"
 
+	tgbotapi "github.com/OvyFlash/telegram-bot-api"
 	"go.uber.org/zap"
 )
 
-func Init(ctx context.Context, cfg config.Config) func() {
+type Services struct {
+	User   user.Interface
+	Sensor sensor.Interface
+	Bot    *tgbotapi.BotAPI
+}
+
+func Init(ctx context.Context, cfg config.Config, services Services) func() {
+	mux := http.NewServeMux()
+	newMapHandler(cfg, services).Register(mux)
+
 	server := &http.Server{
 		Addr:    fmt.Sprintf(":%s", cfg.App.HttpServerPort),
-		Handler: nil,
+		Handler: mux,
 	}
 
 	var wg sync.WaitGroup

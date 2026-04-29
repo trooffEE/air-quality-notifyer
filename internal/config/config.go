@@ -25,6 +25,7 @@ type AppConfig struct {
 	TelegramToken   string
 	HttpServerPort  string
 	WebhookHost     string
+	MiniAppUrl      string
 	AdminTelegramId string
 }
 
@@ -43,8 +44,7 @@ func New() Config {
 	var config = Config{
 		App: AppConfig{
 			TelegramToken:   os.Getenv("TELEGRAM_SECRET"),
-			WebhookHost:     os.Getenv("WEBHOOK_HOST"),
-			HttpServerPort:  os.Getenv("WEBHOOK_PORT"),
+			MiniAppUrl:      os.Getenv("MINI_APP_URL"),
 			AdminTelegramId: os.Getenv("ADMIN_TELEGRAM_ID"),
 		},
 		DB: DBConfig{

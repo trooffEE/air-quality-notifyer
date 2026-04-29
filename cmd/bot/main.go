@@ -41,8 +41,6 @@ func main() {
 	districtService := sDistricts.New(districtRepository, cacheClient)
 	sensorService := sSensor.New(sensorRepository, districtService, cacheClient)
 
-	httpShutdown := server.Init(ctx, cfg)
-
 	services := commander.Services{
 		User:     userService,
 		Sensor:   sensorService,
@@ -51,6 +49,11 @@ func main() {
 	}
 
 	bot := telegram.Init(cfg, &services)
+	httpShutdown := server.Init(ctx, cfg, server.Services{
+		User:   userService,
+		Sensor: sensorService,
+		Bot:    bot.BotAPI(),
+	})
 	bot.Start()
 
 	sensorService.StartGettingTrustedSensorsEveryHour()
