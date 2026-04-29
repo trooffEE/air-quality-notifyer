@@ -45,6 +45,7 @@ func New() Config {
 		App: AppConfig{
 			TelegramToken:   os.Getenv("TELEGRAM_SECRET"),
 			MiniAppUrl:      os.Getenv("MINI_APP_URL"),
+			HttpServerPort:  os.Getenv("HTTP_SERVER_PORT"),
 			AdminTelegramId: os.Getenv("ADMIN_TELEGRAM_ID"),
 		},
 		DB: DBConfig{
