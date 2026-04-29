@@ -1,5 +1,5 @@
 networks:
-   web-shared-network:
+  web-shared-network:
     external: true
   server-network:
     driver: bridge
