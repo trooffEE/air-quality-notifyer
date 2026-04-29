@@ -24,7 +24,6 @@ type DBConfig struct {
 type AppConfig struct {
 	TelegramToken   string
 	HttpServerPort  string
-	WebhookHost     string
 	MiniAppUrl      string
 	AdminTelegramId string
 }
