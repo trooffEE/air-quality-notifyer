@@ -2,6 +2,7 @@ package districts
 
 import (
 	"air-quality-notifyer/internal/db/repository/sensor"
+	"context"
 	"fmt"
 
 	"github.com/jmoiron/sqlx"
@@ -16,15 +17,15 @@ func New(db *sqlx.DB) *Repository {
 }
 
 type Interface interface {
-	GetAllDistrictsNames() ([]string, error)
-	GetAllDistricts() ([]District, error)
-	GetAssociatedDistrictIdByCoords(x, y float64) *sensor.DistrictSensor
+	GetAllDistrictsNames(ctx context.Context) ([]string, error)
+	GetAllDistricts(ctx context.Context) ([]District, error)
+	GetAssociatedDistrictIdByCoords(ctx context.Context, x, y float64) *sensor.DistrictSensor
 }
 
-func (r *Repository) GetAssociatedDistrictIdByCoords(x, y float64) *sensor.DistrictSensor {
+func (r *Repository) GetAssociatedDistrictIdByCoords(ctx context.Context, x, y float64) *sensor.DistrictSensor {
 	var sensorDistrict sensor.DistrictSensor
 	var pointGeo = fmt.Sprintf("SRID=4326;POINT(%f %f)", x, y)
-	err := r.db.Get(&sensorDistrict, `
+	err := r.db.GetContext(ctx, &sensorDistrict, `
 		SELECT id, name
 		FROM districts as d
 		WHERE st_contains(d.area, $1)
@@ -36,14 +37,14 @@ func (r *Repository) GetAssociatedDistrictIdByCoords(x, y float64) *sensor.Distr
 	return &sensorDistrict
 }
 
-func (r *Repository) GetAllDistricts() ([]District, error) {
+func (r *Repository) GetAllDistricts(ctx context.Context) ([]District, error) {
 	var districts []District
-	err := r.db.Select(&districts, "SELECT d.id, d.name FROM districts AS d ORDER BY d.name DESC")
+	err := r.db.SelectContext(ctx, &districts, "SELECT d.id, d.name FROM districts AS d ORDER BY d.name DESC")
 	return districts, err
 }
 
-func (r *Repository) GetAllDistrictsNames() ([]string, error) {
+func (r *Repository) GetAllDistrictsNames(ctx context.Context) ([]string, error) {
 	var districts []string
-	err := r.db.Select(&districts, "SELECT d.name FROM districts AS d ORDER BY d.name DESC")
+	err := r.db.SelectContext(ctx, &districts, "SELECT d.name FROM districts AS d ORDER BY d.name DESC")
 	return districts, err
 }

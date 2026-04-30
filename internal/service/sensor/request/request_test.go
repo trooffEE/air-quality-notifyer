@@ -1,6 +1,7 @@
 package request
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -45,7 +46,7 @@ func (s *SuiteExternalAPI) SetupTest(sensorId int64) {
 func (s *SuiteExternalAPI) TestFetch() {
 	t := s.T()
 	s.SetupTest(mockSensorId)
-	sensorResponse, err := fetchSensorById(mockSensorId)
+	sensorResponse, err := fetchSensorById(context.Background(), mockSensorId)
 	assert.NoError(t, err)
 
 	var lazyExpectedParsedResult Response

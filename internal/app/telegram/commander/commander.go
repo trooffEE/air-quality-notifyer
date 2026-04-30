@@ -1,6 +1,7 @@
 package commander
 
 import (
+	"context"
 	"strconv"
 
 	"air-quality-notifyer/internal/app/telegram/commander/admin"
@@ -46,77 +47,89 @@ func New(cfg config.Config, bot *tgbotapi.BotAPI, s *Services) *Commander {
 	}
 }
 
-func (c *Commander) HandleUpdate(updates tgbotapi.UpdatesChannel) {
-	for update := range updates {
-		if update.Message != nil {
-			if !update.Message.From.IsBot {
-				zap.L().Info(
-					"client message",
-					zap.String("msg", update.Message.Text),
-					zap.String("username", update.Message.From.UserName),
-				)
+func (c *Commander) HandleUpdate(ctx context.Context, updates tgbotapi.UpdatesChannel) {
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case update, ok := <-updates:
+			if !ok {
+				return
 			}
-
-			if c.HandlePendingFeedback(update) {
-				continue
-			}
-
-			switch update.Message.Text {
-			case "/start":
-				c.Start(update)
-			case api.KeypadUsersText:
-				c.Admin.ShowUsers(update)
-			case api.KeypadFaqText:
-				c.API.MenuFaq(update)
-			case api.KeypadSettingsText:
-				c.Settings(update)
-			case api.KeypadPingText:
-				c.Admin.Pong(update)
-			default:
-				switch {
-				case admin.IsAnnounceCommand(update.Message.Text):
-					c.Admin.Announce(update)
-				case isFeedbackCommand(update.Message):
-					c.Feedback(update)
-				}
-			}
-
-			if api.IsMenuButton(update.Message.Text) {
-				err := c.API.Delete(update.Message)
-				if err != nil {
-					zap.L().Error("failed to delete commander menu item", zap.Error(err))
-				}
-			}
-		}
-
-		if update.Poll != nil {
-			c.Mode.HandleDistrictsOptionsResult(update.Poll)
-		}
-
-		if update.CallbackQuery != nil {
-			callback := tgbotapi.NewCallback(update.CallbackQuery.ID, "")
-			if _, err := c.API.Bot.Request(callback); err != nil {
-				zap.L().Error("Error receiving response from callback with id", zap.Error(err), zap.String("id", update.CallbackQuery.ID))
-				continue
-			}
-
-			switch update.CallbackQuery.Data {
-			case api.KeypadMenuBackData:
-				c.API.MenuBack(update)
-			case api.KeypadModeFaqData, mode.KeypadFaqFromSetupData:
-				c.Mode.Faq(update)
-			case mode.KeypadSetupData:
-				c.Mode.Setup(update)
-			case mode.KeypadSetCityData:
-				c.Mode.SetCity(update)
-			case mode.KeypadAskForDistrictOptionsData:
-				c.Mode.AskForDistrictOptions(update)
-			}
+			c.handleUpdate(ctx, update)
 		}
 	}
 }
 
-func (c *Commander) Start(update tgbotapi.Update) {
+func (c *Commander) handleUpdate(ctx context.Context, update tgbotapi.Update) {
+	if update.Message != nil {
+		if !update.Message.From.IsBot {
+			zap.L().Info(
+				"client message",
+				zap.String("msg", update.Message.Text),
+				zap.String("username", update.Message.From.UserName),
+			)
+		}
+
+		if c.HandlePendingFeedback(ctx, update) {
+			return
+		}
+
+		switch update.Message.Text {
+		case "/start":
+			c.Start(ctx, update)
+		case api.KeypadUsersText:
+			c.Admin.ShowUsers(ctx, update)
+		case api.KeypadFaqText:
+			c.API.MenuFaq(update)
+		case api.KeypadSettingsText:
+			c.Settings(ctx, update)
+		case api.KeypadPingText:
+			c.Admin.Pong(update)
+		default:
+			switch {
+			case admin.IsAnnounceCommand(update.Message.Text):
+				c.Admin.Announce(ctx, update)
+			case isFeedbackCommand(update.Message):
+				c.Feedback(ctx, update)
+			}
+		}
+
+		if api.IsMenuButton(update.Message.Text) {
+			err := c.API.Delete(update.Message)
+			if err != nil {
+				zap.L().Error("failed to delete commander menu item", zap.Error(err))
+			}
+		}
+	}
+
+	if update.Poll != nil {
+		c.Mode.HandleDistrictsOptionsResult(ctx, update.Poll)
+	}
+
+	if update.CallbackQuery != nil {
+		callback := tgbotapi.NewCallback(update.CallbackQuery.ID, "")
+		if _, err := c.API.Bot.Request(callback); err != nil {
+			zap.L().Error("Error receiving response from callback with id", zap.Error(err), zap.String("id", update.CallbackQuery.ID))
+			return
+		}
+
+		switch update.CallbackQuery.Data {
+		case api.KeypadMenuBackData:
+			c.API.MenuBack(update)
+		case api.KeypadModeFaqData, mode.KeypadFaqFromSetupData:
+			c.Mode.Faq(update)
+		case mode.KeypadSetupData:
+			c.Mode.Setup(update)
+		case mode.KeypadSetCityData:
+			c.Mode.SetCity(ctx, update)
+		case mode.KeypadAskForDistrictOptionsData:
+			c.Mode.AskForDistrictOptions(ctx, update)
+		}
+	}
+}
+
+func (c *Commander) Start(ctx context.Context, update tgbotapi.Update) {
 	message := update.Message
 	chatId, username := message.Chat.ID, message.Chat.UserName
 
@@ -125,17 +138,21 @@ func (c *Commander) Start(update tgbotapi.Update) {
 		zap.L().Error("Error sending faq message", zap.Error(err))
 	}
 
-	if !c.Services.User.IsNew(chatId) {
+	if !c.Services.User.IsNew(ctx, chatId) {
 		return
 	}
 
-	c.Services.User.Register(model.User{
+	c.Services.User.Register(ctx, model.User{
 		Id:       strconv.Itoa(int(chatId)),
 		Username: username,
 	})
 }
 
-func (c *Commander) Settings(update tgbotapi.Update) {
+func (c *Commander) Settings(ctx context.Context, update tgbotapi.Update) {
+	if ctx.Err() != nil {
+		return
+	}
+
 	msg := tgbotapi.NewMessage(
 		update.Message.Chat.ID,
 		"⚙️ <strong>Настройки</strong>\n"+

@@ -3,6 +3,7 @@ package admin
 import (
 	"air-quality-notifyer/internal/app/telegram/commander/api"
 	tgmessage "air-quality-notifyer/internal/app/telegram/commander/message"
+	"context"
 
 	tgbotapi "github.com/OvyFlash/telegram-bot-api"
 	"go.uber.org/zap"
@@ -13,7 +14,7 @@ const (
 	announcementHeader = "🤖\n\n"
 )
 
-func (c *Commander) Announce(update tgbotapi.Update) {
+func (c *Commander) Announce(ctx context.Context, update tgbotapi.Update) {
 	if !c.api.IsAdmin(update) {
 		return
 	}
@@ -24,13 +25,17 @@ func (c *Commander) Announce(update tgbotapi.Update) {
 	}
 	text, entities = announcementMessage(text, entities)
 
-	for _, userID := range c.service.User.GetUsersIds() {
+	for _, userID := range c.service.User.GetUsersIds(ctx) {
+		if ctx.Err() != nil {
+			return
+		}
+
 		msg := tgbotapi.NewMessage(userID, text)
 		msg.Entities = entities
 
 		if err := c.api.Send(api.MessageConfig{Msg: msg}); err != nil {
 			if err.Code == 403 {
-				c.service.User.Delete(userID)
+				c.service.User.Delete(ctx, userID)
 				continue
 			}
 

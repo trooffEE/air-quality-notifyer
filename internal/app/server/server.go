@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"net/http"
 	"sync"
-	"time"
 
 	tgbotapi "github.com/OvyFlash/telegram-bot-api"
 	"go.uber.org/zap"
@@ -21,7 +20,7 @@ type Services struct {
 	Bot    *tgbotapi.BotAPI
 }
 
-func Init(ctx context.Context, cfg config.Config, services Services) func() {
+func Init(cfg config.Config, services Services) func(context.Context) {
 	mux := http.NewServeMux()
 	newMapHandler(cfg, services).Register(mux)
 
@@ -38,11 +37,12 @@ func Init(ctx context.Context, cfg config.Config, services Services) func() {
 	})
 	zap.L().Info("🏆 http server started on port", zap.String("port", cfg.App.HttpServerPort))
 
-	return func() {
-		_ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
-		defer cancel()
-		if err := server.Shutdown(_ctx); err != nil {
-			zap.L().Fatal("http server failed to shutdown", zap.Error(err))
+	return func(ctx context.Context) {
+		if err := server.Shutdown(ctx); err != nil {
+			zap.L().Error("http server failed to shutdown", zap.Error(err))
+			if closeErr := server.Close(); closeErr != nil {
+				zap.L().Error("http server failed to close", zap.Error(closeErr))
+			}
 		}
 		wg.Wait()
 	}

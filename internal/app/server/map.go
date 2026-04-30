@@ -4,6 +4,7 @@ import (
 	"air-quality-notifyer/internal/app/telegram/commander/api"
 	"air-quality-notifyer/internal/config"
 	"air-quality-notifyer/internal/constants"
+	"context"
 	"encoding/json"
 	"errors"
 	"net/http"
@@ -62,7 +63,7 @@ func (h *mapHandler) handleAliveSensors(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	sensors, err := h.services.Sensor.GetAliveSensorsFromCache()
+	sensors, err := h.services.Sensor.GetAliveSensorsFromCache(r.Context())
 	if err != nil {
 		zap.L().Error("failed to get alive sensors for map", zap.Error(err))
 		http.Error(w, "failed to load sensors", http.StatusInternalServerError)
@@ -94,18 +95,18 @@ func (h *mapHandler) handleHomeSelection(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	if err = h.validateAliveSensorSelection(payload.SensorAPIIDs); err != nil {
+	if err = h.validateAliveSensorSelection(r.Context(), payload.SensorAPIIDs); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	if err = h.services.User.SetObservedSensorsByAPIIds(telegramUserID, payload.SensorAPIIDs); err != nil {
+	if err = h.services.User.SetObservedSensorsByAPIIds(r.Context(), telegramUserID, payload.SensorAPIIDs); err != nil {
 		zap.L().Error("failed to save home sensors", zap.Error(err), zap.Int64("telegramUserID", telegramUserID))
 		http.Error(w, "failed to save sensors", http.StatusInternalServerError)
 		return
 	}
 
-	if err = h.services.User.SetOperatingMode(telegramUserID, constants.Home); err != nil {
+	if err = h.services.User.SetOperatingMode(r.Context(), telegramUserID, constants.Home); err != nil {
 		zap.L().Error("failed to set home operating mode", zap.Error(err), zap.Int64("telegramUserID", telegramUserID))
 		http.Error(w, "failed to set home mode", http.StatusInternalServerError)
 		return
@@ -115,8 +116,8 @@ func (h *mapHandler) handleHomeSelection(w http.ResponseWriter, r *http.Request)
 	writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
 }
 
-func (h *mapHandler) validateAliveSensorSelection(sensorAPIIDs []int64) error {
-	aliveSensors, err := h.services.Sensor.GetAliveSensorsFromCache()
+func (h *mapHandler) validateAliveSensorSelection(ctx context.Context, sensorAPIIDs []int64) error {
+	aliveSensors, err := h.services.Sensor.GetAliveSensorsFromCache(ctx)
 	if err != nil {
 		zap.L().Error("failed to validate home sensor selection", zap.Error(err))
 		return errors.New("failed to validate sensors")

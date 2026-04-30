@@ -6,6 +6,7 @@ import (
 	"air-quality-notifyer/internal/helper"
 	sDistricts "air-quality-notifyer/internal/service/districts"
 	sUser "air-quality-notifyer/internal/service/user"
+	"context"
 	"fmt"
 	"strings"
 
@@ -26,9 +27,9 @@ type Service struct {
 type Interface interface {
 	Setup(update tgbotapi.Update)
 	Faq(update tgbotapi.Update)
-	SetCity(update tgbotapi.Update)
-	AskForDistrictOptions(update tgbotapi.Update)
-	HandleDistrictsOptionsResult(update *tgbotapi.Poll)
+	SetCity(ctx context.Context, update tgbotapi.Update)
+	AskForDistrictOptions(ctx context.Context, update tgbotapi.Update)
+	HandleDistrictsOptionsResult(ctx context.Context, update *tgbotapi.Poll)
 }
 
 func New(api api.Interface, service Service) Interface {
@@ -96,11 +97,11 @@ func (c *Commander) Faq(update tgbotapi.Update) {
 	}
 }
 
-func (c *Commander) SetCity(update tgbotapi.Update) {
+func (c *Commander) SetCity(ctx context.Context, update tgbotapi.Update) {
 	// City mode is implemented end-to-end: mode is saved and user gets a confirmation.
 	message := update.CallbackQuery.Message
 	chatId := message.Chat.ID
-	err := c.service.User.SetOperatingMode(chatId, constants.City)
+	err := c.service.User.SetOperatingMode(ctx, chatId, constants.City)
 	if err != nil {
 		zap.L().Error("Error setting operating mode", zap.Error(err))
 		return
@@ -120,31 +121,33 @@ func (c *Commander) SetCity(update tgbotapi.Update) {
 	}
 }
 
-func (c *Commander) AskForDistrictOptions(update tgbotapi.Update) {
+func (c *Commander) AskForDistrictOptions(ctx context.Context, update tgbotapi.Update) {
 	// District mode setup currently stops at poll creation.
 	// TODO: Persist selected districts to users_observed_districts and set constants.District as operating mode.
 	chatID := update.CallbackQuery.Message.Chat.ID
-	districts := c.service.District.GetAllDistrictsNames()
+	districts := c.service.District.GetAllDistrictsNames(ctx)
 	response, err := c.api.SendPoll(chatID, api.PollConfig{
 		Question: "Интересующие районы 🏘:",
 		Options:  districts,
 	})
 	if err != nil {
 		zap.L().Error("set district: error sending poll", zap.Error(err))
+		return
 	}
 	c.service.District.SaveDistrictPollMessageInCache(
+		ctx,
 		response.Poll.ID,
 		response.Chat.ID,
 		response.MessageID,
 	)
 }
 
-func (c *Commander) HandleDistrictsOptionsResult(pollUpdate *tgbotapi.Poll) {
+func (c *Commander) HandleDistrictsOptionsResult(ctx context.Context, pollUpdate *tgbotapi.Poll) {
 	if pollUpdate == nil || pollUpdate.TotalVoterCount == 0 {
 		return
 	}
 
-	cachedPollState, err := c.service.District.GetDistrictPollMessageInCache(pollUpdate.ID)
+	cachedPollState, err := c.service.District.GetDistrictPollMessageInCache(ctx, pollUpdate.ID)
 	if err != nil {
 		zap.L().Error("failed to get poll state from cache", zap.Error(err), zap.String("pollId", pollUpdate.ID))
 		return
@@ -164,7 +167,7 @@ func (c *Commander) HandleDistrictsOptionsResult(pollUpdate *tgbotapi.Poll) {
 		return
 	}
 
-	allDistricts := c.service.District.GetAllDistricts()
+	allDistricts := c.service.District.GetAllDistricts(ctx)
 	districtIDByName := make(map[string]int64, len(allDistricts))
 	for _, district := range allDistricts {
 		districtIDByName[district.Name] = district.Id
@@ -188,13 +191,13 @@ func (c *Commander) HandleDistrictsOptionsResult(pollUpdate *tgbotapi.Poll) {
 		return
 	}
 
-	err = c.service.User.SetObservedDistricts(cachedPollState.ChatID, selectedDistrictIDs)
+	err = c.service.User.SetObservedDistricts(ctx, cachedPollState.ChatID, selectedDistrictIDs)
 	if err != nil {
 		zap.L().Error("failed to save observed districts", zap.Error(err), zap.Int64("chatId", cachedPollState.ChatID))
 		return
 	}
 
-	err = c.service.User.SetOperatingMode(cachedPollState.ChatID, constants.District)
+	err = c.service.User.SetOperatingMode(ctx, cachedPollState.ChatID, constants.District)
 	if err != nil {
 		zap.L().Error("failed to set district operating mode", zap.Error(err), zap.Int64("chatId", cachedPollState.ChatID))
 		return

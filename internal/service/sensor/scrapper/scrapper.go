@@ -2,7 +2,9 @@ package scrapper
 
 import (
 	"bufio"
+	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"strings"
 	"time"
@@ -21,20 +23,25 @@ type Sensor struct {
 
 var setLastSensorsDataScriptStringStart, setLastSensorsDataScriptStringEnd = "setLastData('", "');"
 
-func Scrap() []Sensor {
-	res, err := http.Get("https://airkemerovo.ru")
+func Scrap(ctx context.Context) ([]Sensor, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, "https://airkemerovo.ru", nil)
 	if err != nil {
-		zap.L().Fatal("Failed to access airkemerovo.ru")
+		return nil, err
+	}
+
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("access airkemerovo.ru: %w", err)
 	}
 	defer res.Body.Close()
 	if res.StatusCode != 200 {
 		zap.L().Info("failed to grasp new sensors, airkemerovo page responded with ", zap.Int("status", res.StatusCode))
-		return []Sensor{}
+		return []Sensor{}, nil
 	}
 
 	doc, err := goquery.NewDocumentFromReader(res.Body)
 	if err != nil {
-		zap.L().Fatal("Failed to parse airkemerovo.ru", zap.Error(err))
+		return nil, fmt.Errorf("parse airkemerovo.ru: %w", err)
 	}
 
 	var scriptContents string
@@ -63,7 +70,7 @@ func Scrap() []Sensor {
 		}
 	}
 
-	return sensors
+	return sensors, nil
 }
 
 // FilterSensorsByHourDiff TODO Maybe not a place for it

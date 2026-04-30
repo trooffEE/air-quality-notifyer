@@ -21,7 +21,7 @@ func isFeedbackCommand(message *tgbotapi.Message) bool {
 	return tgmessage.IsCommand(message, CommandFeedback)
 }
 
-func (c *Commander) Feedback(update tgbotapi.Update) {
+func (c *Commander) Feedback(ctx context.Context, update tgbotapi.Update) {
 	message := update.Message
 	if message == nil {
 		return
@@ -33,23 +33,23 @@ func (c *Commander) Feedback(update tgbotapi.Update) {
 	}
 
 	if text == "" {
-		c.SetFeedbackPending(message.Chat.ID)
+		c.SetFeedbackPending(ctx, message.Chat.ID)
 		c.AskForFeedback(message.Chat.ID)
 		return
 	}
 
-	c.DeleteFeedbackPending(message.Chat.ID)
+	c.DeleteFeedbackPending(ctx, message.Chat.ID)
 	c.SendFeedbackToAdmin(message, text, entities)
 	c.ConfirmFeedback(message.Chat.ID)
 }
 
-func (c *Commander) HandlePendingFeedback(update tgbotapi.Update) bool {
+func (c *Commander) HandlePendingFeedback(ctx context.Context, update tgbotapi.Update) bool {
 	message := update.Message
 	if message == nil {
 		return false
 	}
 
-	if message.IsCommand() || api.IsMenuButton(message.Text) || !c.ConsumeFeedbackPending(message.Chat.ID) {
+	if message.IsCommand() || api.IsMenuButton(message.Text) || !c.ConsumeFeedbackPending(ctx, message.Chat.ID) {
 		return false
 	}
 
@@ -59,25 +59,25 @@ func (c *Commander) HandlePendingFeedback(update tgbotapi.Update) bool {
 	return true
 }
 
-func (c *Commander) SetFeedbackPending(chatID int64) {
+func (c *Commander) SetFeedbackPending(ctx context.Context, chatID int64) {
 	if c.Services.Cache == nil {
 		zap.L().Error("feedback cache is not configured")
 		return
 	}
 
-	err := c.Services.Cache.Set(context.Background(), feedbackPendingKey(chatID), "1", feedbackPendingTTL).Err()
+	err := c.Services.Cache.Set(ctx, feedbackPendingKey(chatID), "1", feedbackPendingTTL).Err()
 	if err != nil {
 		zap.L().Error("failed to set pending feedback state", zap.Error(err), zap.Int64("chatId", chatID))
 	}
 }
 
-func (c *Commander) ConsumeFeedbackPending(chatID int64) bool {
+func (c *Commander) ConsumeFeedbackPending(ctx context.Context, chatID int64) bool {
 	if c.Services.Cache == nil {
 		zap.L().Error("feedback cache is not configured")
 		return false
 	}
 
-	deleted, err := c.Services.Cache.Del(context.Background(), feedbackPendingKey(chatID)).Result()
+	deleted, err := c.Services.Cache.Del(ctx, feedbackPendingKey(chatID)).Result()
 	if err != nil {
 		zap.L().Error("failed to consume pending feedback state", zap.Error(err), zap.Int64("chatId", chatID))
 		return false
@@ -86,13 +86,13 @@ func (c *Commander) ConsumeFeedbackPending(chatID int64) bool {
 	return deleted > 0
 }
 
-func (c *Commander) DeleteFeedbackPending(chatID int64) {
+func (c *Commander) DeleteFeedbackPending(ctx context.Context, chatID int64) {
 	if c.Services.Cache == nil {
 		zap.L().Error("feedback cache is not configured")
 		return
 	}
 
-	err := c.Services.Cache.Del(context.Background(), feedbackPendingKey(chatID)).Err()
+	err := c.Services.Cache.Del(ctx, feedbackPendingKey(chatID)).Err()
 	if err != nil {
 		zap.L().Error("failed to delete pending feedback state", zap.Error(err), zap.Int64("chatId", chatID))
 	}

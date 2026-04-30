@@ -17,6 +17,7 @@ import (
 	_ "database/sql"
 	"os/signal"
 	"syscall"
+	"time"
 
 	_ "github.com/lib/pq"
 	"go.uber.org/zap"
@@ -27,15 +28,31 @@ func main() {
 	defer cancel()
 
 	cfg := config.New()
-	initLogger(cfg)
+	logger := initLogger(cfg)
+	defer func() {
+		if err := logger.Sync(); err != nil {
+			zap.L().Debug("failed to sync logger", zap.Error(err))
+		}
+	}()
 
 	//DB
-	database := db.New(cfg)
+	database := db.New(ctx, cfg)
+	defer func() {
+		if err := database.Close(); err != nil {
+			zap.L().Error("failed to close database", zap.Error(err))
+		}
+	}()
+
 	districtRepository := rDistricts.New(database)
 	userRepository := rUser.New(database)
 	sensorRepository := rSensor.New(database)
 
 	cacheClient := cache.New(cfg)
+	defer func() {
+		if err := cacheClient.Close(); err != nil {
+			zap.L().Error("failed to close cache", zap.Error(err))
+		}
+	}()
 
 	userService := sUser.New(userRepository)
 	districtService := sDistricts.New(districtRepository, cacheClient)
@@ -49,29 +66,36 @@ func main() {
 	}
 
 	bot := telegram.Init(cfg, &services)
-	httpShutdown := server.Init(ctx, cfg, server.Services{
+	httpShutdown := server.Init(cfg, server.Services{
 		User:   userService,
 		Sensor: sensorService,
 		Bot:    bot.BotAPI(),
 	})
-	bot.Start()
+	botShutdown := bot.Start(ctx)
 
-	sensorService.StartGettingTrustedSensorsEveryHour()
-	sensorService.StartInvalidatingSensorsPeriodically()
+	trustedSensorsShutdown := sensorService.StartGettingTrustedSensorsEveryHour(ctx)
+	invalidationShutdown := sensorService.StartInvalidatingSensorsPeriodically(ctx)
 
 	<-ctx.Done()
 	zap.L().Info("starting application shutdown...")
-	httpShutdown()
+
+	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer shutdownCancel()
+
+	botShutdown(shutdownCtx)
+	trustedSensorsShutdown(shutdownCtx)
+	invalidationShutdown(shutdownCtx)
+	httpShutdown(shutdownCtx)
 	zap.L().Info("http server is down")
 }
 
-func initLogger(cfg config.Config) {
+func initLogger(cfg config.Config) *zap.Logger {
 	var logger *zap.Logger
 	if cfg.Development {
 		logger, _ = zap.NewDevelopment()
 	} else {
 		logger, _ = zap.NewProduction()
 	}
-	defer logger.Sync()
 	zap.ReplaceGlobals(logger)
+	return logger
 }

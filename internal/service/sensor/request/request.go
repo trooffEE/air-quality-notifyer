@@ -2,6 +2,7 @@ package request
 
 import (
 	"air-quality-notifyer/internal/service/sensor/model"
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -28,10 +29,10 @@ type Response struct {
 	Archive     []model.Sensor `json:"archive"`
 }
 
-func GetArchiveSensor(syncSensors *model.SyncSensorsList, id int64, districtName string) {
+func GetArchiveSensor(ctx context.Context, syncSensors *model.SyncSensorsList, id int64, districtName string) {
 	defer syncSensors.Wg.Done()
 
-	response, err := fetchSensorById(id)
+	response, err := fetchSensorById(ctx, id)
 	if err != nil {
 		zap.L().Error("failed to fetch sensor by id", zap.Error(err), zap.Int64("sensorId", id))
 		return
@@ -48,18 +49,23 @@ func GetArchiveSensor(syncSensors *model.SyncSensorsList, id int64, districtName
 	}
 }
 
-func fetchSensorById(id int64) (Response, error) {
-	res, err := http.Get(fmt.Sprintf(endpoint, id))
+func fetchSensorById(ctx context.Context, id int64) (Response, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, fmt.Sprintf(endpoint, id), nil)
+	if err != nil {
+		return Response{}, err
+	}
+
+	res, err := http.DefaultClient.Do(req)
 	if err != nil {
 		zap.L().Error("failed to fetch sensor", zap.Error(err), zap.Int64("sensorId", id))
-		return Response{}, nil
+		return Response{}, err
 	}
 	defer res.Body.Close()
 
 	var sensorResponse Response
 	if err = json.NewDecoder(res.Body).Decode(&sensorResponse); err != nil {
 		zap.L().Error("failed to decode response with status code", zap.Error(err), zap.Int("statusCode", res.StatusCode))
-		return Response{}, nil
+		return Response{}, err
 	}
 	return sensorResponse, nil
 }

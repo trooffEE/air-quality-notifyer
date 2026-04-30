@@ -13,8 +13,8 @@ import (
 
 var TTL = time.Hour * 4
 
-func (s *Service) saveSensorInCache(sensor rSensor.Sensor) {
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
+func (s *Service) saveSensorInCache(ctx context.Context, sensor rSensor.Sensor) {
+	ctx, cancel := context.WithTimeout(ctx, time.Second*5)
 	defer cancel()
 
 	pipeline := s.cache.TxPipeline()
@@ -59,13 +59,15 @@ func (s *Service) saveSensorInCache(sensor rSensor.Sensor) {
 		)
 	}
 
-	pipeline.Exec(ctx)
+	if _, err = pipeline.Exec(ctx); err != nil {
+		zap.L().Error("failed to execute sensor cache pipeline", zap.Error(err), zap.Any("payload", payload))
+	}
 }
 
-func (s *Service) getSensorFromCache(sensorId int64) (*rSensor.Sensor, error) {
+func (s *Service) getSensorFromCache(ctx context.Context, sensorId int64) (*rSensor.Sensor, error) {
 	key := getSensorCacheKey(sensorId)
 
-	result, err := s.cache.Get(context.Background(), key).Result()
+	result, err := s.cache.Get(ctx, key).Result()
 	if err != nil {
 		return nil, err
 	}
@@ -79,10 +81,10 @@ func (s *Service) getSensorFromCache(sensorId int64) (*rSensor.Sensor, error) {
 	return &sensor, nil
 }
 
-func (s *Service) getDistrictSensorsFromCache(districtID int64) (*[]rSensor.Sensor, error) {
+func (s *Service) getDistrictSensorsFromCache(ctx context.Context, districtID int64) (*[]rSensor.Sensor, error) {
 	key := getDistrictSensorsCacheKey(districtID)
 
-	result, err := s.cache.HGetAll(context.Background(), key).Result()
+	result, err := s.cache.HGetAll(ctx, key).Result()
 	if err != nil {
 		return nil, err
 	}
@@ -99,8 +101,8 @@ func (s *Service) getDistrictSensorsFromCache(districtID int64) (*[]rSensor.Sens
 	return &sensors, nil
 }
 
-func (s *Service) GetAliveSensorsFromCache() ([]AliveSensor, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
+func (s *Service) GetAliveSensorsFromCache(ctx context.Context) ([]AliveSensor, error) {
+	ctx, cancel := context.WithTimeout(ctx, time.Second*5)
 	defer cancel()
 
 	var cursor uint64

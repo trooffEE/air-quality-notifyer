@@ -6,6 +6,8 @@ import (
 	"air-quality-notifyer/internal/config"
 	"air-quality-notifyer/internal/constants"
 	"air-quality-notifyer/internal/service/sensor/model"
+	"context"
+	"sync"
 
 	tgbotapi "github.com/OvyFlash/telegram-bot-api"
 	"go.uber.org/zap"
@@ -39,21 +41,38 @@ func Init(cfg config.Config, services *commander.Services) *tgBot {
 	}
 }
 
-func (t *tgBot) Start() {
-	go t.listenUpdates()
-	go t.listenSensors()
+func (t *tgBot) Start(ctx context.Context) func(context.Context) {
+	var wg sync.WaitGroup
+	wg.Go(func() { t.listenUpdates(ctx) })
+	wg.Go(func() { t.listenSensors(ctx) })
+
+	return func(shutdownCtx context.Context) {
+		t.bot.StopReceivingUpdates()
+
+		done := make(chan struct{})
+		go func() {
+			wg.Wait()
+			close(done)
+		}()
+
+		select {
+		case <-done:
+		case <-shutdownCtx.Done():
+			zap.L().Warn("timed out waiting for telegram listeners to stop", zap.Error(shutdownCtx.Err()))
+		}
+	}
 }
 
 func (t *tgBot) BotAPI() *tgbotapi.BotAPI {
 	return t.bot
 }
 
-func (t *tgBot) listenSensors() {
-	t.Commander.Services.Sensor.ListenChanges(t.notifyUsers)
+func (t *tgBot) listenSensors(ctx context.Context) {
+	t.Commander.Services.Sensor.ListenChanges(ctx, t.notifyUsers)
 }
 
-func (t *tgBot) notifyUsers(sensors []model.Sensor) {
-	modeHandlers := map[constants.ModeType]func([]model.Sensor){
+func (t *tgBot) notifyUsers(ctx context.Context, sensors []model.Sensor) {
+	modeHandlers := map[constants.ModeType]func(context.Context, []model.Sensor){
 		constants.City:     t.notifyCityUsers,
 		constants.District: t.notifyDistrictUsers,
 		constants.Home:     t.notifyHomeUsers,
@@ -61,26 +80,29 @@ func (t *tgBot) notifyUsers(sensors []model.Sensor) {
 
 	modeOrder := []constants.ModeType{constants.City, constants.District, constants.Home}
 	for _, mode := range modeOrder {
-		modeHandlers[mode](sensors)
+		if ctx.Err() != nil {
+			return
+		}
+		modeHandlers[mode](ctx, sensors)
 	}
 }
 
-func (t *tgBot) notifyCityUsers(sensors []model.Sensor) {
-	cityUsers := t.Commander.Services.User.GetUsersIdsByOperatingMode(constants.City)
+func (t *tgBot) notifyCityUsers(ctx context.Context, sensors []model.Sensor) {
+	cityUsers := t.Commander.Services.User.GetUsersIdsByOperatingMode(ctx, constants.City)
 	messages := newUserMessages(sensors)
 	for _, userID := range cityUsers {
-		t.sendMessagesToUser(userID, messages)
+		t.sendMessagesToUser(ctx, userID, messages)
 	}
 }
 
-func (t *tgBot) notifyDistrictUsers(sensors []model.Sensor) {
-	userDistricts := t.Commander.Services.User.GetObservedDistrictIdsByOperatingMode(constants.District)
+func (t *tgBot) notifyDistrictUsers(ctx context.Context, sensors []model.Sensor) {
+	userDistricts := t.Commander.Services.User.GetObservedDistrictIdsByOperatingMode(ctx, constants.District)
 	if len(userDistricts) == 0 {
 		return
 	}
 
 	districtNameByID := map[int64]string{}
-	for _, district := range t.Commander.Services.District.GetAllDistricts() {
+	for _, district := range t.Commander.Services.District.GetAllDistricts(ctx) {
 		districtNameByID[district.Id] = district.Name
 	}
 
@@ -105,12 +127,12 @@ func (t *tgBot) notifyDistrictUsers(sensors []model.Sensor) {
 			}
 		}
 
-		t.sendMessagesToUser(userID, newUserMessages(districtSensors))
+		t.sendMessagesToUser(ctx, userID, newUserMessages(districtSensors))
 	}
 }
 
-func (t *tgBot) notifyHomeUsers(sensors []model.Sensor) {
-	userSensors := t.Commander.Services.User.GetObservedSensorAPIIdsByOperatingMode(constants.Home)
+func (t *tgBot) notifyHomeUsers(ctx context.Context, sensors []model.Sensor) {
+	userSensors := t.Commander.Services.User.GetObservedSensorAPIIdsByOperatingMode(ctx, constants.Home)
 	if len(userSensors) == 0 {
 		return
 	}
@@ -128,15 +150,19 @@ func (t *tgBot) notifyHomeUsers(sensors []model.Sensor) {
 			}
 		}
 
-		t.sendMessagesToUser(userID, newUserMessages(homeSensors))
+		t.sendMessagesToUser(ctx, userID, newUserMessages(homeSensors))
 	}
 }
 
-func (t *tgBot) sendMessagesToUser(userID int64, messages []string) {
+func (t *tgBot) sendMessagesToUser(ctx context.Context, userID int64, messages []string) {
 	for _, message := range messages {
+		if ctx.Err() != nil {
+			return
+		}
+
 		payload := api.MessageConfig{Msg: tgbotapi.NewMessage(userID, message)}
 		if err := t.Commander.API.Send(payload); err != nil && err.Code == 403 {
-			t.Commander.Services.User.Delete(userID)
+			t.Commander.Services.User.Delete(ctx, userID)
 			break
 		}
 	}
@@ -153,7 +179,7 @@ func newUserMessages(sensors []model.Sensor) []string {
 	return messages
 }
 
-func (t *tgBot) listenUpdates() {
+func (t *tgBot) listenUpdates(ctx context.Context) {
 	cfg := tgbotapi.NewSetMyCommands(
 		tgbotapi.BotCommand{
 			Command:     "start",
@@ -168,5 +194,5 @@ func (t *tgBot) listenUpdates() {
 		zap.L().Error("commander request error", zap.Error(err))
 	}
 
-	t.Commander.HandleUpdate(t.updates)
+	t.Commander.HandleUpdate(ctx, t.updates)
 }

@@ -6,6 +6,7 @@ import (
 	"air-quality-notifyer/internal/exception"
 	"air-quality-notifyer/internal/helper"
 	"air-quality-notifyer/internal/service/user/model"
+	"context"
 	"errors"
 
 	"go.uber.org/zap"
@@ -16,17 +17,17 @@ type Service struct {
 }
 
 type Interface interface {
-	IsNew(id int64) bool
-	Delete(id int64)
-	GetUsersNames() []string
-	GetUsersIds() []int64
-	GetUsersIdsByOperatingMode(mode constants.ModeType) []int64
-	GetObservedDistrictIdsByOperatingMode(mode constants.ModeType) map[int64][]int64
-	GetObservedSensorAPIIdsByOperatingMode(mode constants.ModeType) map[int64][]int64
-	Register(userModel model.User)
-	SetOperatingMode(id int64, mode constants.ModeType) error
-	SetObservedDistricts(id int64, districtIDs []int64) error
-	SetObservedSensorsByAPIIds(id int64, sensorAPIIDs []int64) error
+	IsNew(ctx context.Context, id int64) bool
+	Delete(ctx context.Context, id int64)
+	GetUsersNames(ctx context.Context) []string
+	GetUsersIds(ctx context.Context) []int64
+	GetUsersIdsByOperatingMode(ctx context.Context, mode constants.ModeType) []int64
+	GetObservedDistrictIdsByOperatingMode(ctx context.Context, mode constants.ModeType) map[int64][]int64
+	GetObservedSensorAPIIdsByOperatingMode(ctx context.Context, mode constants.ModeType) map[int64][]int64
+	Register(ctx context.Context, userModel model.User)
+	SetOperatingMode(ctx context.Context, id int64, mode constants.ModeType) error
+	SetObservedDistricts(ctx context.Context, id int64, districtIDs []int64) error
+	SetObservedSensorsByAPIIds(ctx context.Context, id int64, sensorAPIIDs []int64) error
 }
 
 func New(ur user.Interface) Interface {
@@ -35,11 +36,11 @@ func New(ur user.Interface) Interface {
 	}
 }
 
-func (ur *Service) IsNew(id int64) bool {
-	_, err := ur.repo.FindById(id)
+func (ur *Service) IsNew(ctx context.Context, id int64) bool {
+	_, err := ur.repo.FindById(ctx, id)
 
 	if err != nil {
-		if errors.Is(user.NotFound, err) {
+		if errors.Is(err, user.NotFound) {
 			return true
 		}
 		zap.L().Error("repository error", zap.Error(err))
@@ -48,21 +49,21 @@ func (ur *Service) IsNew(id int64) bool {
 	return false
 }
 
-func (ur *Service) Register(userModel model.User) {
+func (ur *Service) Register(ctx context.Context, userModel model.User) {
 	dto := user.User{
 		TelegramId: userModel.Id,
 		Username:   userModel.Username,
 	}
 
-	err := ur.repo.Register(dto)
+	err := ur.repo.Register(ctx, dto)
 
 	if err != nil {
 		zap.L().Error("failed to register new user", zap.Error(err))
 	}
 }
 
-func (ur *Service) GetUsersIds() []int64 {
-	ids, err := ur.repo.GetAllIds()
+func (ur *Service) GetUsersIds(ctx context.Context) []int64 {
+	ids, err := ur.repo.GetAllIds(ctx)
 
 	if err != nil {
 		zap.L().Error("failed to get users ids", zap.Error(err))
@@ -71,8 +72,8 @@ func (ur *Service) GetUsersIds() []int64 {
 	return ids
 }
 
-func (ur *Service) GetUsersIdsByOperatingMode(mode constants.ModeType) []int64 {
-	ids, err := ur.repo.GetAllIdsByOperatingMode(mode)
+func (ur *Service) GetUsersIdsByOperatingMode(ctx context.Context, mode constants.ModeType) []int64 {
+	ids, err := ur.repo.GetAllIdsByOperatingMode(ctx, mode)
 	if err != nil {
 		zap.L().Error("failed to get users ids by operating mode", zap.Error(err), zap.Int("mode", mode))
 	}
@@ -80,8 +81,8 @@ func (ur *Service) GetUsersIdsByOperatingMode(mode constants.ModeType) []int64 {
 	return ids
 }
 
-func (ur *Service) GetObservedDistrictIdsByOperatingMode(mode constants.ModeType) map[int64][]int64 {
-	observedDistricts, err := ur.repo.GetObservedDistrictIdsByOperatingMode(mode)
+func (ur *Service) GetObservedDistrictIdsByOperatingMode(ctx context.Context, mode constants.ModeType) map[int64][]int64 {
+	observedDistricts, err := ur.repo.GetObservedDistrictIdsByOperatingMode(ctx, mode)
 	if err != nil {
 		zap.L().Error("failed to get observed districts by operating mode", zap.Error(err), zap.Int("mode", mode))
 		return map[int64][]int64{}
@@ -90,8 +91,8 @@ func (ur *Service) GetObservedDistrictIdsByOperatingMode(mode constants.ModeType
 	return observedDistricts
 }
 
-func (ur *Service) GetObservedSensorAPIIdsByOperatingMode(mode constants.ModeType) map[int64][]int64 {
-	observedSensors, err := ur.repo.GetObservedSensorAPIIdsByOperatingMode(mode)
+func (ur *Service) GetObservedSensorAPIIdsByOperatingMode(ctx context.Context, mode constants.ModeType) map[int64][]int64 {
+	observedSensors, err := ur.repo.GetObservedSensorAPIIdsByOperatingMode(ctx, mode)
 	if err != nil {
 		zap.L().Error("failed to get observed sensors by operating mode", zap.Error(err), zap.Int("mode", mode))
 		return map[int64][]int64{}
@@ -100,8 +101,8 @@ func (ur *Service) GetObservedSensorAPIIdsByOperatingMode(mode constants.ModeTyp
 	return observedSensors
 }
 
-func (ur *Service) GetUsersNames() []string {
-	names, err := ur.repo.GetAllNames()
+func (ur *Service) GetUsersNames(ctx context.Context) []string {
+	names, err := ur.repo.GetAllNames(ctx)
 
 	if err != nil {
 		zap.L().Error("failed to get users names", zap.Error(err))
@@ -110,21 +111,21 @@ func (ur *Service) GetUsersNames() []string {
 	return names
 }
 
-func (ur *Service) Delete(id int64) {
-	err := ur.repo.DeleteUserById(id)
+func (ur *Service) Delete(ctx context.Context, id int64) {
+	err := ur.repo.DeleteUserById(ctx, id)
 
 	if err != nil {
 		zap.L().Error("failed to delete user", zap.Error(err), zap.Int64("userId", id))
 	}
 }
 
-func (ur *Service) SetOperatingMode(id int64, mode constants.ModeType) error {
+func (ur *Service) SetOperatingMode(ctx context.Context, id int64, mode constants.ModeType) error {
 	if !helper.IsValidMode(mode) {
 		zap.L().Error("Setting mode", zap.Error(exception.InvalidOperatingMode))
 		return exception.InvalidOperatingMode
 	}
 
-	err := ur.repo.SetOperatingMode(id, mode)
+	err := ur.repo.SetOperatingMode(ctx, id, mode)
 	if err != nil {
 		zap.L().Error("failed to set operating mode", zap.Error(err))
 		return err
@@ -133,8 +134,8 @@ func (ur *Service) SetOperatingMode(id int64, mode constants.ModeType) error {
 	return nil
 }
 
-func (ur *Service) SetObservedDistricts(id int64, districtIDs []int64) error {
-	err := ur.repo.SetObservedDistricts(id, districtIDs)
+func (ur *Service) SetObservedDistricts(ctx context.Context, id int64, districtIDs []int64) error {
+	err := ur.repo.SetObservedDistricts(ctx, id, districtIDs)
 	if err != nil {
 		zap.L().Error("failed to set observed districts", zap.Error(err), zap.Int64("userId", id))
 		return err
@@ -143,8 +144,8 @@ func (ur *Service) SetObservedDistricts(id int64, districtIDs []int64) error {
 	return nil
 }
 
-func (ur *Service) SetObservedSensorsByAPIIds(id int64, sensorAPIIDs []int64) error {
-	err := ur.repo.SetObservedSensorsByAPIIds(id, sensorAPIIDs)
+func (ur *Service) SetObservedSensorsByAPIIds(ctx context.Context, id int64, sensorAPIIDs []int64) error {
+	err := ur.repo.SetObservedSensorsByAPIIds(ctx, id, sensorAPIIDs)
 	if err != nil {
 		zap.L().Error("failed to set observed sensors", zap.Error(err), zap.Int64("userId", id))
 		return err

@@ -4,6 +4,7 @@ import (
 	"air-quality-notifyer/internal/db/repository/sensor"
 	"air-quality-notifyer/internal/service/districts"
 	"air-quality-notifyer/internal/service/sensor/model"
+	"context"
 
 	"github.com/redis/go-redis/v9"
 )
@@ -12,7 +13,7 @@ type Service struct {
 	repo       sensor.Interface
 	sDistricts districts.Interface
 	cSensors   chan []model.Sensor
-	syncCron   chan interface{}
+	syncCron   chan struct{}
 	cache      *redis.Client
 }
 
@@ -25,10 +26,10 @@ type AliveSensor struct {
 }
 
 type Interface interface {
-	ListenChanges(handler func([]model.Sensor))
-	StartInvalidatingSensorsPeriodically()
-	StartGettingTrustedSensorsEveryHour()
-	GetAliveSensorsFromCache() ([]AliveSensor, error)
+	ListenChanges(ctx context.Context, handler func(context.Context, []model.Sensor))
+	StartInvalidatingSensorsPeriodically(ctx context.Context) func(context.Context)
+	StartGettingTrustedSensorsEveryHour(ctx context.Context) func(context.Context)
+	GetAliveSensorsFromCache(ctx context.Context) ([]AliveSensor, error)
 }
 
 func New(
@@ -40,13 +41,21 @@ func New(
 		repo:       repo,
 		sDistricts: sDistricts,
 		cSensors:   make(chan []model.Sensor),
-		syncCron:   make(chan interface{}),
+		syncCron:   make(chan struct{}),
 		cache:      cache,
 	}
 }
 
-func (s *Service) ListenChanges(handler func([]model.Sensor)) {
-	for update := range s.cSensors {
-		handler(update)
+func (s *Service) ListenChanges(ctx context.Context, handler func(context.Context, []model.Sensor)) {
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case update, ok := <-s.cSensors:
+			if !ok {
+				return
+			}
+			handler(ctx, update)
+		}
 	}
 }

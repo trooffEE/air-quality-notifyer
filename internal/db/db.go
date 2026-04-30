@@ -2,6 +2,7 @@ package db
 
 import (
 	"air-quality-notifyer/internal/config"
+	"context"
 	"errors"
 	"fmt"
 
@@ -12,12 +13,12 @@ import (
 	"go.uber.org/zap"
 )
 
-func New(cfg config.Config) *sqlx.DB {
+func New(ctx context.Context, cfg config.Config) *sqlx.DB {
 	connString := fmt.Sprintf(
 		"postgres://%s:%s@%s/%s?sslmode=disable",
 		cfg.DB.User, cfg.DB.Password, cfg.DB.Host, cfg.DB.Name,
 	)
-	db, err := sqlx.Connect("postgres", connString)
+	db, err := sqlx.ConnectContext(ctx, "postgres", connString)
 	if err != nil {
 		zap.L().Fatal("Failed to establish db connection", zap.Error(err))
 	}

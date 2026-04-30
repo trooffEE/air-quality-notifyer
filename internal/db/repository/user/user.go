@@ -4,8 +4,10 @@ import (
 	"air-quality-notifyer/internal/constants"
 	"air-quality-notifyer/internal/exception"
 	"air-quality-notifyer/internal/helper"
+	"context"
 	"database/sql"
 	"errors"
+	"fmt"
 
 	"github.com/jmoiron/sqlx"
 	"go.uber.org/zap"
@@ -15,18 +17,30 @@ var (
 	NotFound = errors.New("user not found")
 )
 
+const (
+	selectUserIDByTelegramIDQuery = "SELECT id FROM users WHERE telegram_id = $1"
+
+	deleteObservedDistrictsQuery = "DELETE FROM users_observed_districts WHERE user_id = $1"
+	insertObservedDistrictQuery  = "INSERT INTO users_observed_districts (user_id, district_id) VALUES ($1, $2)"
+
+	deleteObservedSensorsQuery    = "DELETE FROM users_observed_sensors WHERE user_id = $1"
+	selectSensorIDByAPIIDQuery    = "SELECT id FROM sensors WHERE api_id = $1 ORDER BY id LIMIT 1"
+	insertSensorByAPIIDQuery      = "INSERT INTO sensors (api_id) VALUES ($1) RETURNING id"
+	insertObservedSensorByIDQuery = "INSERT INTO users_observed_sensors (user_id, sensor_id) VALUES ($1, $2)"
+)
+
 type Interface interface {
-	FindById(id int64) (*User, error)
-	Register(user User) error
-	GetAllIds() ([]int64, error)
-	GetAllIdsByOperatingMode(mode constants.ModeType) ([]int64, error)
-	GetAllNames() ([]string, error)
-	GetObservedDistrictIdsByOperatingMode(mode constants.ModeType) (map[int64][]int64, error)
-	GetObservedSensorAPIIdsByOperatingMode(mode constants.ModeType) (map[int64][]int64, error)
-	DeleteUserById(id int64) error
-	SetOperatingMode(tgId int64, mode constants.ModeType) error
-	SetObservedDistricts(tgId int64, districtIDs []int64) error
-	SetObservedSensorsByAPIIds(tgId int64, sensorAPIIDs []int64) error
+	FindById(ctx context.Context, id int64) (*User, error)
+	Register(ctx context.Context, user User) error
+	GetAllIds(ctx context.Context) ([]int64, error)
+	GetAllIdsByOperatingMode(ctx context.Context, mode constants.ModeType) ([]int64, error)
+	GetAllNames(ctx context.Context) ([]string, error)
+	GetObservedDistrictIdsByOperatingMode(ctx context.Context, mode constants.ModeType) (map[int64][]int64, error)
+	GetObservedSensorAPIIdsByOperatingMode(ctx context.Context, mode constants.ModeType) (map[int64][]int64, error)
+	DeleteUserById(ctx context.Context, id int64) error
+	SetOperatingMode(ctx context.Context, tgId int64, mode constants.ModeType) error
+	SetObservedDistricts(ctx context.Context, tgId int64, districtIDs []int64) error
+	SetObservedSensorsByAPIIds(ctx context.Context, tgId int64, sensorAPIIDs []int64) error
 }
 
 type Repository struct {
@@ -37,54 +51,54 @@ func New(db *sqlx.DB) *Repository {
 	return &Repository{db: db}
 }
 
-func (r *Repository) FindById(id int64) (*User, error) {
+func (r *Repository) FindById(ctx context.Context, id int64) (*User, error) {
 	var user User
-	err := r.db.Get(&user, `
+	err := r.db.GetContext(ctx, &user, `
 		SELECT id, username, telegram_id, operating_mode
 		FROM users WHERE telegram_id = $1
 	`, id)
 
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return nil, NotFound
+			return nil, fmt.Errorf("find user by telegram id %d: %w", id, NotFound)
 		}
 
-		return nil, err
+		return nil, fmt.Errorf("find user by telegram id %d: %w", id, err)
 	}
 
 	return &user, nil
 }
 
-func (r *Repository) Register(user User) error {
-	_, err := r.db.NamedExec(`
+func (r *Repository) Register(ctx context.Context, user User) error {
+	_, err := r.db.NamedExecContext(ctx, `
 		INSERT INTO users (username, telegram_id)
 		VALUES (:username, :telegram_id)
 	`, user)
 
 	if err != nil {
 		zap.L().Error("Failed to insert user", zap.Error(err))
-		return err
+		return fmt.Errorf("register user: %w", err)
 	}
 
 	return nil
 }
 
-func (r *Repository) GetAllIds() ([]int64, error) {
+func (r *Repository) GetAllIds(ctx context.Context) ([]int64, error) {
 	var ids []int64
-	err := r.db.Select(&ids, "SELECT telegram_id FROM users")
+	err := r.db.SelectContext(ctx, &ids, "SELECT telegram_id FROM users")
 
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("get all user ids: %w", err)
 	}
 
 	return ids, nil
 }
 
-func (r *Repository) GetAllIdsByOperatingMode(mode constants.ModeType) ([]int64, error) {
+func (r *Repository) GetAllIdsByOperatingMode(ctx context.Context, mode constants.ModeType) ([]int64, error) {
 	var ids []int64
-	err := r.db.Select(&ids, "SELECT telegram_id FROM users WHERE operating_mode = $1", mode)
+	err := r.db.SelectContext(ctx, &ids, "SELECT telegram_id FROM users WHERE operating_mode = $1", mode)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("get user ids by operating mode %d: %w", mode, err)
 	}
 
 	return ids, nil
@@ -95,9 +109,17 @@ type userObservedDistrict struct {
 	DistrictID int64 `db:"district_id"`
 }
 
-func (r *Repository) GetObservedDistrictIdsByOperatingMode(mode constants.ModeType) (map[int64][]int64, error) {
+func (row userObservedDistrict) telegramID() int64 {
+	return row.TelegramID
+}
+
+func (row userObservedDistrict) observedID() int64 {
+	return row.DistrictID
+}
+
+func (r *Repository) GetObservedDistrictIdsByOperatingMode(ctx context.Context, mode constants.ModeType) (map[int64][]int64, error) {
 	var rows []userObservedDistrict
-	err := r.db.Select(&rows, `
+	err := r.db.SelectContext(ctx, &rows, `
 		SELECT
 			u.telegram_id AS telegram_id,
 			uod.district_id AS district_id
@@ -106,15 +128,10 @@ func (r *Repository) GetObservedDistrictIdsByOperatingMode(mode constants.ModeTy
 		WHERE u.operating_mode = $1
 	`, mode)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("get observed district ids by operating mode %d: %w", mode, err)
 	}
 
-	usersDistricts := make(map[int64][]int64)
-	for _, row := range rows {
-		usersDistricts[row.TelegramID] = append(usersDistricts[row.TelegramID], row.DistrictID)
-	}
-
-	return usersDistricts, nil
+	return groupObservedIDs(rows), nil
 }
 
 type userObservedSensor struct {
@@ -122,9 +139,17 @@ type userObservedSensor struct {
 	SensorAPIID int64 `db:"sensor_api_id"`
 }
 
-func (r *Repository) GetObservedSensorAPIIdsByOperatingMode(mode constants.ModeType) (map[int64][]int64, error) {
+func (row userObservedSensor) telegramID() int64 {
+	return row.TelegramID
+}
+
+func (row userObservedSensor) observedID() int64 {
+	return row.SensorAPIID
+}
+
+func (r *Repository) GetObservedSensorAPIIdsByOperatingMode(ctx context.Context, mode constants.ModeType) (map[int64][]int64, error) {
 	var rows []userObservedSensor
-	err := r.db.Select(&rows, `
+	err := r.db.SelectContext(ctx, &rows, `
 		SELECT
 			u.telegram_id AS telegram_id,
 			s.api_id AS sensor_api_id
@@ -134,148 +159,178 @@ func (r *Repository) GetObservedSensorAPIIdsByOperatingMode(mode constants.ModeT
 		WHERE u.operating_mode = $1
 	`, mode)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("get observed sensor api ids by operating mode %d: %w", mode, err)
 	}
 
-	usersSensors := make(map[int64][]int64)
-	for _, row := range rows {
-		usersSensors[row.TelegramID] = append(usersSensors[row.TelegramID], row.SensorAPIID)
-	}
-
-	return usersSensors, nil
+	return groupObservedIDs(rows), nil
 }
 
-func (r *Repository) GetAllNames() ([]string, error) {
+func (r *Repository) GetAllNames(ctx context.Context) ([]string, error) {
 	var names []string
-	err := r.db.Select(&names, "SELECT username FROM users")
+	err := r.db.SelectContext(ctx, &names, "SELECT username FROM users")
 
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("get all user names: %w", err)
 	}
 
 	return names, nil
 }
 
-func (r *Repository) DeleteUserById(id int64) error {
-	_, err := r.db.Exec(`DELETE FROM users WHERE telegram_id = $1`, id)
+func (r *Repository) DeleteUserById(ctx context.Context, id int64) error {
+	_, err := r.db.ExecContext(ctx, `DELETE FROM users WHERE telegram_id = $1`, id)
 
 	if err != nil {
-		return err
+		return fmt.Errorf("delete user by telegram id %d: %w", id, err)
 	}
 
 	return nil
 }
 
-func (r *Repository) SetOperatingMode(tgId int64, mode constants.ModeType) error {
+func (r *Repository) SetOperatingMode(ctx context.Context, tgId int64, mode constants.ModeType) error {
 	if !helper.IsValidMode(mode) {
 		err := exception.InvalidOperatingMode
 		zap.L().Error("Setting mode", zap.Error(err))
 		return err
 	}
 
-	_, err := r.db.Exec("UPDATE users SET operating_mode = $1 WHERE telegram_id = $2", mode, tgId)
+	_, err := r.db.ExecContext(ctx, "UPDATE users SET operating_mode = $1 WHERE telegram_id = $2", mode, tgId)
 
 	if err != nil {
 		zap.L().Error("Failed to set operating mode", zap.Error(err))
-		return err
+		return fmt.Errorf("set operating mode for user %d: %w", tgId, err)
 	}
 
 	return nil
 }
 
-func (r *Repository) SetObservedDistricts(tgId int64, districtIDs []int64) error {
-	transaction, err := r.db.Beginx()
+func (r *Repository) SetObservedDistricts(ctx context.Context, tgId int64, districtIDs []int64) (err error) {
+	transaction, err := r.db.BeginTxx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("begin set observed districts transaction: %w", err)
+	}
+	defer rollbackOnError(transaction, &err)
+
+	userID, err := userIDByTelegramID(ctx, transaction, tgId)
 	if err != nil {
 		return err
 	}
-	defer func() {
-		if err != nil {
-			_ = transaction.Rollback()
-		}
-	}()
 
+	if err = replaceObservedDistricts(ctx, transaction, userID, districtIDs); err != nil {
+		return err
+	}
+
+	err = transaction.Commit()
+	if err != nil {
+		return fmt.Errorf("commit set observed districts transaction: %w", err)
+	}
+
+	return nil
+}
+
+func (r *Repository) SetObservedSensorsByAPIIds(ctx context.Context, tgId int64, sensorAPIIDs []int64) (err error) {
+	transaction, err := r.db.BeginTxx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("begin set observed sensors transaction: %w", err)
+	}
+	defer rollbackOnError(transaction, &err)
+
+	userID, err := userIDByTelegramID(ctx, transaction, tgId)
+	if err != nil {
+		return err
+	}
+
+	if err = replaceObservedSensors(ctx, transaction, userID, sensorAPIIDs); err != nil {
+		return err
+	}
+
+	err = transaction.Commit()
+	if err != nil {
+		return fmt.Errorf("commit set observed sensors transaction: %w", err)
+	}
+
+	return nil
+}
+
+type observedRow interface {
+	telegramID() int64
+	observedID() int64
+}
+
+func groupObservedIDs[T observedRow](rows []T) map[int64][]int64 {
+	grouped := make(map[int64][]int64)
+	for _, row := range rows {
+		grouped[row.telegramID()] = append(grouped[row.telegramID()], row.observedID())
+	}
+
+	return grouped
+}
+
+func rollbackOnError(transaction *sqlx.Tx, err *error) {
+	if *err == nil {
+		return
+	}
+
+	if rollbackErr := transaction.Rollback(); rollbackErr != nil && !errors.Is(rollbackErr, sql.ErrTxDone) {
+		zap.L().Error("failed to rollback transaction", zap.Error(rollbackErr))
+	}
+}
+
+func userIDByTelegramID(ctx context.Context, transaction *sqlx.Tx, tgID int64) (int64, error) {
 	var userID int64
-	err = transaction.Get(&userID, "SELECT id FROM users WHERE telegram_id = $1", tgId)
+	err := transaction.GetContext(ctx, &userID, selectUserIDByTelegramIDQuery, tgID)
 	if err != nil {
-		return err
+		return 0, fmt.Errorf("get user id by telegram id %d: %w", tgID, err)
 	}
 
-	_, err = transaction.Exec("DELETE FROM users_observed_districts WHERE user_id = $1", userID)
+	return userID, nil
+}
+
+func replaceObservedDistricts(ctx context.Context, transaction *sqlx.Tx, userID int64, districtIDs []int64) error {
+	_, err := transaction.ExecContext(ctx, deleteObservedDistrictsQuery, userID)
 	if err != nil {
-		return err
+		return fmt.Errorf("delete observed districts for user %d: %w", userID, err)
 	}
 
 	for _, districtID := range districtIDs {
-		_, err = transaction.Exec(
-			"INSERT INTO users_observed_districts (user_id, district_id) VALUES ($1, $2)",
-			userID,
-			districtID,
-		)
+		_, err = transaction.ExecContext(ctx, insertObservedDistrictQuery, userID, districtID)
 		if err != nil {
-			return err
+			return fmt.Errorf("insert observed district %d for user %d: %w", districtID, userID, err)
 		}
-	}
-
-	err = transaction.Commit()
-	if err != nil {
-		return err
 	}
 
 	return nil
 }
 
-func (r *Repository) SetObservedSensorsByAPIIds(tgId int64, sensorAPIIDs []int64) error {
-	transaction, err := r.db.Beginx()
+func replaceObservedSensors(ctx context.Context, transaction *sqlx.Tx, userID int64, sensorAPIIDs []int64) error {
+	_, err := transaction.ExecContext(ctx, deleteObservedSensorsQuery, userID)
 	if err != nil {
-		return err
-	}
-	defer func() {
-		if err != nil {
-			_ = transaction.Rollback()
-		}
-	}()
-
-	var userID int64
-	err = transaction.Get(&userID, "SELECT id FROM users WHERE telegram_id = $1", tgId)
-	if err != nil {
-		return err
+		return fmt.Errorf("delete observed sensors for user %d: %w", userID, err)
 	}
 
-	_, err = transaction.Exec("DELETE FROM users_observed_sensors WHERE user_id = $1", userID)
-	if err != nil {
-		return err
-	}
-
-	seen := make(map[int64]struct{}, len(sensorAPIIDs))
 	for _, sensorAPIID := range sensorAPIIDs {
-		if _, exists := seen[sensorAPIID]; exists {
-			continue
-		}
-		seen[sensorAPIID] = struct{}{}
-
-		var sensorID int64
-		err = transaction.Get(&sensorID, "SELECT id FROM sensors WHERE api_id = $1 ORDER BY id LIMIT 1", sensorAPIID)
-		if errors.Is(err, sql.ErrNoRows) {
-			err = transaction.Get(&sensorID, "INSERT INTO sensors (api_id) VALUES ($1) RETURNING id", sensorAPIID)
-		}
+		sensorID, err := sensorIDByAPIID(ctx, transaction, sensorAPIID)
 		if err != nil {
 			return err
 		}
 
-		_, err = transaction.Exec(
-			"INSERT INTO users_observed_sensors (user_id, sensor_id) VALUES ($1, $2)",
-			userID,
-			sensorID,
-		)
+		_, err = transaction.ExecContext(ctx, insertObservedSensorByIDQuery, userID, sensorID)
 		if err != nil {
-			return err
+			return fmt.Errorf("insert observed sensor %d for user %d: %w", sensorID, userID, err)
 		}
-	}
-
-	err = transaction.Commit()
-	if err != nil {
-		return err
 	}
 
 	return nil
+}
+
+func sensorIDByAPIID(ctx context.Context, transaction *sqlx.Tx, sensorAPIID int64) (int64, error) {
+	var sensorID int64
+	err := transaction.GetContext(ctx, &sensorID, selectSensorIDByAPIIDQuery, sensorAPIID)
+	if errors.Is(err, sql.ErrNoRows) {
+		err = transaction.GetContext(ctx, &sensorID, insertSensorByAPIIDQuery, sensorAPIID)
+	}
+	if err != nil {
+		return 0, fmt.Errorf("get or create sensor by api id %d: %w", sensorAPIID, err)
+	}
+
+	return sensorID, nil
 }

@@ -3,6 +3,7 @@ package admin
 import (
 	"air-quality-notifyer/internal/app/telegram/commander/api"
 	"air-quality-notifyer/internal/service/user"
+	"context"
 	"fmt"
 	"strings"
 
@@ -20,9 +21,9 @@ type Service struct {
 }
 
 type Interface interface {
-	Announce(update tgbotapi.Update)
+	Announce(ctx context.Context, update tgbotapi.Update)
 	Pong(update tgbotapi.Update)
-	ShowUsers(update tgbotapi.Update)
+	ShowUsers(ctx context.Context, update tgbotapi.Update)
 }
 
 func New(api api.Interface, service Service) Interface {
@@ -46,12 +47,12 @@ func (c *Commander) Pong(update tgbotapi.Update) {
 }
 
 // TODO maybe use tgbotapi.GetChatMembersCount
-func (c *Commander) ShowUsers(update tgbotapi.Update) {
+func (c *Commander) ShowUsers(ctx context.Context, update tgbotapi.Update) {
 	if !c.api.IsAdmin(update) {
 		return
 	}
 
-	names := c.service.User.GetUsersNames()
+	names := c.service.User.GetUsersNames(ctx)
 
 	if len(names) == 0 {
 		return

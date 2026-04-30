@@ -3,41 +3,63 @@ package sensor
 import (
 	"air-quality-notifyer/internal/db/repository/sensor"
 	"air-quality-notifyer/internal/service/sensor/scrapper"
+	"context"
 	"fmt"
 
 	"github.com/robfig/cron/v3"
+	"go.uber.org/zap"
 )
 
 var (
 	InvalidationPeriod = 4
 )
 
-func (s *Service) StartInvalidatingSensorsPeriodically() {
+func (s *Service) StartInvalidatingSensorsPeriodically(ctx context.Context) func(context.Context) {
 	cronCreator := cron.New()
 	cronString := fmt.Sprintf("0 */%d * * *", InvalidationPeriod)
 
 	_, err := cronCreator.AddFunc(cronString, func() {
-		s.startInvalidation(InvalidationPeriod)
-		s.syncCron <- 0
+		if err := s.startInvalidation(ctx, InvalidationPeriod); err != nil {
+			zap.L().Error("failed to invalidate sensors", zap.Error(err))
+			return
+		}
+
+		select {
+		case s.syncCron <- struct{}{}:
+		case <-ctx.Done():
+		}
 	})
 	if err != nil {
 		panic(err)
 	}
 
 	cronCreator.Start()
-}
 
-func (s *Service) startInvalidation(allowedHourDiff int) {
-	scrappedSensors := scrapper.Scrap()
-	aliveSensors := scrapper.FilterSensorsByHourDiff(scrappedSensors, allowedHourDiff)
-
-	for _, sensor := range aliveSensors {
-		s.saveSensor(sensor)
+	return func(shutdownCtx context.Context) {
+		stopCron(shutdownCtx, cronCreator)
 	}
 }
 
-func (s *Service) saveSensor(scrappedSensor scrapper.Sensor) {
-	district := s.sDistricts.GetDistrictByCoords(scrappedSensor.Lat, scrappedSensor.Lon)
+func (s *Service) startInvalidation(ctx context.Context, allowedHourDiff int) error {
+	scrappedSensors, err := scrapper.Scrap(ctx)
+	if err != nil {
+		return err
+	}
+
+	aliveSensors := scrapper.FilterSensorsByHourDiff(scrappedSensors, allowedHourDiff)
+
+	for _, scrappedSensor := range aliveSensors {
+		if ctx.Err() != nil {
+			return ctx.Err()
+		}
+		s.saveSensor(ctx, scrappedSensor)
+	}
+
+	return nil
+}
+
+func (s *Service) saveSensor(ctx context.Context, scrappedSensor scrapper.Sensor) {
+	district := s.sDistricts.GetDistrictByCoords(ctx, scrappedSensor.Lat, scrappedSensor.Lon)
 	// TODO Не работаем с датчиками вне районов города
 	if district == nil {
 		return
@@ -56,5 +78,14 @@ func (s *Service) saveSensor(scrappedSensor scrapper.Sensor) {
 		},
 	}
 
-	s.saveSensorInCache(payload)
+	s.saveSensorInCache(ctx, payload)
+}
+
+func stopCron(ctx context.Context, cronCreator *cron.Cron) {
+	stopped := cronCreator.Stop()
+	select {
+	case <-stopped.Done():
+	case <-ctx.Done():
+		zap.L().Warn("timed out waiting for cron jobs to stop", zap.Error(ctx.Err()))
+	}
 }
