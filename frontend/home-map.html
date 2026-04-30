@@ -102,11 +102,16 @@
     const statusEl = document.getElementById("status");
     const confirmEl = document.getElementById("confirm");
     const emptyEl = document.getElementById("empty");
-    const map = L.map("map", { zoomControl: true }).setView([55.354, 86.087], 11);
+    const map = L.map("map", {
+      zoomControl: true,
+      attributionControl: false
+    }).setView([55.354, 86.087], 11);
+
+    L.control.attribution({ prefix: false }).addTo(map);
 
     L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
       maxZoom: 19,
-      attribution: "&copy; OpenStreetMap"
+      attribution: "&copy; OpenStreetMap contributors"
     }).addTo(map);
 
     function syncViewportHeight() {
