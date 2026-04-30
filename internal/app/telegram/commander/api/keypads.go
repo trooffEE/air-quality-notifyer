@@ -4,7 +4,7 @@ const (
 	KeypadModeFaqText  = "❓ Режимы работы"
 	KeypadModeFaqData  = "operation_mode_faq"
 	KeypadMenuBackData = "back"
-	KeypadMenuBackText = "⬅️ Вернуться в меню"
+	KeypadMenuBackText = "Назад"
 	KeypadSettingsText = "⚙️ Настройки"
 	KeypadUsersText    = "users"
 	KeypadPingText     = "ping"

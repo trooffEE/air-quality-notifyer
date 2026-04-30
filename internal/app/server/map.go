@@ -112,7 +112,7 @@ func (h *mapHandler) handleHomeSelection(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	h.sendHomeConfirmation(telegramUserID, len(payload.SensorAPIIDs))
+	h.sendHomeConfirmation(r.Context(), telegramUserID, len(payload.SensorAPIIDs))
 	writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
 }
 
@@ -176,7 +176,7 @@ func telegramUserIDFromInitData(initData string) (int64, error) {
 	return user.ID, nil
 }
 
-func (h *mapHandler) sendHomeConfirmation(chatID int64, sensorsCount int) {
+func (h *mapHandler) sendHomeConfirmation(ctx context.Context, chatID int64, sensorsCount int) {
 	if h.services.Bot == nil {
 		return
 	}
@@ -190,8 +190,13 @@ func (h *mapHandler) sendHomeConfirmation(chatID int64, sensorsCount int) {
 	}
 	msg.ParseMode = tgbotapi.ModeHTML
 
-	if _, err := h.services.Bot.Send(msg); err != nil {
-		zap.L().Error("failed to send home mode confirmation", zap.Error(err), zap.Int64("chatID", chatID))
+	if err := h.services.Bot.Send(api.MessageConfig{Msg: msg}); err != nil {
+		zap.L().Error("failed to send home mode confirmation", zap.Any("error", err), zap.Int64("chatID", chatID))
+		return
+	}
+
+	if err := h.services.Bot.DeleteTrackedMessageByOffset(ctx, chatID, 1); err != nil {
+		zap.L().Error("failed to delete home setup message", zap.Error(err), zap.Int64("chatID", chatID))
 	}
 }
 

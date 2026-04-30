@@ -2,18 +2,21 @@ package api
 
 import (
 	"air-quality-notifyer/internal/config"
+	"context"
 	"errors"
 	"strconv"
 	"time"
 
 	tgbotapi "github.com/OvyFlash/telegram-bot-api"
+	"github.com/redis/go-redis/v9"
 	"go.uber.org/zap"
 )
 
 type Api struct {
-	Bot *tgbotapi.BotAPI
-	cfg config.Config
-	loc *time.Location
+	Bot   *tgbotapi.BotAPI
+	cfg   config.Config
+	loc   *time.Location
+	cache *redis.Client
 }
 
 type Interface interface {
@@ -22,6 +25,8 @@ type Interface interface {
 	AdminChatID() (int64, bool)
 	Delete(update *tgbotapi.Message) error
 	DeleteRequest(message tgbotapi.DeleteMessageConfig) error
+	DeleteTrackedMessages(ctx context.Context, chatID int64, count int)
+	DeleteTrackedMessageByOffset(ctx context.Context, chatID int64, offset int64) error
 	Edit(payload EditMessageConfig) error
 	IsAdmin(update tgbotapi.Update) bool
 	IsNotificationsAllowed() bool
@@ -30,15 +35,16 @@ type Interface interface {
 	HomeMapInlineKeyboardButton(text string) tgbotapi.InlineKeyboardButton
 }
 
-func NewApi(cfg config.Config, bot *tgbotapi.BotAPI) (*Api, error) {
+func NewApi(cfg config.Config, bot *tgbotapi.BotAPI, cache *redis.Client) (*Api, error) {
 	loc, err := time.LoadLocation("Asia/Novosibirsk")
 	if err != nil {
 		return nil, err
 	}
 	return &Api{
-		Bot: bot,
-		cfg: cfg,
-		loc: loc,
+		Bot:   bot,
+		cfg:   cfg,
+		loc:   loc,
+		cache: cache,
 	}, nil
 }
 
@@ -60,11 +66,16 @@ func (a *Api) Send(payload MessageConfig) *tgbotapi.Error {
 		payload.Msg.ReplyMarkup = NewReplyKeyboard()
 	}
 
-	_, err := a.Bot.Send(payload.Msg)
+	response, err := a.Bot.Send(payload.Msg)
 	var tgError *tgbotapi.Error
 	if errors.As(err, &tgError) {
 		return tgError
 	}
+	if err != nil {
+		return nil
+	}
+
+	a.trackMessage(context.Background(), response.Chat.ID, response.MessageID)
 
 	return nil
 }
@@ -75,6 +86,7 @@ func (a *Api) DeleteRequest(message tgbotapi.DeleteMessageConfig) error {
 		zap.L().Error("Error deleting message", zap.Error(err))
 		return err
 	}
+	a.untrackMessage(context.Background(), message.ChatID, message.MessageID)
 	return nil
 }
 
@@ -84,6 +96,7 @@ func (a *Api) Delete(message *tgbotapi.Message) error {
 		zap.L().Error("Error deleting message", zap.Error(err))
 		return err
 	}
+	a.untrackMessage(context.Background(), message.Chat.ID, message.MessageID)
 	return nil
 }
 
@@ -103,6 +116,7 @@ func (a *Api) Edit(payload EditMessageConfig) error {
 	if err != nil {
 		return err
 	}
+	a.trackMessage(context.Background(), payload.Msg.ChatID, payload.Msg.MessageID)
 
 	return nil
 }
@@ -132,6 +146,7 @@ func (a *Api) SendPoll(chatID int64, config PollConfig) (*tgbotapi.Message, erro
 		zap.L().Error("poll: error sending error", zap.Error(err))
 		return nil, err
 	}
+	a.trackMessage(context.Background(), response.Chat.ID, response.MessageID)
 	return &response, nil
 }
 

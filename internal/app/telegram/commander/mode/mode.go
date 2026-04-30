@@ -153,6 +153,10 @@ func (c *Commander) HandleDistrictsOptionsResult(ctx context.Context, pollUpdate
 		return
 	}
 
+	if err = c.api.DeleteTrackedMessageByOffset(ctx, cachedPollState.ChatID, 1); err != nil {
+		zap.L().Error("Error deleting district setup message", zap.Error(err))
+	}
+
 	messageToDelete := tgbotapi.NewDeleteMessage(cachedPollState.ChatID, cachedPollState.MessageID)
 	if err = c.api.DeleteRequest(messageToDelete); err != nil {
 		zap.L().Error("Error sending DeleteMessage", zap.Error(err))

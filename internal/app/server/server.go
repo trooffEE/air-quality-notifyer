@@ -1,6 +1,7 @@
 package server
 
 import (
+	"air-quality-notifyer/internal/app/telegram/commander/api"
 	"air-quality-notifyer/internal/config"
 	"air-quality-notifyer/internal/service/sensor"
 	"air-quality-notifyer/internal/service/user"
@@ -10,14 +11,13 @@ import (
 	"net/http"
 	"sync"
 
-	tgbotapi "github.com/OvyFlash/telegram-bot-api"
 	"go.uber.org/zap"
 )
 
 type Services struct {
 	User   user.Interface
 	Sensor sensor.Interface
-	Bot    *tgbotapi.BotAPI
+	Bot    api.Interface
 }
 
 func Init(cfg config.Config, services Services) func(context.Context) {

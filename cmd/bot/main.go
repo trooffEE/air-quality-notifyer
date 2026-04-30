@@ -69,7 +69,7 @@ func main() {
 	httpShutdown := server.Init(cfg, server.Services{
 		User:   userService,
 		Sensor: sensorService,
-		Bot:    bot.BotAPI(),
+		Bot:    bot.Commander.API,
 	})
 	botShutdown := bot.Start(ctx)
 

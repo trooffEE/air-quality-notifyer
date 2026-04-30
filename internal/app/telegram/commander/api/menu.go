@@ -15,19 +15,20 @@ func IsMenuButton(button string) bool {
 }
 
 func NewReplyKeyboard() tgbotapi.ReplyKeyboardMarkup {
-	return tgbotapi.NewOneTimeReplyKeyboard(
+	markup := tgbotapi.NewReplyKeyboard(
 		tgbotapi.NewKeyboardButtonRow(
 			tgbotapi.NewKeyboardButton(KeypadSettingsText),
 			tgbotapi.NewKeyboardButton(KeypadFaqText),
 		),
 	)
+	markup.IsPersistent = true
+
+	return markup
 }
 
 func (a *Api) MenuBack(update tgbotapi.Update) {
-	msg := tgbotapi.NewMessage(update.CallbackQuery.Message.Chat.ID, "Вы вернулись в меню ⬇️")
-
-	if err := a.Send(MessageConfig{Msg: msg}); err != nil {
-		zap.L().Error("Error sending back message", zap.Error(err))
+	if err := a.Delete(update.CallbackQuery.Message); err != nil {
+		zap.L().Error("Error deleting previous menu message", zap.Error(err))
 	}
 }
 

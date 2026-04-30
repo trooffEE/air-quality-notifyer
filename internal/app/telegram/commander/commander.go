@@ -33,7 +33,7 @@ type Services struct {
 }
 
 func New(cfg config.Config, bot *tgbotapi.BotAPI, s *Services) *Commander {
-	apiCmder, err := api.NewApi(cfg, bot)
+	apiCmder, err := api.NewApi(cfg, bot, s.Cache)
 	if err != nil {
 		zap.S().Fatalw("Failed to create api interface", "error", err)
 		return nil
