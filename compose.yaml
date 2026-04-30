@@ -16,6 +16,7 @@ services:
       - airquality_db
     networks:
       - server-network
+      - web-shared-network
     restart: always
     env_file: .env
 
