@@ -12,6 +12,10 @@ import (
 	"go.uber.org/zap"
 )
 
+const (
+	CommandMenuFaq = "❓ FAQ"
+)
+
 type Api struct {
 	Bot   *tgbotapi.BotAPI
 	cfg   config.Config
@@ -20,7 +24,7 @@ type Api struct {
 }
 
 type Interface interface {
-	Send(payload MessageConfig) *tgbotapi.Error
+	Send(ctx context.Context, payload MessageConfig) *tgbotapi.Error
 	SendPoll(chatID int64, config PollConfig) (*tgbotapi.Message, error)
 	AdminChatID() (int64, bool)
 	Delete(update *tgbotapi.Message) error
@@ -54,7 +58,7 @@ type MessageConfig struct {
 	DisableParseMode bool
 }
 
-func (a *Api) Send(payload MessageConfig) *tgbotapi.Error {
+func (a *Api) Send(ctx context.Context, payload MessageConfig) *tgbotapi.Error {
 	if !payload.DisableParseMode && len(payload.Msg.Entities) == 0 {
 		payload.Msg.ParseMode = tgbotapi.ModeHTML
 	}
@@ -75,7 +79,7 @@ func (a *Api) Send(payload MessageConfig) *tgbotapi.Error {
 		return nil
 	}
 
-	a.trackMessage(context.Background(), response.Chat.ID, response.MessageID)
+	a.trackMessage(ctx, response.Chat.ID, response.MessageID)
 
 	return nil
 }
@@ -90,13 +94,13 @@ func (a *Api) DeleteRequest(message tgbotapi.DeleteMessageConfig) error {
 	return nil
 }
 
-func (a *Api) Delete(message *tgbotapi.Message) error {
+func (a *Api) Delete(ctx context.Context, message *tgbotapi.Message) error {
 	_, err := a.Bot.Request(tgbotapi.NewDeleteMessage(message.Chat.ID, message.MessageID))
 	if err != nil {
 		zap.L().Error("Error deleting message", zap.Error(err))
 		return err
 	}
-	a.untrackMessage(context.Background(), message.Chat.ID, message.MessageID)
+	a.untrackMessage(ctx, message.Chat.ID, message.MessageID)
 	return nil
 }
 
@@ -105,7 +109,7 @@ type EditMessageConfig struct {
 	Markup *tgbotapi.InlineKeyboardMarkup
 }
 
-func (a *Api) Edit(payload EditMessageConfig) error {
+func (a *Api) Edit(ctx context.Context, payload EditMessageConfig) error {
 	payload.Msg.ParseMode = tgbotapi.ModeHTML
 
 	if payload.Markup != nil {
@@ -116,7 +120,7 @@ func (a *Api) Edit(payload EditMessageConfig) error {
 	if err != nil {
 		return err
 	}
-	a.trackMessage(context.Background(), payload.Msg.ChatID, payload.Msg.MessageID)
+	a.trackMessage(ctx, payload.Msg.ChatID, payload.Msg.MessageID)
 
 	return nil
 }

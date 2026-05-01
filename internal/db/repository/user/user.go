@@ -2,7 +2,6 @@ package user
 
 import (
 	"air-quality-notifyer/internal/constants"
-	"air-quality-notifyer/internal/exception"
 	"air-quality-notifyer/internal/helper"
 	"context"
 	"database/sql"
@@ -188,7 +187,7 @@ func (r *Repository) DeleteUserById(ctx context.Context, id int64) error {
 
 func (r *Repository) SetOperatingMode(ctx context.Context, tgId int64, mode constants.ModeType) error {
 	if !helper.IsValidMode(mode) {
-		err := exception.InvalidOperatingMode
+		err := errors.New("invalid operating mode")
 		zap.L().Error("Setting mode", zap.Error(err))
 		return err
 	}

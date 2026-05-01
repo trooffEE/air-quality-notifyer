@@ -3,22 +3,19 @@ package commander
 import (
 	"context"
 	"strconv"
-	"time"
 
 	"air-quality-notifyer/internal/app/telegram/commander/api"
-	tgmessage "air-quality-notifyer/internal/app/telegram/commander/message"
 
 	tgbotapi "github.com/OvyFlash/telegram-bot-api"
 	"go.uber.org/zap"
 )
 
 const (
-	CommandFeedback    = "feedback"
-	feedbackPendingTTL = 24 * time.Hour
+	CommandFeedback = "feedback"
 )
 
 func isFeedbackCommand(message *tgbotapi.Message) bool {
-	return tgmessage.IsCommand(message, CommandFeedback)
+	return message != nil && api.IsCommandText(message.Text, CommandFeedback)
 }
 
 func (c *Commander) Feedback(ctx context.Context, update tgbotapi.Update) {
@@ -26,109 +23,51 @@ func (c *Commander) Feedback(ctx context.Context, update tgbotapi.Update) {
 	if message == nil {
 		return
 	}
+	chatID := message.Chat.ID
 
-	text, entities, ok := tgmessage.CommandPayload(message, CommandFeedback)
+	text, entities, ok := api.CommandPayload(message, CommandFeedback)
 	if !ok {
 		return
 	}
 
 	if text == "" {
-		c.SetFeedbackPending(ctx, message.Chat.ID)
-		c.AskForFeedback(message.Chat.ID)
+		c.SetPendingCommand(ctx, chatID, CommandFeedback)
+		c.AskForFeedback(ctx, chatID)
 		return
 	}
 
-	c.DeleteFeedbackPending(ctx, message.Chat.ID)
-	c.SendFeedbackToAdmin(message, text, entities)
-	c.ConfirmFeedback(message.Chat.ID)
+	c.DeletePendingCommand(ctx, chatID)
+	c.SendFeedbackToAdmin(ctx, message, text, entities)
+	c.ConfirmFeedback(ctx, chatID)
 }
 
-func (c *Commander) HandlePendingFeedback(ctx context.Context, update tgbotapi.Update) bool {
-	message := update.Message
-	if message == nil {
-		return false
-	}
-
-	if message.IsCommand() || api.IsMenuButton(message.Text) || !c.ConsumeFeedbackPending(ctx, message.Chat.ID) {
-		return false
-	}
-
-	c.SendFeedbackToAdmin(message, message.Text, message.Entities)
-	c.ConfirmFeedback(message.Chat.ID)
-
-	return true
-}
-
-func (c *Commander) SetFeedbackPending(ctx context.Context, chatID int64) {
-	if c.Services.Cache == nil {
-		zap.L().Error("feedback cache is not configured")
-		return
-	}
-
-	err := c.Services.Cache.Set(ctx, feedbackPendingKey(chatID), "1", feedbackPendingTTL).Err()
-	if err != nil {
-		zap.L().Error("failed to set pending feedback state", zap.Error(err), zap.Int64("chatId", chatID))
-	}
-}
-
-func (c *Commander) ConsumeFeedbackPending(ctx context.Context, chatID int64) bool {
-	if c.Services.Cache == nil {
-		zap.L().Error("feedback cache is not configured")
-		return false
-	}
-
-	deleted, err := c.Services.Cache.Del(ctx, feedbackPendingKey(chatID)).Result()
-	if err != nil {
-		zap.L().Error("failed to consume pending feedback state", zap.Error(err), zap.Int64("chatId", chatID))
-		return false
-	}
-
-	return deleted > 0
-}
-
-func (c *Commander) DeleteFeedbackPending(ctx context.Context, chatID int64) {
-	if c.Services.Cache == nil {
-		zap.L().Error("feedback cache is not configured")
-		return
-	}
-
-	err := c.Services.Cache.Del(ctx, feedbackPendingKey(chatID)).Err()
-	if err != nil {
-		zap.L().Error("failed to delete pending feedback state", zap.Error(err), zap.Int64("chatId", chatID))
-	}
-}
-
-func (c *Commander) AskForFeedback(chatID int64) {
+func (c *Commander) AskForFeedback(ctx context.Context, chatID int64) {
 	msg := tgbotapi.NewMessage(chatID, "Напишите обратную связь для админа ниже (баги, пожелания, предложения):")
-	if err := c.API.Send(api.MessageConfig{Msg: msg}); err != nil {
+	if err := c.API.Send(ctx, api.MessageConfig{Msg: msg}); err != nil {
 		zap.L().Error("Error sending feedback prompt", zap.Error(err))
 	}
 }
 
-func (c *Commander) ConfirmFeedback(chatID int64) {
+func (c *Commander) ConfirmFeedback(ctx context.Context, chatID int64) {
 	msg := tgbotapi.NewMessage(chatID, "Спасибо! Ваша обратная связь отправлена разработчику")
-	if err := c.API.Send(api.MessageConfig{Msg: msg}); err != nil {
+	if err := c.API.Send(ctx, api.MessageConfig{Msg: msg}); err != nil {
 		zap.L().Error("Error sending feedback confirmation", zap.Error(err))
 	}
 }
 
-func (c *Commander) SendFeedbackToAdmin(message *tgbotapi.Message, text string, entities []tgbotapi.MessageEntity) {
+func (c *Commander) SendFeedbackToAdmin(ctx context.Context, message *tgbotapi.Message, text string, entities []tgbotapi.MessageEntity) {
 	adminID, ok := c.API.AdminChatID()
 	if !ok || message == nil {
 		return
 	}
 
-	text, entities = tgmessage.Prepend(feedbackHeader(message), text, entities)
+	text, entities = api.PrependText(feedbackHeader(message), text, entities)
 	msg := tgbotapi.NewMessage(adminID, text)
 	msg.Entities = entities
 
-	if err := c.API.Send(api.MessageConfig{Msg: msg, DisableParseMode: len(msg.Entities) == 0}); err != nil {
+	if err := c.API.Send(ctx, api.MessageConfig{Msg: msg, DisableParseMode: len(msg.Entities) == 0}); err != nil {
 		zap.L().Error("Error sending feedback message", zap.Error(err))
 	}
-}
-
-func feedbackPendingKey(chatID int64) string {
-	return "telegram:feedback:pending:" + strconv.FormatInt(chatID, 10)
 }
 
 func feedbackHeader(message *tgbotapi.Message) string {

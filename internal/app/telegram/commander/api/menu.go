@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"fmt"
 	"slices"
 
@@ -10,7 +11,7 @@ import (
 
 var options = []string{KeypadFaqText, KeypadSettingsText, KeypadUsersText, KeypadPingText}
 
-func IsMenuButton(button string) bool {
+func (a *Api) IsMenuButton(button string) bool {
 	return slices.Contains(options, button)
 }
 
@@ -32,7 +33,7 @@ func (a *Api) MenuBack(update tgbotapi.Update) {
 	}
 }
 
-func (a *Api) MenuFaq(update tgbotapi.Update) {
+func (a *Api) MenuFaq(ctx context.Context, update tgbotapi.Update) {
 	msg := tgbotapi.NewMessage(update.Message.Chat.ID, fmt.Sprintf(
 		"⚙️<strong>Ответы на вопросы</strong>\n\n"+
 			"<i>- Связан ли данный бот с https://airkemerovo.ru ?</i>\n"+
@@ -60,7 +61,7 @@ func (a *Api) MenuFaq(update tgbotapi.Update) {
 		),
 	)
 
-	if err := a.Send(MessageConfig{Msg: msg, Markup: markup}); err != nil {
+	if err := a.Send(ctx, MessageConfig{Msg: msg, Markup: markup}); err != nil {
 		zap.L().Error("Error sending faq message", zap.Error(err))
 	}
 }

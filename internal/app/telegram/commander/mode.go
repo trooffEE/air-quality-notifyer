@@ -1,11 +1,9 @@
-package mode
+package commander
 
 import (
 	"air-quality-notifyer/internal/app/telegram/commander/api"
 	"air-quality-notifyer/internal/constants"
 	"air-quality-notifyer/internal/helper"
-	sDistricts "air-quality-notifyer/internal/service/districts"
-	sUser "air-quality-notifyer/internal/service/user"
 	"context"
 	"fmt"
 	"strings"
@@ -14,63 +12,61 @@ import (
 	"go.uber.org/zap"
 )
 
-type Commander struct {
-	api     api.Interface
-	service Service
-}
+const (
+	CallbackTextFaqFromSetup          = "Узнать подробнее"
+	CallbackDataFaqFromSetup          = "operation_mode_faq__operating-mode"
+	CallbackTextSetup                 = "🌿 Режимы работы"
+	CallbackDataSetup                 = "operation_mode"
+	CallbackTextSetCity               = "Город 🏙"
+	CallbackDataSetCity               = "set_operation_mode_city"
+	CallbackTextAskForDistrictOptions = "Район 🏘"
+	CallbackDataAskForDistrictOptions = "set_operation_mode_district"
+	CallbackTextSetHome               = "Дом 🏡"
+	CallbackDataSetHome               = "set_operation_mode_home"
+	CallbackTextBack                  = "🌿 Вернуться к режимам работы"
+)
 
-type Service struct {
-	User     sUser.Interface
-	District sDistricts.Interface
-}
-
-type Interface interface {
-	Setup(update tgbotapi.Update)
-	Faq(update tgbotapi.Update)
-	SetCity(ctx context.Context, update tgbotapi.Update)
-	AskForDistrictOptions(ctx context.Context, update tgbotapi.Update)
-	HandleDistrictsOptionsResult(ctx context.Context, update *tgbotapi.Poll)
-}
-
-func New(api api.Interface, service Service) Interface {
-	return &Commander{
-		api:     api,
-		service: service,
+func NewModeCallbackHandlersRegistry(c *Commander) HandlersRegistry {
+	return HandlersRegistry{
+		CallbackDataFaqFromSetup:          c.Faq,
+		CallbackDataSetup:                 c.Setup,
+		CallbackDataSetCity:               c.SetCity,
+		CallbackDataAskForDistrictOptions: c.AskForDistrictOptions,
 	}
 }
 
-func (c *Commander) Setup(update tgbotapi.Update) {
+func (c *Commander) Setup(ctx context.Context, update tgbotapi.Update) {
 	msg := tgbotapi.NewEditMessageText(
 		update.CallbackQuery.Message.Chat.ID,
 		update.CallbackQuery.Message.MessageID,
-		fmt.Sprintf("Пожалуйста, выберите один из трех режимов работы для его настройки:\n\nЕсли не знайте какой режим выбрать, нажмите на \"%s\", чтобы получить информацию о них", KeypadFaqFromSetupText),
+		fmt.Sprintf("Пожалуйста, выберите один из трех режимов работы для его настройки:\n\nЕсли не знайте какой режим выбрать, нажмите на \"%s\", чтобы получить информацию о них", CallbackTextFaqFromSetup),
 	)
 
 	markup := tgbotapi.NewInlineKeyboardMarkup(
 		tgbotapi.NewInlineKeyboardRow(
-			tgbotapi.NewInlineKeyboardButtonData(KeypadSetCityText, KeypadSetCityData),
-			tgbotapi.NewInlineKeyboardButtonData(KeypadAskForDistrictOptionsText, KeypadAskForDistrictOptionsData),
-			c.api.HomeMapInlineKeyboardButton(KeypadSetHomeText),
+			tgbotapi.NewInlineKeyboardButtonData(CallbackTextSetCity, CallbackDataSetCity),
+			tgbotapi.NewInlineKeyboardButtonData(CallbackTextAskForDistrictOptions, CallbackDataAskForDistrictOptions),
+			c.API.HomeMapInlineKeyboardButton(CallbackTextSetHome),
 		),
 		tgbotapi.NewInlineKeyboardRow(
-			tgbotapi.NewInlineKeyboardButtonData(KeypadFaqFromSetupText, KeypadFaqFromSetupData),
+			tgbotapi.NewInlineKeyboardButtonData(CallbackTextFaqFromSetup, CallbackDataFaqFromSetup),
 		),
 		tgbotapi.NewInlineKeyboardRow(
 			tgbotapi.NewInlineKeyboardButtonData(api.KeypadMenuBackText, api.KeypadMenuBackData),
 		),
 	)
 
-	if err := c.api.Edit(api.EditMessageConfig{Msg: msg, Markup: &markup}); err != nil {
+	if err := c.API.Edit(ctx, api.EditMessageConfig{Msg: msg, Markup: &markup}); err != nil {
 		zap.L().Error("Error sending operating_mode message", zap.Error(err))
 	}
 }
 
-func (c *Commander) Faq(update tgbotapi.Update) {
+func (c *Commander) Faq(ctx context.Context, update tgbotapi.Update) {
 	markup := tgbotapi.NewInlineKeyboardMarkup()
 
-	if update.CallbackQuery.Data == KeypadFaqFromSetupData {
+	if update.CallbackQuery.Data == CallbackDataFaqFromSetup {
 		markup.InlineKeyboard = append(markup.InlineKeyboard, tgbotapi.NewInlineKeyboardRow(
-			tgbotapi.NewInlineKeyboardButtonData(KeypadBackText, KeypadSetupData),
+			tgbotapi.NewInlineKeyboardButtonData(CallbackTextBack, CallbackDataSetup),
 		))
 	}
 
@@ -92,7 +88,7 @@ func (c *Commander) Faq(update tgbotapi.Update) {
 		),
 	)
 
-	if err := c.api.Edit(api.EditMessageConfig{Msg: msg, Markup: &markup}); err != nil {
+	if err := c.API.Edit(ctx, api.EditMessageConfig{Msg: msg, Markup: &markup}); err != nil {
 		zap.L().Error("Error sending operating_mode_faq message", zap.Error(err))
 	}
 }
@@ -101,7 +97,7 @@ func (c *Commander) SetCity(ctx context.Context, update tgbotapi.Update) {
 	// City mode is implemented end-to-end: mode is saved and user gets a confirmation.
 	message := update.CallbackQuery.Message
 	chatId := message.Chat.ID
-	err := c.service.User.SetOperatingMode(ctx, chatId, constants.City)
+	err := c.Services.User.SetOperatingMode(ctx, chatId, constants.City)
 	if err != nil {
 		zap.L().Error("Error setting operating mode", zap.Error(err))
 		return
@@ -112,11 +108,11 @@ func (c *Commander) SetCity(ctx context.Context, update tgbotapi.Update) {
 		"🏙 Город 🏙\n\nТеперь вы будете получать оповещения с датчиков по всему городу! 🍃",
 	)
 
-	if err := c.api.Send(api.MessageConfig{Msg: msg}); err != nil {
+	if err := c.API.Send(ctx, api.MessageConfig{Msg: msg}); err != nil {
 		zap.L().Error("Error sending Mode.Set message", zap.Error(err))
 	}
 
-	if err = c.api.Delete(message); err != nil {
+	if err = c.API.Delete(ctx, message); err != nil {
 		zap.L().Error("Error deleting prev message", zap.Error(err))
 	}
 }
@@ -125,8 +121,8 @@ func (c *Commander) AskForDistrictOptions(ctx context.Context, update tgbotapi.U
 	// District mode setup currently stops at poll creation.
 	// TODO: Persist selected districts to users_observed_districts and set constants.District as operating mode.
 	chatID := update.CallbackQuery.Message.Chat.ID
-	districts := c.service.District.GetAllDistrictsNames(ctx)
-	response, err := c.api.SendPoll(chatID, api.PollConfig{
+	districts := c.Services.District.GetAllDistrictsNames(ctx)
+	response, err := c.API.SendPoll(chatID, api.PollConfig{
 		Question: "Интересующие районы 🏘:",
 		Options:  districts,
 	})
@@ -134,7 +130,7 @@ func (c *Commander) AskForDistrictOptions(ctx context.Context, update tgbotapi.U
 		zap.L().Error("set district: error sending poll", zap.Error(err))
 		return
 	}
-	c.service.District.SaveDistrictPollMessageInCache(
+	c.Services.District.SaveDistrictPollMessageInCache(
 		ctx,
 		response.Poll.ID,
 		response.Chat.ID,
@@ -147,31 +143,31 @@ func (c *Commander) HandleDistrictsOptionsResult(ctx context.Context, pollUpdate
 		return
 	}
 
-	cachedPollState, err := c.service.District.GetDistrictPollMessageInCache(ctx, pollUpdate.ID)
+	cachedPollState, err := c.Services.District.GetDistrictPollMessageInCache(ctx, pollUpdate.ID)
 	if err != nil {
 		zap.L().Error("failed to get poll state from cache", zap.Error(err), zap.String("pollId", pollUpdate.ID))
 		return
 	}
 
-	if err = c.api.DeleteTrackedMessageByOffset(ctx, cachedPollState.ChatID, 1); err != nil {
+	if err = c.API.DeleteTrackedMessageByOffset(ctx, cachedPollState.ChatID, 1); err != nil {
 		zap.L().Error("Error deleting district setup message", zap.Error(err))
 	}
 
 	messageToDelete := tgbotapi.NewDeleteMessage(cachedPollState.ChatID, cachedPollState.MessageID)
-	if err = c.api.DeleteRequest(messageToDelete); err != nil {
+	if err = c.API.DeleteRequest(messageToDelete); err != nil {
 		zap.L().Error("Error sending DeleteMessage", zap.Error(err))
 	}
 
 	selectedOptions := helper.Filter(pollUpdate.Options, func(item tgbotapi.PollOption) bool { return item.VoterCount > 0 })
 	if len(selectedOptions) == 0 {
 		msg := tgbotapi.NewMessage(cachedPollState.ChatID, "Для режима \"Район\" нужно выбрать хотя бы один район. Попробуйте снова в настройках.")
-		if sendErr := c.api.Send(api.MessageConfig{Msg: msg}); sendErr != nil {
+		if sendErr := c.API.Send(ctx, api.MessageConfig{Msg: msg}); sendErr != nil {
 			zap.L().Error("failed to send district mode empty selection message", zap.Error(sendErr))
 		}
 		return
 	}
 
-	allDistricts := c.service.District.GetAllDistricts(ctx)
+	allDistricts := c.Services.District.GetAllDistricts(ctx)
 	districtIDByName := make(map[string]int64, len(allDistricts))
 	for _, district := range allDistricts {
 		districtIDByName[district.Name] = district.Id
@@ -195,13 +191,13 @@ func (c *Commander) HandleDistrictsOptionsResult(ctx context.Context, pollUpdate
 		return
 	}
 
-	err = c.service.User.SetObservedDistricts(ctx, cachedPollState.ChatID, selectedDistrictIDs)
+	err = c.Services.User.SetObservedDistricts(ctx, cachedPollState.ChatID, selectedDistrictIDs)
 	if err != nil {
 		zap.L().Error("failed to save observed districts", zap.Error(err), zap.Int64("chatId", cachedPollState.ChatID))
 		return
 	}
 
-	err = c.service.User.SetOperatingMode(ctx, cachedPollState.ChatID, constants.District)
+	err = c.Services.User.SetOperatingMode(ctx, cachedPollState.ChatID, constants.District)
 	if err != nil {
 		zap.L().Error("failed to set district operating mode", zap.Error(err), zap.Int64("chatId", cachedPollState.ChatID))
 		return
@@ -214,7 +210,7 @@ func (c *Commander) HandleDistrictsOptionsResult(ctx context.Context, pollUpdate
 			strings.Join(selectedDistrictNames, "\n"),
 		),
 	)
-	if sendErr := c.api.Send(api.MessageConfig{Msg: msg}); sendErr != nil {
+	if sendErr := c.API.Send(ctx, api.MessageConfig{Msg: msg}); sendErr != nil {
 		zap.L().Error("failed to send district mode confirmation", zap.Error(sendErr))
 	}
 }
