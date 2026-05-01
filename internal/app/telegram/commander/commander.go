@@ -1,15 +1,13 @@
 package commander
 
 import (
-	"context"
-
 	"air-quality-notifyer/internal/app/telegram/commander/api"
-	"air-quality-notifyer/internal/app/telegram/commander/mode"
 	"air-quality-notifyer/internal/config"
 	"air-quality-notifyer/internal/helper"
 	"air-quality-notifyer/internal/service/districts"
 	"air-quality-notifyer/internal/service/sensor"
 	"air-quality-notifyer/internal/service/user"
+	"context"
 
 	tgbotapi "github.com/OvyFlash/telegram-bot-api"
 	"github.com/redis/go-redis/v9"
