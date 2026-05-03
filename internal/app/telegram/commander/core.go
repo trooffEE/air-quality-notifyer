@@ -56,10 +56,6 @@ func (c *Commander) Start(ctx context.Context, update tgbotapi.Update) {
 	})
 }
 
-func isFeedbackCommand(message *tgbotapi.Message) bool {
-	return message != nil && api.IsCommandText(message.Text, CommandFeedback)
-}
-
 func (c *Commander) Feedback(ctx context.Context, update tgbotapi.Update) {
 	message := update.Message
 	if message == nil {

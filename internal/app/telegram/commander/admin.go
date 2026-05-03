@@ -15,16 +15,18 @@ const (
 )
 
 var (
-	CommandShowUsers = "users"
-	CommandPing      = "ping"
-	CommandAnnounce  = "/announce"
+	CommandShowUsers             = "users"
+	CommandPing                  = "ping"
+	CommandAnnounce              = "/announce"
+	InternalCommandApplyAnnounce = "/internal/apply_announce"
 )
 
 func NewAdminMessageHandlersRegistry(c *Commander) HandlersRegistry {
 	return HandlersRegistry{
-		CommandShowUsers: c.ShowUsers,
-		CommandPing:      c.Pong,
-		CommandAnnounce:  c.Announce,
+		CommandShowUsers:             c.ShowUsers,
+		CommandPing:                  c.Pong,
+		CommandAnnounce:              c.Announce,
+		InternalCommandApplyAnnounce: c.ApplyAnnounce,
 	}
 }
 
@@ -62,17 +64,12 @@ func (c *Commander) ShowUsers(ctx context.Context, update tgbotapi.Update) {
 	}
 }
 
-// TODO: Перепистаь на /internal/apply_announce по аналогии с CommandApplyFeedback
-func (c *Commander) Announce(ctx context.Context, update tgbotapi.Update) {
+func (c *Commander) ApplyAnnounce(ctx context.Context, update tgbotapi.Update) {
 	if !c.API.IsAdmin(update) {
 		return
 	}
 
-	text, entities := announcementPayload(update.Message)
-	if text == "" {
-		return
-	}
-	text, entities = announcementMessage(text, entities)
+	text, entities := api.PrependText(announcementHeader, update.Message.Text, update.Message.Entities)
 
 	for _, userID := range c.Services.User.GetUsersIds(ctx) {
 		if ctx.Err() != nil {
@@ -91,21 +88,19 @@ func (c *Commander) Announce(ctx context.Context, update tgbotapi.Update) {
 			zap.L().Error("Error sending announcement", zap.Error(err), zap.Int64("userId", userID))
 		}
 	}
+
 }
 
-func IsAnnounceCommand(text string) bool {
-	return api.IsCommandText(text, CommandAnnounce)
-}
-
-func announcementPayload(message *tgbotapi.Message) (string, []tgbotapi.MessageEntity) {
-	text, entities, ok := api.CommandPayload(message, CommandAnnounce)
-	if !ok || text == "" {
-		return "", nil
+// TODO: Перепистаь на /internal/apply_announce по аналогии с CommandApplyFeedback
+func (c *Commander) Announce(ctx context.Context, update tgbotapi.Update) {
+	if !c.API.IsAdmin(update) {
+		return
 	}
 
-	return text, entities
-}
+	msg := tgbotapi.NewMessage(update.Message.Chat.ID, "Пожалуйста, введите текст объявления")
+	if err := c.API.Send(ctx, api.MessageConfig{Msg: msg}); err != nil {
+		zap.L().Error("Error sending announce message", zap.Error(err))
+	}
 
-func announcementMessage(text string, entities []tgbotapi.MessageEntity) (string, []tgbotapi.MessageEntity) {
-	return api.PrependText(announcementHeader, text, entities)
+	c.API.SetPendingCommand(ctx, update.Message.Chat.ID, InternalCommandApplyAnnounce)
 }

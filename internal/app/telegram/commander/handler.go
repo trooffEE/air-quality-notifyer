@@ -2,14 +2,12 @@ package commander
 
 import (
 	"context"
-	"fmt"
 
 	tgbotapi "github.com/OvyFlash/telegram-bot-api"
 	"go.uber.org/zap"
 )
 
 func (c *Commander) handleUpdate(ctx context.Context, update tgbotapi.Update) {
-	fmt.Println("handleUpdate", update.Message, update.CallbackQuery, update.Poll)
 	if update.Message != nil {
 		c.handleMessageUpdate(ctx, update)
 	} else if update.CallbackQuery != nil {

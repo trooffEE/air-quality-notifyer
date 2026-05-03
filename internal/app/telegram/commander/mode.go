@@ -37,7 +37,6 @@ func NewModeCallbackHandlersRegistry(c *Commander) HandlersRegistry {
 }
 
 func (c *Commander) Setup(ctx context.Context, update tgbotapi.Update) {
-	fmt.Println("Setup")
 	msg := tgbotapi.NewEditMessageText(
 		update.CallbackQuery.Message.Chat.ID,
 		update.CallbackQuery.Message.MessageID,
