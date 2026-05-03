@@ -62,6 +62,7 @@ func (c *Commander) ShowUsers(ctx context.Context, update tgbotapi.Update) {
 	}
 }
 
+// TODO: Перепистаь на /internal/apply_announce по аналогии с CommandApplyFeedback
 func (c *Commander) Announce(ctx context.Context, update tgbotapi.Update) {
 	if !c.API.IsAdmin(update) {
 		return

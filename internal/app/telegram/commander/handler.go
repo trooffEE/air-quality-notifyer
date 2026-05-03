@@ -2,12 +2,14 @@ package commander
 
 import (
 	"context"
+	"fmt"
 
 	tgbotapi "github.com/OvyFlash/telegram-bot-api"
 	"go.uber.org/zap"
 )
 
 func (c *Commander) handleUpdate(ctx context.Context, update tgbotapi.Update) {
+	fmt.Println("handleUpdate", update.Message, update.CallbackQuery, update.Poll)
 	if update.Message != nil {
 		c.handleMessageUpdate(ctx, update)
 	} else if update.CallbackQuery != nil {
@@ -25,24 +27,21 @@ func (c *Commander) handleMessageUpdate(ctx context.Context, update tgbotapi.Upd
 
 	logClientMessage(message)
 
-	if commandName, exists := c.PendingCommand(ctx, message.Chat.ID); exists {
-		c.DeletePendingCommand(ctx, update.Message.Chat.ID)
+	if commandName := c.API.HandlePendingCommand(ctx, message.Chat.ID); commandName != "" {
 		command, ok := c.messageHandlersRegistry[commandName]
 		if !ok {
 			zap.L().Error("pending command not found", zap.String("commandName", commandName))
 			return
 		}
 		command(ctx, update)
-		return
 	}
 
 	if command, ok := c.messageHandlersRegistry[message.Text]; ok {
 		command(ctx, update)
 	}
 
-	if c.API.IsMenuButton(message.Text) {
-		err := c.API.Delete(ctx, message)
-		if err != nil {
+	if IsMenuButton(message.Text) {
+		if err := c.API.Delete(ctx, message); err != nil {
 			zap.L().Error("failed to delete commander menu item", zap.Error(err))
 		}
 	}
@@ -59,7 +58,7 @@ func (c *Commander) handleCallbackQueryUpdate(ctx context.Context, update tgbota
 		zap.L().Error("failed to answer callback query", zap.Error(err))
 	}
 
-	if command, ok := c.messageHandlersRegistry[callbackQuery.Data]; ok {
+	if command, ok := c.callbackHandlersRegistry[callbackQuery.Data]; ok {
 		command(ctx, update)
 		return
 	}

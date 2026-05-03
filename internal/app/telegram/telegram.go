@@ -190,6 +190,7 @@ func (t *tgBot) listenUpdates(ctx context.Context) {
 			Description: "💬 Обратная связь",
 		},
 	)
+
 	if _, err := t.bot.Request(cfg); err != nil {
 		zap.L().Error("commander request error", zap.Error(err))
 	}

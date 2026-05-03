@@ -17,7 +17,7 @@ import (
 type Services struct {
 	User   user.Interface
 	Sensor sensor.Interface
-	Bot    api.Interface
+	Bot    *api.Api
 }
 
 func Init(cfg config.Config, services Services) func(context.Context) {

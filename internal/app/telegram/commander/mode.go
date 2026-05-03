@@ -23,7 +23,8 @@ const (
 	CallbackDataAskForDistrictOptions = "set_operation_mode_district"
 	CallbackTextSetHome               = "Дом 🏡"
 	CallbackDataSetHome               = "set_operation_mode_home"
-	CallbackTextBack                  = "🌿 Вернуться к режимам работы"
+	CallbackTextBack                  = "Назад"
+	CallbackTextBackToSetup           = "🌿 Вернуться к настройкам режимов работы"
 )
 
 func NewModeCallbackHandlersRegistry(c *Commander) HandlersRegistry {
@@ -36,6 +37,7 @@ func NewModeCallbackHandlersRegistry(c *Commander) HandlersRegistry {
 }
 
 func (c *Commander) Setup(ctx context.Context, update tgbotapi.Update) {
+	fmt.Println("Setup")
 	msg := tgbotapi.NewEditMessageText(
 		update.CallbackQuery.Message.Chat.ID,
 		update.CallbackQuery.Message.MessageID,
@@ -52,7 +54,7 @@ func (c *Commander) Setup(ctx context.Context, update tgbotapi.Update) {
 			tgbotapi.NewInlineKeyboardButtonData(CallbackTextFaqFromSetup, CallbackDataFaqFromSetup),
 		),
 		tgbotapi.NewInlineKeyboardRow(
-			tgbotapi.NewInlineKeyboardButtonData(api.KeypadMenuBackText, api.KeypadMenuBackData),
+			tgbotapi.NewInlineKeyboardButtonData(CallbackTextBack, CallbackDataBack),
 		),
 	)
 
@@ -66,12 +68,12 @@ func (c *Commander) Faq(ctx context.Context, update tgbotapi.Update) {
 
 	if update.CallbackQuery.Data == CallbackDataFaqFromSetup {
 		markup.InlineKeyboard = append(markup.InlineKeyboard, tgbotapi.NewInlineKeyboardRow(
-			tgbotapi.NewInlineKeyboardButtonData(CallbackTextBack, CallbackDataSetup),
+			tgbotapi.NewInlineKeyboardButtonData(CallbackTextBackToSetup, CallbackDataSetup),
 		))
 	}
 
 	markup.InlineKeyboard = append(markup.InlineKeyboard, tgbotapi.NewInlineKeyboardRow(
-		tgbotapi.NewInlineKeyboardButtonData(api.KeypadMenuBackText, api.KeypadMenuBackData),
+		tgbotapi.NewInlineKeyboardButtonData(CallbackTextBack, CallbackDataBack),
 	))
 
 	msg := tgbotapi.NewEditMessageText(
@@ -122,7 +124,7 @@ func (c *Commander) AskForDistrictOptions(ctx context.Context, update tgbotapi.U
 	// TODO: Persist selected districts to users_observed_districts and set constants.District as operating mode.
 	chatID := update.CallbackQuery.Message.Chat.ID
 	districts := c.Services.District.GetAllDistrictsNames(ctx)
-	response, err := c.API.SendPoll(chatID, api.PollConfig{
+	response, err := c.API.SendPoll(ctx, chatID, api.PollConfig{
 		Question: "Интересующие районы 🏘:",
 		Options:  districts,
 	})
@@ -154,7 +156,7 @@ func (c *Commander) HandleDistrictsOptionsResult(ctx context.Context, pollUpdate
 	}
 
 	messageToDelete := tgbotapi.NewDeleteMessage(cachedPollState.ChatID, cachedPollState.MessageID)
-	if err = c.API.DeleteRequest(messageToDelete); err != nil {
+	if err = c.API.DeleteRequest(ctx, messageToDelete); err != nil {
 		zap.L().Error("Error sending DeleteMessage", zap.Error(err))
 	}
 

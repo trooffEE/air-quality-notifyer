@@ -51,13 +51,15 @@ func New(cfg config.Config, bot *tgbotapi.BotAPI, s *Services) *Commander {
 
 func (c *Commander) RegisterMessageHandlers() {
 	if c.messageHandlersRegistry != nil {
-		zap.L().Warn("message handlers registry already registered, can not override it")
+		zap.L().Error("message handlers registry already registered, can not override it")
 		return
 	}
 
 	adminMessageHandlersRegistry := NewAdminMessageHandlersRegistry(c)
+	menuMessageHandlersRegistry := NewMenuMessageHandlersRegistry(c)
+	coreMessageHandlersRegistry := NewCoreMessageHandlersRegistry(c)
 
-	registries := []HandlersRegistry{adminMessageHandlersRegistry}
+	registries := []HandlersRegistry{adminMessageHandlersRegistry, menuMessageHandlersRegistry, coreMessageHandlersRegistry}
 
 	if helper.HasOverlappingKeys(registries...) {
 		zap.L().Error("message handlers registry has overlapping keys")
@@ -69,13 +71,14 @@ func (c *Commander) RegisterMessageHandlers() {
 
 func (c *Commander) RegisterCallbackHandlers() {
 	if c.callbackHandlersRegistry != nil {
-		zap.L().Warn("callback handlers registry already registered, can not override it")
+		zap.L().Error("callback handlers registry already registered, can not override it")
 		return
 	}
 
 	modeCallbackHandlersRegistry := NewModeCallbackHandlersRegistry(c)
+	menuCallbackHandlersRegistry := NewMenuCallbackHandlersRegistry(c)
 
-	registries := []HandlersRegistry{modeCallbackHandlersRegistry}
+	registries := []HandlersRegistry{modeCallbackHandlersRegistry, menuCallbackHandlersRegistry}
 
 	if helper.HasOverlappingKeys(registries...) {
 		zap.L().Error("callback handlers registry has overlapping keys")
@@ -96,32 +99,5 @@ func (c *Commander) HandleUpdate(ctx context.Context, updates tgbotapi.UpdatesCh
 			}
 			c.handleUpdate(ctx, update)
 		}
-	}
-}
-
-func (c *Commander) Settings(ctx context.Context, update tgbotapi.Update) {
-	if ctx.Err() != nil {
-		return
-	}
-
-	msg := tgbotapi.NewMessage(
-		update.Message.Chat.ID,
-		"⚙️ <strong>Настройки</strong>\n"+
-			"Здесь вы можете настроить нужный функционал бота",
-	)
-
-	markup := tgbotapi.NewInlineKeyboardMarkup(
-		tgbotapi.NewInlineKeyboardRow(
-			tgbotapi.NewInlineKeyboardButtonData(mode.KeypadSetupText, mode.KeypadSetupData),
-			//TODO will be back soon
-			//tgbotapi.NewInlineKeyboardButtonData(keypads.SensorsText, keypads.SensorsData),
-		),
-		tgbotapi.NewInlineKeyboardRow(
-			tgbotapi.NewInlineKeyboardButtonData(api.KeypadMenuBackText, api.KeypadMenuBackData),
-		),
-	)
-
-	if err := c.API.Send(ctx, api.MessageConfig{Msg: msg, Markup: markup}); err != nil {
-		zap.L().Error("Error sending configure message", zap.Error(err))
 	}
 }

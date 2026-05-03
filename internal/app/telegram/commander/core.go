@@ -1,18 +1,60 @@
+// Core commands and handlers
+
 package commander
 
 import (
+	"air-quality-notifyer/internal/app/telegram/commander/api"
+	"air-quality-notifyer/internal/service/user/model"
 	"context"
 	"strconv"
-
-	"air-quality-notifyer/internal/app/telegram/commander/api"
 
 	tgbotapi "github.com/OvyFlash/telegram-bot-api"
 	"go.uber.org/zap"
 )
 
 const (
-	CommandFeedback = "feedback"
+	CommandStart                 = "/start"
+	CommandFeedback              = "/feedback"
+	InternalCommandApplyFeedback = "/internal/apply_feedback"
 )
+
+func NewCoreMessageHandlersRegistry(c *Commander) HandlersRegistry {
+	return HandlersRegistry{
+		CommandStart:                 c.Start,
+		CommandFeedback:              c.Feedback,
+		InternalCommandApplyFeedback: c.ApplyFeedback,
+	}
+}
+
+func (c *Commander) ApplyFeedback(ctx context.Context, update tgbotapi.Update) {
+	message := update.Message
+	if message == nil {
+		return
+	}
+	chatID := message.Chat.ID
+
+	c.SendFeedbackToAdmin(ctx, message, message.Text, message.Entities)
+	c.ConfirmFeedback(ctx, chatID)
+}
+
+func (c *Commander) Start(ctx context.Context, update tgbotapi.Update) {
+	message := update.Message
+	chatId, username := message.Chat.ID, message.Chat.UserName
+
+	msg := tgbotapi.NewMessage(chatId, "Данный бот оповещает о плохом качестве воздуха в городе Кемерово.\n\nПросьба настроить уведомления, чтобы бот не беспокоил ночью! 🍵")
+	if err := c.API.Send(ctx, api.MessageConfig{Msg: msg}); err != nil {
+		zap.L().Error("Error sending faq message", zap.Error(err))
+	}
+
+	if !c.Services.User.IsNew(ctx, chatId) {
+		return
+	}
+
+	c.Services.User.Register(ctx, model.User{
+		Id:       strconv.Itoa(int(chatId)),
+		Username: username,
+	})
+}
 
 func isFeedbackCommand(message *tgbotapi.Message) bool {
 	return message != nil && api.IsCommandText(message.Text, CommandFeedback)
@@ -25,20 +67,8 @@ func (c *Commander) Feedback(ctx context.Context, update tgbotapi.Update) {
 	}
 	chatID := message.Chat.ID
 
-	text, entities, ok := api.CommandPayload(message, CommandFeedback)
-	if !ok {
-		return
-	}
-
-	if text == "" {
-		c.SetPendingCommand(ctx, chatID, CommandFeedback)
-		c.AskForFeedback(ctx, chatID)
-		return
-	}
-
-	c.DeletePendingCommand(ctx, chatID)
-	c.SendFeedbackToAdmin(ctx, message, text, entities)
-	c.ConfirmFeedback(ctx, chatID)
+	c.API.SetPendingCommand(ctx, chatID, InternalCommandApplyFeedback)
+	c.AskForFeedback(ctx, chatID)
 }
 
 func (c *Commander) AskForFeedback(ctx context.Context, chatID int64) {

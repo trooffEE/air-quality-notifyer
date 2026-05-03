@@ -1,39 +1,50 @@
-package api
+package commander
 
 import (
 	"context"
 	"fmt"
 	"slices"
 
+	"air-quality-notifyer/internal/app/telegram/commander/api"
+
 	tgbotapi "github.com/OvyFlash/telegram-bot-api"
 	"go.uber.org/zap"
 )
 
-var options = []string{KeypadFaqText, KeypadSettingsText, KeypadUsersText, KeypadPingText}
+const (
+	CallbackTextFaq  = "❓ Режимы работы"
+	CallbackDataFaq  = "operation_mode_faq"
+	CallbackDataBack = "back"
+)
 
-func (a *Api) IsMenuButton(button string) bool {
-	return slices.Contains(options, button)
+const (
+	CommandSettings = "⚙️ Настройки"
+	CommandFaq      = "❓ FAQ"
+)
+
+var options = []string{CommandFaq, CommandSettings, CommandShowUsers, CommandPing}
+
+func NewMenuMessageHandlersRegistry(c *Commander) HandlersRegistry {
+	return HandlersRegistry{
+		CommandFaq:      c.MenuFaq,
+		CommandSettings: c.Settings,
+	}
 }
 
-func NewReplyKeyboard() tgbotapi.ReplyKeyboardMarkup {
-	markup := tgbotapi.NewReplyKeyboard(
-		tgbotapi.NewKeyboardButtonRow(
-			tgbotapi.NewKeyboardButton(KeypadSettingsText),
-			tgbotapi.NewKeyboardButton(KeypadFaqText),
-		),
-	)
-	markup.IsPersistent = true
-
-	return markup
+func NewMenuCallbackHandlersRegistry(c *Commander) HandlersRegistry {
+	return HandlersRegistry{
+		CallbackDataBack: c.MenuBack,
+		CallbackDataFaq:  c.Faq,
+	}
 }
 
-func (a *Api) MenuBack(update tgbotapi.Update) {
-	if err := a.Delete(update.CallbackQuery.Message); err != nil {
+func (c *Commander) MenuBack(ctx context.Context, update tgbotapi.Update) {
+	if err := c.API.Delete(ctx, update.CallbackQuery.Message); err != nil {
 		zap.L().Error("Error deleting previous menu message", zap.Error(err))
 	}
 }
 
-func (a *Api) MenuFaq(ctx context.Context, update tgbotapi.Update) {
+func (c *Commander) MenuFaq(ctx context.Context, update tgbotapi.Update) {
 	msg := tgbotapi.NewMessage(update.Message.Chat.ID, fmt.Sprintf(
 		"⚙️<strong>Ответы на вопросы</strong>\n\n"+
 			"<i>- Связан ли данный бот с https://airkemerovo.ru ?</i>\n"+
@@ -49,19 +60,48 @@ func (a *Api) MenuFaq(ctx context.Context, update tgbotapi.Update) {
 			"ℹ Подробнее о режимах можно прочитать в меню - \n\"%s\"\n\n"+
 			"<i>- Почему на https://airkemerovo.ru больше датчиков, чем в предложенном перечне?</i>\n"+
 			"Потому что на данном этапе проекта реализована работа только с <strong>датчиками города Кемерово</strong>. Это сознательное решение автора проекта, однако это вполне может поменяться в будущем\n\n",
-		KeypadModeFaqText,
+		CallbackTextFaq,
 	),
 	)
 	markup := tgbotapi.NewInlineKeyboardMarkup(
 		tgbotapi.NewInlineKeyboardRow(
-			tgbotapi.NewInlineKeyboardButtonData(KeypadModeFaqText, KeypadModeFaqData),
+			tgbotapi.NewInlineKeyboardButtonData(CallbackTextFaq, CallbackDataFaq),
 		),
 		tgbotapi.NewInlineKeyboardRow(
-			tgbotapi.NewInlineKeyboardButtonData(KeypadMenuBackText, KeypadMenuBackData),
+			tgbotapi.NewInlineKeyboardButtonData("Назад", CallbackDataBack),
 		),
 	)
 
-	if err := a.Send(ctx, MessageConfig{Msg: msg, Markup: markup}); err != nil {
+	if err := c.API.Send(ctx, api.MessageConfig{Msg: msg, Markup: markup}); err != nil {
 		zap.L().Error("Error sending faq message", zap.Error(err))
+	}
+}
+
+func IsMenuButton(button string) bool {
+	return slices.Contains(options, button)
+}
+
+func (c *Commander) Settings(ctx context.Context, update tgbotapi.Update) {
+	if ctx.Err() != nil {
+		return
+	}
+
+	msg := tgbotapi.NewMessage(
+		update.Message.Chat.ID,
+		"⚙️ <strong>Настройки</strong>\n"+
+			"Здесь вы можете настроить нужный функционал бота",
+	)
+
+	markup := tgbotapi.NewInlineKeyboardMarkup(
+		tgbotapi.NewInlineKeyboardRow(
+			tgbotapi.NewInlineKeyboardButtonData(CallbackTextSetup, CallbackDataSetup),
+		),
+		tgbotapi.NewInlineKeyboardRow(
+			tgbotapi.NewInlineKeyboardButtonData(CallbackTextBack, CallbackDataBack),
+		),
+	)
+
+	if err := c.API.Send(ctx, api.MessageConfig{Msg: msg, Markup: markup}); err != nil {
+		zap.L().Error("Error sending configure message", zap.Error(err))
 	}
 }

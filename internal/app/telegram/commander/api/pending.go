@@ -1,4 +1,4 @@
-package commander
+package api
 
 import (
 	"context"
@@ -12,25 +12,36 @@ import (
 
 const pendingCommandTTL = 24 * time.Hour
 
-func (c *Commander) SetPendingCommand(ctx context.Context, chatID int64, command string) {
-	if c.Services.Cache == nil {
+type command string
+
+func (a *Api) HandlePendingCommand(ctx context.Context, chatID int64) string {
+	if commandName, exists := a.GetPendingCommand(ctx, chatID); exists {
+		a.DeletePendingCommand(ctx, chatID)
+		return commandName
+	}
+
+	return ""
+}
+
+func (a *Api) SetPendingCommand(ctx context.Context, chatID int64, command string) {
+	if a.cache == nil {
 		zap.L().Error("pending command cache is not configured")
 		return
 	}
 
-	err := c.Services.Cache.Set(ctx, pendingCommandKey(chatID), command, pendingCommandTTL).Err()
+	err := a.cache.Set(ctx, pendingCommandKey(chatID), command, pendingCommandTTL).Err()
 	if err != nil {
 		zap.L().Error("failed to set pending command", zap.Error(err), zap.Int64("chatId", chatID), zap.String("command", command))
 	}
 }
 
-func (c *Commander) PendingCommand(ctx context.Context, chatID int64) (string, bool) {
-	if c.Services.Cache == nil {
+func (a *Api) GetPendingCommand(ctx context.Context, chatID int64) (string, bool) {
+	if a.cache == nil {
 		zap.L().Error("pending command cache is not configured")
 		return "", false
 	}
 
-	command, err := c.Services.Cache.Get(ctx, pendingCommandKey(chatID)).Result()
+	command, err := a.cache.Get(ctx, pendingCommandKey(chatID)).Result()
 	if errors.Is(err, redis.Nil) {
 		return "", false
 	}
@@ -42,13 +53,13 @@ func (c *Commander) PendingCommand(ctx context.Context, chatID int64) (string, b
 	return command, command != ""
 }
 
-func (c *Commander) DeletePendingCommand(ctx context.Context, chatID int64) {
-	if c.Services.Cache == nil {
+func (a *Api) DeletePendingCommand(ctx context.Context, chatID int64) {
+	if a.cache == nil {
 		zap.L().Error("pending command cache is not configured")
 		return
 	}
 
-	err := c.Services.Cache.Del(ctx, pendingCommandKey(chatID)).Err()
+	err := a.cache.Del(ctx, pendingCommandKey(chatID)).Err()
 	if err != nil {
 		zap.L().Error("failed to delete pending command", zap.Error(err), zap.Int64("chatId", chatID))
 	}

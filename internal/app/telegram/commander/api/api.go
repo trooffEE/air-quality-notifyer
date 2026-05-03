@@ -23,22 +23,6 @@ type Api struct {
 	cache *redis.Client
 }
 
-type Interface interface {
-	Send(ctx context.Context, payload MessageConfig) *tgbotapi.Error
-	SendPoll(chatID int64, config PollConfig) (*tgbotapi.Message, error)
-	AdminChatID() (int64, bool)
-	Delete(update *tgbotapi.Message) error
-	DeleteRequest(message tgbotapi.DeleteMessageConfig) error
-	DeleteTrackedMessages(ctx context.Context, chatID int64, count int)
-	DeleteTrackedMessageByOffset(ctx context.Context, chatID int64, offset int64) error
-	Edit(payload EditMessageConfig) error
-	IsAdmin(update tgbotapi.Update) bool
-	IsNotificationsAllowed() bool
-	MenuBack(update tgbotapi.Update)
-	MenuFaq(update tgbotapi.Update)
-	HomeMapInlineKeyboardButton(text string) tgbotapi.InlineKeyboardButton
-}
-
 func NewApi(cfg config.Config, bot *tgbotapi.BotAPI, cache *redis.Client) (*Api, error) {
 	loc, err := time.LoadLocation("Asia/Novosibirsk")
 	if err != nil {
@@ -84,13 +68,13 @@ func (a *Api) Send(ctx context.Context, payload MessageConfig) *tgbotapi.Error {
 	return nil
 }
 
-func (a *Api) DeleteRequest(message tgbotapi.DeleteMessageConfig) error {
+func (a *Api) DeleteRequest(ctx context.Context, message tgbotapi.DeleteMessageConfig) error {
 	_, err := a.Bot.Request(message)
 	if err != nil {
 		zap.L().Error("Error deleting message", zap.Error(err))
 		return err
 	}
-	a.untrackMessage(context.Background(), message.ChatID, message.MessageID)
+	a.untrackMessage(ctx, message.ChatID, message.MessageID)
 	return nil
 }
 
@@ -131,7 +115,7 @@ type PollConfig struct {
 	OpenPeriod int
 }
 
-func (a *Api) SendPoll(chatID int64, config PollConfig) (*tgbotapi.Message, error) {
+func (a *Api) SendPoll(ctx context.Context, chatID int64, config PollConfig) (*tgbotapi.Message, error) {
 	var options []tgbotapi.InputPollOption
 	for _, option := range config.Options {
 		options = append(options, tgbotapi.NewPollOption(option))
@@ -171,4 +155,16 @@ func (a *Api) AdminChatID() (int64, bool) {
 func (a *Api) IsNotificationsAllowed() bool {
 	h := time.Now().In(a.loc).Hour()
 	return h < 8 && h >= 0
+}
+
+func NewReplyKeyboard() tgbotapi.ReplyKeyboardMarkup {
+	markup := tgbotapi.NewReplyKeyboard(
+		tgbotapi.NewKeyboardButtonRow(
+			tgbotapi.NewKeyboardButton("⚙️ Настройки"),
+			tgbotapi.NewKeyboardButton("❓ FAQ"),
+		),
+	)
+	markup.IsPersistent = true
+
+	return markup
 }
