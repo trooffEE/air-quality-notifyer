@@ -190,7 +190,7 @@ func (h *mapHandler) sendHomeConfirmation(ctx context.Context, chatID int64, sen
 	}
 	msg.ParseMode = tgbotapi.ModeHTML
 
-	if err := h.services.Bot.Send(api.MessageConfig{Msg: msg}); err != nil {
+	if err := h.services.Bot.Send(ctx, api.MessageConfig{Msg: msg}); err != nil {
 		zap.L().Error("failed to send home mode confirmation", zap.Any("error", err), zap.Int64("chatID", chatID))
 		return
 	}

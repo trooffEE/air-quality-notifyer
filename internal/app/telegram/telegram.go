@@ -161,7 +161,7 @@ func (t *tgBot) sendMessagesToUser(ctx context.Context, userID int64, messages [
 		}
 
 		payload := api.MessageConfig{Msg: tgbotapi.NewMessage(userID, message)}
-		if err := t.Commander.API.Send(payload); err != nil && err.Code == 403 {
+		if err := t.Commander.API.Send(ctx, payload); err != nil && err.Code == 403 {
 			t.Commander.Services.User.Delete(ctx, userID)
 			break
 		}
@@ -190,6 +190,7 @@ func (t *tgBot) listenUpdates(ctx context.Context) {
 			Description: "💬 Обратная связь",
 		},
 	)
+
 	if _, err := t.bot.Request(cfg); err != nil {
 		zap.L().Error("commander request error", zap.Error(err))
 	}

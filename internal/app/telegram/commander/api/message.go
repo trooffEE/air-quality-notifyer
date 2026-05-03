@@ -1,4 +1,4 @@
-package message
+package api
 
 import (
 	"strings"
@@ -8,18 +8,6 @@ import (
 
 	tgbotapi "github.com/OvyFlash/telegram-bot-api"
 )
-
-func IsCommand(message *tgbotapi.Message, command string) bool {
-	if message == nil {
-		return false
-	}
-
-	if message.Command() == normalizeCommand(command) {
-		return true
-	}
-
-	return IsCommandText(message.Text, command)
-}
 
 func IsCommandText(text string, command string) bool {
 	_, ok := commandEnd(text, command)
@@ -49,14 +37,14 @@ func CommandPayload(message *tgbotapi.Message, command string) (string, []tgbota
 		return "", nil, true
 	}
 
-	return text, ShiftEntities(message.Entities, UTF16Len(message.Text[:payloadStart])), true
+	return text, shiftEntities(message.Entities, UTF16Len(message.Text[:payloadStart])), true
 }
 
-func Prepend(prefix string, text string, entities []tgbotapi.MessageEntity) (string, []tgbotapi.MessageEntity) {
-	return prefix + text, AddEntityOffset(entities, UTF16Len(prefix))
+func PrependText(prefix string, text string, entities []tgbotapi.MessageEntity) (string, []tgbotapi.MessageEntity) {
+	return prefix + text, addEntityOffset(entities, UTF16Len(prefix))
 }
 
-func ShiftEntities(entities []tgbotapi.MessageEntity, offset int) []tgbotapi.MessageEntity {
+func shiftEntities(entities []tgbotapi.MessageEntity, offset int) []tgbotapi.MessageEntity {
 	if len(entities) == 0 {
 		return nil
 	}
@@ -84,7 +72,7 @@ func ShiftEntities(entities []tgbotapi.MessageEntity, offset int) []tgbotapi.Mes
 	return shifted
 }
 
-func AddEntityOffset(entities []tgbotapi.MessageEntity, offset int) []tgbotapi.MessageEntity {
+func addEntityOffset(entities []tgbotapi.MessageEntity, offset int) []tgbotapi.MessageEntity {
 	if len(entities) == 0 {
 		return nil
 	}

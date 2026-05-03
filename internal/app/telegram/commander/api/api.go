@@ -12,27 +12,15 @@ import (
 	"go.uber.org/zap"
 )
 
+const (
+	CommandMenuFaq = "❓ FAQ"
+)
+
 type Api struct {
 	Bot   *tgbotapi.BotAPI
 	cfg   config.Config
 	loc   *time.Location
 	cache *redis.Client
-}
-
-type Interface interface {
-	Send(payload MessageConfig) *tgbotapi.Error
-	SendPoll(chatID int64, config PollConfig) (*tgbotapi.Message, error)
-	AdminChatID() (int64, bool)
-	Delete(update *tgbotapi.Message) error
-	DeleteRequest(message tgbotapi.DeleteMessageConfig) error
-	DeleteTrackedMessages(ctx context.Context, chatID int64, count int)
-	DeleteTrackedMessageByOffset(ctx context.Context, chatID int64, offset int64) error
-	Edit(payload EditMessageConfig) error
-	IsAdmin(update tgbotapi.Update) bool
-	IsNotificationsAllowed() bool
-	MenuBack(update tgbotapi.Update)
-	MenuFaq(update tgbotapi.Update)
-	HomeMapInlineKeyboardButton(text string) tgbotapi.InlineKeyboardButton
 }
 
 func NewApi(cfg config.Config, bot *tgbotapi.BotAPI, cache *redis.Client) (*Api, error) {
@@ -54,7 +42,7 @@ type MessageConfig struct {
 	DisableParseMode bool
 }
 
-func (a *Api) Send(payload MessageConfig) *tgbotapi.Error {
+func (a *Api) Send(ctx context.Context, payload MessageConfig) *tgbotapi.Error {
 	if !payload.DisableParseMode && len(payload.Msg.Entities) == 0 {
 		payload.Msg.ParseMode = tgbotapi.ModeHTML
 	}
@@ -75,28 +63,28 @@ func (a *Api) Send(payload MessageConfig) *tgbotapi.Error {
 		return nil
 	}
 
-	a.trackMessage(context.Background(), response.Chat.ID, response.MessageID)
+	a.trackMessage(ctx, response.Chat.ID, response.MessageID)
 
 	return nil
 }
 
-func (a *Api) DeleteRequest(message tgbotapi.DeleteMessageConfig) error {
+func (a *Api) DeleteRequest(ctx context.Context, message tgbotapi.DeleteMessageConfig) error {
 	_, err := a.Bot.Request(message)
 	if err != nil {
 		zap.L().Error("Error deleting message", zap.Error(err))
 		return err
 	}
-	a.untrackMessage(context.Background(), message.ChatID, message.MessageID)
+	a.untrackMessage(ctx, message.ChatID, message.MessageID)
 	return nil
 }
 
-func (a *Api) Delete(message *tgbotapi.Message) error {
+func (a *Api) Delete(ctx context.Context, message *tgbotapi.Message) error {
 	_, err := a.Bot.Request(tgbotapi.NewDeleteMessage(message.Chat.ID, message.MessageID))
 	if err != nil {
 		zap.L().Error("Error deleting message", zap.Error(err))
 		return err
 	}
-	a.untrackMessage(context.Background(), message.Chat.ID, message.MessageID)
+	a.untrackMessage(ctx, message.Chat.ID, message.MessageID)
 	return nil
 }
 
@@ -105,7 +93,7 @@ type EditMessageConfig struct {
 	Markup *tgbotapi.InlineKeyboardMarkup
 }
 
-func (a *Api) Edit(payload EditMessageConfig) error {
+func (a *Api) Edit(ctx context.Context, payload EditMessageConfig) error {
 	payload.Msg.ParseMode = tgbotapi.ModeHTML
 
 	if payload.Markup != nil {
@@ -116,7 +104,7 @@ func (a *Api) Edit(payload EditMessageConfig) error {
 	if err != nil {
 		return err
 	}
-	a.trackMessage(context.Background(), payload.Msg.ChatID, payload.Msg.MessageID)
+	a.trackMessage(ctx, payload.Msg.ChatID, payload.Msg.MessageID)
 
 	return nil
 }
@@ -127,7 +115,7 @@ type PollConfig struct {
 	OpenPeriod int
 }
 
-func (a *Api) SendPoll(chatID int64, config PollConfig) (*tgbotapi.Message, error) {
+func (a *Api) SendPoll(ctx context.Context, chatID int64, config PollConfig) (*tgbotapi.Message, error) {
 	var options []tgbotapi.InputPollOption
 	for _, option := range config.Options {
 		options = append(options, tgbotapi.NewPollOption(option))
@@ -167,4 +155,16 @@ func (a *Api) AdminChatID() (int64, bool) {
 func (a *Api) IsNotificationsAllowed() bool {
 	h := time.Now().In(a.loc).Hour()
 	return h < 8 && h >= 0
+}
+
+func NewReplyKeyboard() tgbotapi.ReplyKeyboardMarkup {
+	markup := tgbotapi.NewReplyKeyboard(
+		tgbotapi.NewKeyboardButtonRow(
+			tgbotapi.NewKeyboardButton("⚙️ Настройки"),
+			tgbotapi.NewKeyboardButton("❓ FAQ"),
+		),
+	)
+	markup.IsPersistent = true
+
+	return markup
 }
